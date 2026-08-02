@@ -81,12 +81,29 @@ public/memory-lane.html      the interface (single file, zero deps)
 server.mjs                   zero-dependency HTTP server
 tools/make-sample-library.mjs  deterministic sample library generator
 sample-library/              the bundled demo library (7 blocks, regenerable)
-tests/                       36 tests across core + server
+tests/                       38 tests across core + server
 ```
+
+## Support & reporting issues
+
+Every MAYA product is a public beta. Expect rough edges and rapid iteration.
+
+Found a bug or a sharp edge? Open an issue on this repository. For anything sensitive, use GitHub's **Private vulnerability reporting** (see [SECURITY.md](SECURITY.md)). Never put credentials or private data in a public issue.
+
+If you want your own AI agent to investigate before you report, paste this into it:
+
+````text
+Investigate a bug report for the MAYA Memory Lane repository. Reproduce
+the issue locally if you can, then draft a bug report with: a concise
+summary, steps to reproduce, expected behavior, actual behavior, environment
+details (OS, Node version), and any relevant logs. Redact all credentials,
+API keys, and personal data before showing me the draft. Do not post
+anything anywhere without my explicit approval.
+````
 
 ## License
 
-MIT, see [LICENSE.txt](LICENSE.txt).
+2ndNatureAi Public Beta Evaluation License 1.0, see [LICENSE.txt](LICENSE.txt).
 
 ---
 
