@@ -16,7 +16,7 @@ previous_block: cb_sample_0003
 
 ## Session Scope
 
-Drafted the weekly team memo. Shared notes are the default reading surface; the continuity library is the record of how decisions were reached.
+Drafted the weekly team memo. Shared notes are the default reading surface; the library is the record of how decisions were reached.
 
 ## Completed — Do Not Rerun
 

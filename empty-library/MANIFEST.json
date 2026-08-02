@@ -1,0 +1,14 @@
+{
+  "library": "memory-lane-empty",
+  "version": "1.0.0",
+  "schema_version": "1.0",
+  "schema_description": "An empty Memory Lane library. Records appear here as sessions are sealed.",
+  "created": "2026-08-02T00:00:00Z",
+  "updated": 0,
+  "total_blocks": 0,
+  "total_shelves": 0,
+  "volumes": [],
+  "shelves": [],
+  "blocks": [],
+  "lineages": {}
+}

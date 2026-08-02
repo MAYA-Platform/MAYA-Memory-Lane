@@ -2,7 +2,7 @@
 /**
  * Memory Lane — sample library generator.
  *
- * Creates a small, deterministic demo Continuity Library so the repo runs
+ * Creates a small, deterministic demo library so the repo runs
  * out of the box without any real data. It mirrors the exact on-disk format
  * the engine uses: MANIFEST.json, shelves/shelf-NNN/block-NNN.md, shelf and
  * volume manifests, and a SHA-256 chain across blocks.
@@ -115,7 +115,7 @@ const SESSIONS = [
   { title: 'Product Notes', subject: 'first session of the sample library', body: 'First sample session. The user captured a set of product notes for the memory layer and filed them as the first micro block. This is the shape every session leaves behind: a sealed record with a fingerprint.' },
   { title: 'Architecture Review', subject: 'second sample session', body: 'Reviewed the memory-layer architecture against the constraint stack. Decision: files stay the source of truth; any index is derived and disposable. This block records the decision and links back to block 001.' },
   { title: 'Budget Pass', subject: 'third sample session', body: 'Audited provider spend and routed more work to local models. The balance picture was captured and filed. Each block carries the fingerprint of the block before it, so the chain reads like a spine.' },
-  { title: 'Team Briefing', subject: 'fourth sample session', body: 'Drafted the weekly team memo. Shared notes are the default reading surface; the continuity library is the record of how decisions were reached.' },
+  { title: 'Team Briefing', subject: 'fourth sample session', body: 'Drafted the weekly team memo. Shared notes are the default reading surface; the library is the record of how decisions were reached.' },
   { title: 'Release Prep', subject: 'fifth sample session', body: 'Prepared a public product repo for release. Same quality bar as the rest of the family: README, screenshot, tests, license, security policy.' },
   { title: 'Market Watch', subject: 'sixth sample session', body: 'Logged the market validation notes for the agent-memory category. Six micro blocks now sit in the chain; the next consolidation pass will fold them into one canonical shelf block.' },
 ];
@@ -237,10 +237,10 @@ function build() {
 
   // Master manifest
   const manifest = {
-    library: 'memory-lane-library',
+    library: 'sample-library',
     version: '1.0.0',
     schema_version: '1.0',
-    schema_description: 'Memory Lane sample library — mirrors the memory-lane-library on-disk format.',
+    schema_description: 'Memory Lane sample library, mirrors the plain-file library format used by the engine.',
     created: '2026-07-27T00:00:00Z',
     updated: 7,
     total_blocks: 7,

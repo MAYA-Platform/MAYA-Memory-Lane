@@ -71,6 +71,28 @@
   .verdict.neutral { background: var(--blue-deep); border: 1px solid var(--blue); color: var(--blue); }
   .verdict .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
+  /* Empty state */
+  .empty-state {
+    display: none;
+    text-align: center;
+    padding: 56px 24px 64px;
+    border: 1px dashed var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    margin: 8px 0 28px;
+  }
+  .empty-state.visible { display: block; }
+  .empty-state .orb-lg {
+    width: 84px; height: 84px; border-radius: 50%; margin: 0 auto 22px;
+    background: radial-gradient(circle at 35% 30%, #fff8e8 0%, #f0c060 22%, var(--amber) 48%, #7d531c 78%, #3a2a12 100%);
+    box-shadow: 0 0 32px rgba(240,160,48,.35), inset 0 0 14px rgba(255,255,255,.3);
+  }
+  .empty-state h3 { font-size: 22px; font-weight: 700; color: var(--text); }
+  .empty-state h3 .gold { color: var(--gold); }
+  .empty-state p { color: var(--muted); font-size: 15px; max-width: 560px; margin: 12px auto 0; }
+  .empty-state .actions { margin-top: 24px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .empty-state .note { font-size: 12px; color: var(--muted); margin-top: 16px; font-family: var(--mono); }
+
   /* Controls */
   .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
   .control { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
@@ -86,6 +108,7 @@
     padding: 9px 16px; font-size: 14px; font-weight: 700; cursor: pointer; transition: filter .15s;
   }
   button:hover { filter: brightness(1.1); }
+  button:focus-visible, [role="button"]:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
   button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
   button.ghost:hover { color: var(--text); border-color: var(--muted); }
 
@@ -192,18 +215,29 @@
   </div>
 
   <div class="status-strip" id="statusStrip">
-    <div class="verdict neutral" id="verdict"><span class="dot"></span><span id="verdictText">Checking library…</span></div>
+    <div class="verdict neutral" id="verdict" aria-live="polite"><span class="dot"></span><span id="verdictText">Checking library…</span></div>
     <div class="stat"><div class="label">Blocks</div><div class="value" id="sBlocks">—</div></div>
     <div class="stat"><div class="label">Shelves</div><div class="value" id="sShelves">—</div></div>
     <div class="stat"><div class="label">Lineages</div><div class="value" id="sLineages">—</div></div>
     <div class="stat"><div class="label">Library</div><div class="value" style="font-size:14px; word-break:break-all;" id="sLibrary">—</div></div>
   </div>
 
-  <div class="controls">
+  <!-- Empty-state hero (shown on first run) -->
+  <div class="empty-state" id="emptyState">
+    <div class="orb-lg"></div>
+    <h3>Your memory <span class="gold">lane</span> is empty</h3>
+    <p>This is where your records will live. Every session you seal becomes a block on your lane: a sealed record with a fingerprint, chained to the one before it.</p>
+    <div class="actions">
+      <button id="loadSampleBtn">Load sample library</button>
+    </div>
+    <div class="note">The sample is fabricated demo data. It shows the record format without touching anything of yours.</div>
+  </div>
+
+  <div class="controls hidden" id="controls">
     <div class="control">
       <div class="label">Resume phrase, your key</div>
       <div class="row">
-        <input type="text" id="resumeInput" placeholder="e.g. cb_sample_0004">
+        <input type="text" id="resumeInput" aria-label="Resume phrase" placeholder="e.g. cb_sample_0004">
         <button id="resumeBtn">Resume</button>
       </div>
       <div class="hint">One string crosses sessions. The library holds everything else.</div>
@@ -211,7 +245,7 @@
     <div class="control">
       <div class="label">Search your memory</div>
       <div class="row">
-        <input type="text" id="searchInput" placeholder="e.g. consolidation">
+        <input type="text" id="searchInput" aria-label="Search your memory" placeholder="e.g. consolidation">
         <button id="searchBtn">Search</button>
       </div>
       <div class="hint">Plain-text search across every block body.</div>
@@ -220,12 +254,14 @@
 
   <div class="results hidden" id="searchResults"></div>
 
-  <h2>Timeline Lane</h2>
-  <div class="lane" id="lane"><div class="empty">Loading…</div></div>
+  <div id="contentSections" class="hidden">
+    <h2>Timeline Lane</h2>
+    <div class="lane" id="lane"><div class="empty">Loading…</div></div>
 
-  <h2>Chain Integrity</h2>
-  <p class="empty" style="margin-bottom:12px;">Every block carries a fingerprint of the block before it. Changing anything breaks the chain: verification recomputes every fingerprint and walks the links.</p>
-  <div id="chainView"><div class="empty">Loading…</div></div>
+    <h2>Chain Integrity</h2>
+    <p class="empty" style="margin-bottom:12px;">Every block carries a fingerprint of the block before it. Changing anything breaks the chain: verification recomputes every fingerprint and walks the links.</p>
+    <div id="chainView"><div class="empty">Loading…</div></div>
+  </div>
 
   <h2>How It Works</h2>
   <div class="flow-wrap">
@@ -284,8 +320,8 @@
       <!-- Row 4: library -->
       <text x="40" y="380" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">STORAGE</text>
       <rect x="40" y="392" width="400" height="58" rx="8" fill="#141519" stroke="#6fadff" stroke-width="1.5"/>
-      <text x="240" y="414" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">CONTINUITY LIBRARY</text>
-      <text x="240" y="432" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">files are truth · shelves · volumes · manifest · you own the files</text>
+      <text x="240" y="414" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">MEMORY LANE LIBRARY</text>
+      <text x="240" y="432" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">files are truth · shelves · volumes · you own the files</text>
 
       <!-- Right column: verify -->
       <rect x="560" y="46" width="200" height="54" rx="8" fill="#141519" stroke="#52d273" stroke-width="1.5" stroke-dasharray="4 3"/>
@@ -308,8 +344,9 @@
     </div>
   </div>
 
-  <div class="export-bar">
+  <div class="export-bar hidden" id="exportBar">
     <button id="exportBtn">Export library (JSON)</button>
+    <button class="ghost" id="resetBtn">Start fresh (clear sample)</button>
     <button class="ghost" id="refreshBtn">Refresh</button>
     <span class="hint" id="exportHint">Deterministic JSON bundle of the whole library.</span>
   </div>
@@ -322,10 +359,10 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-const state = { blocks: [] };
+const state = { blocks: [], mode: 'empty' };
 
-async function j(url) {
-  const r = await fetch(url);
+async function j(url, opts) {
+  const r = await fetch(url, opts);
   if (!r.ok) throw new Error(url + ' → ' + r.status);
   return r.json();
 }
@@ -340,19 +377,37 @@ function setVerdict(kind, text) {
   $('verdictText').textContent = text;
 }
 
+/** Show empty-state hero, hide data surfaces. */
+function showEmpty() {
+  $('emptyState').classList.add('visible');
+  $('controls').classList.add('hidden');
+  $('contentSections').classList.add('hidden');
+  $('exportBar').classList.add('hidden');
+  $('searchResults').classList.add('hidden');
+}
+
+/** Show the populated surfaces. */
+function showPopulated() {
+  $('emptyState').classList.remove('visible');
+  $('controls').classList.remove('hidden');
+  $('contentSections').classList.remove('hidden');
+  $('exportBar').classList.remove('hidden');
+}
+
 async function loadStatus() {
   try {
     const s = await j('/api/status');
+    state.mode = s.mode || 'empty';
     $('sBlocks').textContent = s.stats.totalBlocks;
     $('sShelves').textContent = s.stats.totalShelves;
     $('sLineages').textContent = s.stats.lineageCount;
     $('sLibrary').textContent = s.library.replace(/\\/g, '/');
-    if (s.chain.intact) {
-      setVerdict('good', 'Your memory is intact, ' + s.chain.okCount + '/' + s.chain.total + ' links verified');
-    } else if (s.chain.status === 'unchecked') {
-      setVerdict('neutral', 'Chain verified except ' + s.chain.unchecked + ' unverifiable link(s), no recorded fingerprint to compare');
+    if (s.stats.totalBlocks === 0) {
+      setVerdict('neutral', 'Your memory lane is empty. Records appear here as sessions are sealed.');
+      showEmpty();
     } else {
-      setVerdict('bad', 'Chain issues: ' + s.chain.issues + ' of ' + s.chain.total + ' blocks need attention');
+      setVerdict('good', 'Your memory is intact, ' + s.chain.okCount + '/' + s.chain.total + ' links verified');
+      showPopulated();
     }
   } catch (e) {
     setVerdict('bad', 'Could not reach library: ' + e.message);
@@ -374,7 +429,7 @@ async function loadBlocks() {
       div.className = 'lane-item' + (b.block_id.includes('consolidated') ? ' consolidated' : '');
       const isCons = b.block_id.includes('consolidated');
       div.innerHTML = `
-        <div class="card" data-id="${b.lib_id}">
+        <div class="card" role="button" tabindex="0" aria-expanded="false" aria-label="Block ${b.lib_id}: ${esc(b.block_id)}. Activate to view details." data-id="${b.lib_id}">
           <div class="top">
             <span class="num">#${String(b.lib_id).padStart(3,'0')}</span>
             <span class="bid">${esc(b.block_id)}</span>
@@ -386,7 +441,12 @@ async function loadBlocks() {
           <div class="meta">sha ${esc(b.sha256)}…${b.prev_block_id ? ' · prev ' + esc(b.prev_block_id) : ''}</div>
           <div class="body"><pre>Loading…</pre></div>
         </div>`;
-      div.querySelector('.card').addEventListener('click', () => toggleBlock(div, b.lib_id));
+      const card = div.querySelector('.card');
+      const toggle = () => toggleBlock(div, b.lib_id);
+      card.addEventListener('click', toggle);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
       lane.appendChild(div);
     }
   } catch (e) {
@@ -399,9 +459,11 @@ async function toggleBlock(item, libId) {
   const body = card.querySelector('.body');
   if (card.classList.contains('open')) {
     card.classList.remove('open');
+    card.setAttribute('aria-expanded', 'false');
     return;
   }
   card.classList.add('open');
+  card.setAttribute('aria-expanded', 'true');
   if (body.dataset.loaded) return;
   try {
     const d = await j('/api/blocks/' + libId);
@@ -451,7 +513,7 @@ async function doResume() {
     const d = await j('/api/resume?phrase=' + encodeURIComponent(phrase));
     if (d.found && d.blocks && d.blocks.length) {
       box.innerHTML = '<div class="empty" style="margin-bottom:8px;">Resume phrase found: ' + d.blocks.length + ' block(s). Scroll to the timeline below.</div>' +
-        d.blocks.map((b) => `<div class="result" onclick="location.hash='#';document.querySelector('[data-id=&quot;' + ${b.lib_id} + '&quot;]').scrollIntoView({behavior:'smooth'})"><span class="rid">#${String(b.lib_id).padStart(3,'0')}</span> ${esc(b.block_id)}</div>`).join('');
+        d.blocks.map((b) => `<div class="result" role="button" tabindex="0" aria-label="Go to block ${b.lib_id}" onclick="scrollToBlock(${b.lib_id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();scrollToBlock(${b.lib_id});}"><span class="rid">#${String(b.lib_id).padStart(3,'0')}</span> ${esc(b.block_id)}</div>`).join('');
     } else {
       box.innerHTML = '<div class="empty">No block matches that resume phrase.</div>';
     }
@@ -473,16 +535,45 @@ async function doSearch() {
       return;
     }
     box.innerHTML = '<div class="empty" style="margin-bottom:8px;">' + d.count + ' match(es) for “' + esc(q) + '”</div>' +
-      d.matches.map((m) => `<div class="result" onclick="scrollToBlock(${m.lib_id})"><span class="rid">#${String(m.lib_id).padStart(3,'0')}</span> ${esc(m.block_id)}<div class="excerpt">${esc(m.excerpt)}</div></div>`).join('');
+      d.matches.map((m) => `<div class="result" role="button" tabindex="0" aria-label="Go to block ${m.lib_id}" onclick="scrollToBlock(${m.lib_id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();scrollToBlock(${m.lib_id});}"><span class="rid">#${String(m.lib_id).padStart(3,'0')}</span> ${esc(m.block_id)}<div class="excerpt">${esc(m.excerpt)}</div></div>`).join('');
   } catch (e) {
     box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
   }
+}
+
+async function reloadAll() {
+  await loadStatus();
+  await loadBlocks();
+  await loadChain();
+  $('searchResults').classList.add('hidden');
+  $('resumeInput').value = '';
+  $('searchInput').value = '';
 }
 
 window.scrollToBlock = function(libId) {
   const el = document.querySelector('[data-id="' + libId + '"]');
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 };
+
+$('loadSampleBtn').addEventListener('click', async () => {
+  $('loadSampleBtn').textContent = 'Loading…';
+  try {
+    await j('/api/load-sample', { method: 'POST' });
+    await reloadAll();
+  } catch (e) {
+    $('loadSampleBtn').textContent = 'Load sample library';
+    $('verdictText').textContent = 'Could not load sample: ' + e.message;
+  }
+});
+
+$('resetBtn').addEventListener('click', async () => {
+  try {
+    await j('/api/load-empty', { method: 'POST' });
+    await reloadAll();
+  } catch (e) {
+    $('exportHint').textContent = 'Reset failed: ' + e.message;
+  }
+});
 
 $('resumeBtn').addEventListener('click', doResume);
 $('resumeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doResume(); });
@@ -504,9 +595,7 @@ $('exportBtn').addEventListener('click', async () => {
   }
 });
 
-$('refreshBtn').addEventListener('click', () => {
-  loadStatus(); loadBlocks(); loadChain();
-});
+$('refreshBtn').addEventListener('click', reloadAll);
 
 loadStatus();
 loadBlocks();

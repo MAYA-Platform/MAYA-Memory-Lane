@@ -10,7 +10,6 @@ const PORT = 8799; // dedicated test port
 const BASE = `http://127.0.0.1:${PORT}`;
 
 let server;
-let baseUrl;
 
 test.before(async () => {
   server = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], {
@@ -47,26 +46,64 @@ test('GET / serves the Memory Lane UI', async () => {
   assert.match(html, /Chain Integrity/);
 });
 
-test('GET /api/status returns stats and chain verdict', async () => {
+test('fresh boot is BLANK: 0 blocks, mode empty', async () => {
   const r = await fetch(`${BASE}/api/status`);
   assert.equal(r.status, 200);
   const d = await r.json();
   assert.equal(d.ok, true);
+  assert.equal(d.mode, 'empty');
+  assert.equal(d.stats.totalBlocks, 0);
+  assert.equal(d.chain.total, 0);
+  assert.equal(d.chain.intact, true);
+});
+
+test('blank boot library label is machine-agnostic (no drive path)', async () => {
+  const r = await fetch(`${BASE}/api/status`);
+  const d = await r.json();
+  assert.equal(d.library, 'empty-library (bundled)');
+  assert.doesNotMatch(d.library, /^[A-Za-z]:[\\/]/);
+  assert.doesNotMatch(d.library, /[\\/]Users[\\/]/);
+});
+
+test('blank boot: blocks list is empty', async () => {
+  const r = await fetch(`${BASE}/api/blocks`);
+  const d = await r.json();
+  assert.equal(d.count, 0);
+  assert.deepEqual(d.blocks, []);
+});
+
+test('GET /api/mode reports empty on fresh boot', async () => {
+  const r = await fetch(`${BASE}/api/mode`);
+  const d = await r.json();
+  assert.equal(d.mode, 'empty');
+});
+
+test('sample switching requires POST (GET returns 405)', async () => {
+  const r = await fetch(`${BASE}/api/load-sample`);
+  assert.equal(r.status, 405);
+  const d = await r.json();
+  assert.equal(d.ok, false);
+});
+
+test('POST /api/load-sample switches to the bundled sample', async () => {
+  const r = await fetch(`${BASE}/api/load-sample`, { method: 'POST' });
+  assert.equal(r.status, 200);
+  const d = await r.json();
+  assert.equal(d.ok, true);
+  assert.equal(d.mode, 'sample');
+  assert.equal(d.library, 'sample-library (bundled)');
+});
+
+test('after load-sample: status reports 7 blocks intact', async () => {
+  const r = await fetch(`${BASE}/api/status`);
+  const d = await r.json();
+  assert.equal(d.mode, 'sample');
   assert.equal(d.stats.totalBlocks, 7);
   assert.equal(d.chain.intact, true);
   assert.equal(d.chain.okCount, 7);
 });
 
-test('GET /api/status library label is machine-agnostic (no drive path)', async () => {
-  // The bundled sample must never leak an absolute Windows path.
-  const r = await fetch(`${BASE}/api/status`);
-  const d = await r.json();
-  assert.equal(d.library, 'sample-library (bundled)');
-  assert.doesNotMatch(d.library, /^[A-Za-z]:[\\/]/);
-  assert.doesNotMatch(d.library, /[\\/]Users[\\/]/);
-});
-
-test('GET /api/blocks returns all 7 blocks sorted', async () => {
+test('after load-sample: blocks list returns all 7 sorted', async () => {
   const r = await fetch(`${BASE}/api/blocks`);
   assert.equal(r.status, 200);
   const d = await r.json();
@@ -133,6 +170,45 @@ test('GET /api/export returns a complete deterministic bundle', async () => {
   const d = await r.json();
   assert.equal(d.blockCount, 7);
   assert.ok(d.blocks.every((b) => b.recorded_sha256 === b.computed_sha256));
+});
+
+test('POST /api/load-empty returns to a blank lane', async () => {
+  const r = await fetch(`${BASE}/api/load-empty`, { method: 'POST' });
+  const d = await r.json();
+  assert.equal(d.ok, true);
+  assert.equal(d.mode, 'empty');
+  const s = await (await fetch(`${BASE}/api/status`)).json();
+  assert.equal(s.stats.totalBlocks, 0);
+});
+
+test('sample switching disabled when MEMORY_LANE_LIBRARY is external (400)', async () => {
+  // Spin a second server pinned to the sample as an "external" library.
+  const p2 = 8797;
+  const srv = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], {
+    env: { ...process.env, PORT: String(p2), MEMORY_LANE_LIBRARY: path.join(ROOT, 'sample-library') },
+    stdio: 'ignore'
+  });
+  const base2 = `http://127.0.0.1:${p2}`;
+  const deadline = Date.now() + 8000;
+  while (Date.now() < deadline) {
+    try {
+      const r = await fetch(`${base2}/api/status`);
+      if (r.ok) break;
+    } catch {
+      // not up yet
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  try {
+    const mode = await (await fetch(`${base2}/api/mode`)).json();
+    assert.equal(mode.mode, 'external');
+    const r = await fetch(`${base2}/api/load-sample`, { method: 'POST' });
+    assert.equal(r.status, 400);
+    const d = await r.json();
+    assert.equal(d.ok, false);
+  } finally {
+    srv.kill();
+  }
 });
 
 test('unknown API route returns 404 JSON', async () => {
