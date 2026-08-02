@@ -72,6 +72,17 @@ function getLibrary() {
   return lib;
 }
 
+/**
+ * Public library label. When MEMORY_LANE_LIBRARY is unset (the bundled sample),
+ * show a relative, machine-agnostic label instead of the absolute path.
+ * An externally supplied library is shown as given.
+ */
+function libraryLabel() {
+  if (!process.env.MEMORY_LANE_LIBRARY) return 'sample-library (bundled)';
+  const rel = path.relative(ROOT, LIBRARY_PATH);
+  return rel && !rel.startsWith('..') ? rel : LIBRARY_PATH;
+}
+
 const routes = {
   '/api/status': (req, res) => {
     const lib = getLibrary();
@@ -80,7 +91,7 @@ const routes = {
     const chain = verifyChain(lib);
     sendJson(res, 200, {
       ok: true,
-      library: LIBRARY_PATH,
+      library: libraryLabel(),
       stats,
       chain: {
         intact: chain.intact,

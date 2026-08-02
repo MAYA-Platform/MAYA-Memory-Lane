@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Memory Lane — your memory, on a chain, in your pocket</title>
+<title>Memory Lane: your memory, on a chain, in your pocket</title>
 <style>
   :root {
     --bg: #0d0e12;
@@ -198,7 +198,7 @@
 
   <div class="controls">
     <div class="control">
-      <div class="label">Resume phrase — your key</div>
+      <div class="label">Resume phrase, your key</div>
       <div class="row">
         <input type="text" id="resumeInput" placeholder="e.g. cb_sample_0004">
         <button id="resumeBtn">Resume</button>
@@ -221,7 +221,7 @@
   <div class="lane" id="lane"><div class="empty">Loading…</div></div>
 
   <h2>Chain Integrity</h2>
-  <p class="empty" style="margin-bottom:12px;">Every block carries a fingerprint of the block before it. Changing anything breaks the chain — verification recomputes every fingerprint and walks the links.</p>
+  <p class="empty" style="margin-bottom:12px;">Every block carries a fingerprint of the block before it. Changing anything breaks the chain: verification recomputes every fingerprint and walks the links.</p>
   <div id="chainView"><div class="empty">Loading…</div></div>
 
   <h2>How It Works</h2>
@@ -301,7 +301,7 @@
       <text x="510" y="162" text-anchor="middle" fill="#52d273" font-size="9" font-family="monospace">verify</text>
     </svg>
     <div class="flow-caption">
-      <b>Your memory is a chain of sealed records, not a chat log.</b> Every session leaves a micro block — a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks fold into one shelf block, so the library grows one shelf per six sessions instead of one file per session. Each shelf block carries the fingerprint of the block before it, so the whole history is linked: change anything and the break is visible. The files are yours, stored on your machine, organized into shelves and volumes with a manifest — no cloud hoarder in the middle. A single resume phrase pulls the whole library back when you need it. That's Memory Lane: you own the memory, the chain keeps it honest.
+      <b>Your memory is a chain of sealed records, not a chat log.</b> Every session leaves a micro block, a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks fold into one shelf block, so the library grows one shelf per six sessions instead of one file per session. Each shelf block carries the fingerprint of the block before it, so the whole history is linked: change anything and the break is visible. The files are yours, stored on your machine, organized into shelves and volumes with a manifest, no cloud hoarder in the middle. A single resume phrase pulls the whole library back when you need it. That's Memory Lane: you own the memory, the chain keeps it honest.
     </div>
   </div>
 
@@ -312,7 +312,7 @@
   </div>
 
   <footer>
-    <span>Memory Lane — linked memory records you own.</span>
+    <span>Memory Lane: linked memory records you own.</span>
     <span class="powered">Powered by 2ndNatureAi</span>
   </footer>
 </div>
@@ -345,9 +345,9 @@ async function loadStatus() {
     $('sLineages').textContent = s.stats.lineageCount;
     $('sLibrary').textContent = s.library.replace(/\\/g, '/');
     if (s.chain.intact) {
-      setVerdict('good', 'Your memory is intact — ' + s.chain.okCount + '/' + s.chain.total + ' links verified');
+      setVerdict('good', 'Your memory is intact, ' + s.chain.okCount + '/' + s.chain.total + ' links verified');
     } else if (s.chain.status === 'unchecked') {
-      setVerdict('neutral', 'Chain verified except ' + s.chain.unchecked + ' unverifiable link(s) — no recorded fingerprint to compare');
+      setVerdict('neutral', 'Chain verified except ' + s.chain.unchecked + ' unverifiable link(s), no recorded fingerprint to compare');
     } else {
       setVerdict('bad', 'Chain issues: ' + s.chain.issues + ' of ' + s.chain.total + ' blocks need attention');
     }
@@ -425,7 +425,7 @@ async function loadChain() {
         <div class="chain-row">
           <span class="cnum">#${String(b.lib_id).padStart(3,'0')}</span>
           <span class="cbid">${esc(b.block_id)}</span>
-          <span class="csha">${esc(b.computedSha || '—')}…</span>
+          <span class="csha">${esc(b.computedSha || 'n/a')}…</span>
           <span class="cstat ${ok ? 'ok' : 'issue'}">${ok ? 'ok' : esc(b.status) + detail}</span>
         </div>`;
       if (b.prevBlockId && ok) {
@@ -447,7 +447,7 @@ async function doResume() {
   try {
     const d = await j('/api/resume?phrase=' + encodeURIComponent(phrase));
     if (d.found && d.blocks && d.blocks.length) {
-      box.innerHTML = '<div class="empty" style="margin-bottom:8px;">Resume phrase found — ' + d.blocks.length + ' block(s). Scroll to the timeline below.</div>' +
+      box.innerHTML = '<div class="empty" style="margin-bottom:8px;">Resume phrase found: ' + d.blocks.length + ' block(s). Scroll to the timeline below.</div>' +
         d.blocks.map((b) => `<div class="result" onclick="location.hash='#';document.querySelector('[data-id=&quot;' + ${b.lib_id} + '&quot;]').scrollIntoView({behavior:'smooth'})"><span class="rid">#${String(b.lib_id).padStart(3,'0')}</span> ${esc(b.block_id)}</div>`).join('');
     } else {
       box.innerHTML = '<div class="empty">No block matches that resume phrase.</div>';

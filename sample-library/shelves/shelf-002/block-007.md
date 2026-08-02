@@ -6,7 +6,7 @@ block_number: 7
 status: active
 topic: consolidation
 previous_block: cb_sample_0006
-previous_hash: 1ffa6e37388aa2995384606433aef1877cef77590ec4b5cc9be0fafdc2596a2c
+previous_hash: 6f76daedfbd057d898e6600893a5179738e1e5eafb8a2da722b96f19e764b845
 timestamp: "2026-08-01T00:00:00Z"
 purpose: consolidated_shelf_record
 actor: system

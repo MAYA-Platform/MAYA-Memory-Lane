@@ -16,7 +16,7 @@ previous_block: cb_sample_0005
 
 ## Session Scope
 
-Logged the market validation notes for the agent-memory category. Six micro-blocks now sit in the chain — the next consolidation pass will fold them into one canonical shelf block.
+Logged the market validation notes for the agent-memory category. Six micro blocks now sit in the chain; the next consolidation pass will fold them into one canonical shelf block.
 
 ## Completed — Do Not Rerun
 

@@ -57,6 +57,15 @@ test('GET /api/status returns stats and chain verdict', async () => {
   assert.equal(d.chain.okCount, 7);
 });
 
+test('GET /api/status library label is machine-agnostic (no drive path)', async () => {
+  // The bundled sample must never leak an absolute Windows path.
+  const r = await fetch(`${BASE}/api/status`);
+  const d = await r.json();
+  assert.equal(d.library, 'sample-library (bundled)');
+  assert.doesNotMatch(d.library, /^[A-Za-z]:[\\/]/);
+  assert.doesNotMatch(d.library, /[\\/]Users[\\/]/);
+});
+
 test('GET /api/blocks returns all 7 blocks sorted', async () => {
   const r = await fetch(`${BASE}/api/blocks`);
   assert.equal(r.status, 200);

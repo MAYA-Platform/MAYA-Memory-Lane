@@ -183,6 +183,16 @@ test('exportLibrary is deterministic and complete', () => {
   assert.ok(a.blocks.every((x) => x.recorded_sha256 === x.computed_sha256));
 });
 
+test('sample blocks carry no internal stack vocabulary', () => {
+  // Public demo data must not leak internal agent/provider identities.
+  const lib = loadLibrary(SAMPLE);
+  const exported = exportLibrary(lib);
+  const blob = JSON.stringify(exported);
+  for (const token of ['hermes', 'deepseek', 'merge_gateway', 'deepseek', 'api.deepseek']) {
+    assert.doesNotMatch(blob.toLowerCase(), new RegExp(token), `block data leaked "${token}"`);
+  }
+});
+
 test('exportLibrary blocks are sorted by lib_id', () => {
   const lib = loadLibrary(SAMPLE);
   const out = exportLibrary(lib);
