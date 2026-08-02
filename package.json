@@ -1,0 +1,17 @@
+{
+  "name": "maya-memory-lane",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Linked memory records you own. Tamper-evident memory with a resume phrase as the key — local-first, zero dependencies.",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/memory-lane-core.test.mjs tests/memory-lane-server.test.mjs",
+    "make-sample": "node tools/make-sample-library.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "license": "SEE LICENSE IN LICENSE.txt"
+}

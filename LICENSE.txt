@@ -1,0 +1,11 @@
+2ndNatureAi Public Beta Evaluation License 1.0
+
+Copyright (c) 2026 2ndNatureAi. All rights reserved.
+
+Permission is granted to download, inspect, and run unmodified copies of this software solely for personal, internal, non-commercial evaluation and good-faith security research during the public beta.
+
+You may make local modifications solely for those evaluation purposes. You may not redistribute the software or modified versions, sublicense it, sell it, provide it as a hosted or managed service, use it in production or for commercial purposes, remove ownership notices, or use the source code or bundled materials to train a machine-learning model without prior written authorization from 2ndNatureAi.
+
+Third-party components remain governed by their own license notices. No trademark rights are granted.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, SECURITY, OR ERROR-FREE OPERATION. TO THE MAXIMUM EXTENT PERMITTED BY LAW, 2NDNATUREAI SHALL NOT BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE SOFTWARE OR ITS USE.

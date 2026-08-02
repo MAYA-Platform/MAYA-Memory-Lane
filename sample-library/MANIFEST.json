@@ -1,0 +1,153 @@
+{
+  "library": "memory-lane-library",
+  "version": "1.0.0",
+  "schema_version": "1.0",
+  "schema_description": "Memory Lane sample library — mirrors the memory-lane-library on-disk format.",
+  "created": "2026-07-27T00:00:00Z",
+  "updated": 7,
+  "total_blocks": 7,
+  "total_shelves": 2,
+  "volumes": [
+    "volume-memory-layer"
+  ],
+  "shelves": [
+    "shelf-001",
+    "shelf-002"
+  ],
+  "blocks": [
+    {
+      "lib_id": 1,
+      "canonical_name": "cb_sample_0001",
+      "shelf": "shelf-001",
+      "position": 1,
+      "block_id": "cb_sample_0001",
+      "lineage": "cb_sample",
+      "volume": "volume-memory-layer",
+      "status": "active",
+      "revision_version": "0.1",
+      "sha256": "4682a9698d80dcaa9fd5b7d284700f2c4b6f130187c29ff7f1e7394e6487fdf8",
+      "prev_block_id": null,
+      "prev_sha256": null,
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-001.md"
+    },
+    {
+      "lib_id": 2,
+      "canonical_name": "cb_sample_0002",
+      "shelf": "shelf-001",
+      "position": 2,
+      "block_id": "cb_sample_0002",
+      "lineage": "cb_sample",
+      "volume": "volume-memory-layer",
+      "status": "active",
+      "revision_version": "0.1",
+      "sha256": "a8ba535ff030184496972829f9c771c70d9dff1bb1b1e1deb47121a204fc51b5",
+      "prev_block_id": "cb_sample_0001",
+      "prev_sha256": "4682a9698d80dcaa9fd5b7d284700f2c4b6f130187c29ff7f1e7394e6487fdf8",
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-002.md"
+    },
+    {
+      "lib_id": 3,
+      "canonical_name": "cb_sample_0003",
+      "shelf": "shelf-001",
+      "position": 3,
+      "block_id": "cb_sample_0003",
+      "lineage": "cb_sample",
+      "volume": "volume-memory-layer",
+      "status": "active",
+      "revision_version": "0.1",
+      "sha256": "a0535275d0fab6fedaa25ee58790fe8d4944e89cb8560556cd6206b21931809a",
+      "prev_block_id": "cb_sample_0002",
+      "prev_sha256": "a8ba535ff030184496972829f9c771c70d9dff1bb1b1e1deb47121a204fc51b5",
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-003.md"
+    },
+    {
+      "lib_id": 4,
+      "canonical_name": "cb_sample_0004",
+      "shelf": "shelf-001",
+      "position": 4,
+      "block_id": "cb_sample_0004",
+      "lineage": "cb_sample",
+      "volume": "volume-memory-layer",
+      "status": "active",
+      "revision_version": "0.1",
+      "sha256": "dcdce06e303212877dc3ffe8b5b4d886d88e86444d6e3e09696ed3573e62cd1e",
+      "prev_block_id": "cb_sample_0003",
+      "prev_sha256": "a0535275d0fab6fedaa25ee58790fe8d4944e89cb8560556cd6206b21931809a",
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-004.md"
+    },
+    {
+      "lib_id": 5,
+      "canonical_name": "cb_sample_0005",
+      "shelf": "shelf-001",
+      "position": 5,
+      "block_id": "cb_sample_0005",
+      "lineage": "cb_sample",
+      "volume": "volume-memory-layer",
+      "status": "active",
+      "revision_version": "0.1",
+      "sha256": "11d55273999ef15ab19b1c7e9b6fd418055c89e5f7cc1f165d49cf649b5f1f12",
+      "prev_block_id": "cb_sample_0004",
+      "prev_sha256": "dcdce06e303212877dc3ffe8b5b4d886d88e86444d6e3e09696ed3573e62cd1e",
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-005.md"
+    },
+    {
+      "lib_id": 6,
+      "canonical_name": "cb_sample_0006",
+      "shelf": "shelf-001",
+      "position": 6,
+      "block_id": "cb_sample_0006",
+      "lineage": "cb_sample",
+      "volume": "volume-memory-layer",
+      "status": "active",
+      "revision_version": "0.1",
+      "sha256": "1ffa6e37388aa2995384606433aef1877cef77590ec4b5cc9be0fafdc2596a2c",
+      "prev_block_id": "cb_sample_0005",
+      "prev_sha256": "11d55273999ef15ab19b1c7e9b6fd418055c89e5f7cc1f165d49cf649b5f1f12",
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-006.md"
+    },
+    {
+      "lib_id": 7,
+      "canonical_name": "cb_sample_consolidated_0001_0006",
+      "shelf": "shelf-002",
+      "position": 1,
+      "block_id": "cb_sample_consolidated_0001_0006",
+      "lineage": "cb_sample",
+      "volume": "volume-memory-layer",
+      "status": "active",
+      "revision_version": "1.0",
+      "sha256": "45c8b381fa1b6e9a4c50eb94ce1ed81745553b466618b0f60f3eba927cf023fe",
+      "prev_block_id": "cb_sample_0006",
+      "prev_sha256": "1ffa6e37388aa2995384606433aef1877cef77590ec4b5cc9be0fafdc2596a2c",
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-007.md"
+    }
+  ],
+  "lineages": {
+    "cb_sample": {
+      "blocks": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "volume": "volume-memory-layer",
+      "block_count": 7
+    }
+  }
+}

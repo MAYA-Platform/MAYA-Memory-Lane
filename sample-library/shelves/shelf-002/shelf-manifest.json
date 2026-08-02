@@ -1,0 +1,22 @@
+{
+  "shelf_id": "shelf-002",
+  "block_count": 1,
+  "block_range": "blocks 007-007",
+  "blocks": [
+    {
+      "lib_id": 7,
+      "position": 1,
+      "block_id": "cb_sample_consolidated_0001_0006",
+      "canonical_name": "cb_sample_consolidated_0001_0006",
+      "lineage": "cb_sample",
+      "revision_version": "1.0",
+      "status": "active",
+      "sha256": "45c8b381fa1b6e9a4c50eb94ce1ed81745553b466618b0f60f3eba927cf023fe",
+      "prev_block_id": "cb_sample_0006",
+      "prev_sha256": "1ffa6e37388aa2995384606433aef1877cef77590ec4b5cc9be0fafdc2596a2c",
+      "supersedes_id": null,
+      "superseded_by_id": null,
+      "filename": "block-007.md"
+    }
+  ]
+}

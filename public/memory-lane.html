@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Memory Lane — your memory, on a chain, in your pocket</title>
+<style>
+  :root {
+    --bg: #0d0e12;
+    --panel: #141519;
+    --panel-2: #1a1c21;
+    --border: #26282f;
+    --text: #f2e6df;
+    --muted: #8a827c;
+    --gold: #e6a817;
+    --amber: #f0a030;
+    --orange: #ff7a39;
+    --green: #52d273;
+    --green-deep: #2d4a2d;
+    --red: #ff6f6f;
+    --red-deep: #5b1d1d;
+    --blue: #6fadff;
+    --blue-deep: #1d2f4a;
+    --mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  /* Header */
+  .brand { display: flex; align-items: center; gap: 16px; margin-bottom: 8px; }
+  .orb {
+    width: 46px; height: 46px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #fff8e8 0%, #f0c060 22%, var(--amber) 48%, #7d531c 78%, #3a2a12 100%);
+    box-shadow: 0 0 18px rgba(240,160,48,.45), inset 0 0 10px rgba(255,255,255,.35);
+    flex-shrink: 0;
+  }
+  h1 { font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
+  h1 .gold { color: var(--gold); }
+  .tagline { color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+  /* Status strip */
+  .status-strip {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px; margin: 24px 0;
+  }
+  .stat {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  .stat .value { font-size: 22px; font-weight: 700; margin-top: 4px; font-family: var(--mono); }
+  .stat .sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .verdict {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 12px;
+    border-radius: 10px; padding: 14px 16px;
+    font-weight: 600; font-size: 15px;
+  }
+  .verdict.good { background: var(--green-deep); border: 1px solid var(--green); color: var(--green); }
+  .verdict.bad { background: var(--red-deep); border: 1px solid var(--red); color: var(--red); }
+  .verdict.neutral { background: var(--blue-deep); border: 1px solid var(--blue); color: var(--blue); }
+  .verdict .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  /* Controls */
+  .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 28px; }
+  .control { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .control .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+  .row { display: flex; gap: 8px; }
+  input[type="text"] {
+    flex: 1; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    border-radius: 8px; padding: 9px 12px; font-size: 14px; font-family: var(--mono); outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--amber); }
+  button {
+    background: var(--amber); color: #1a1206; border: none; border-radius: 8px;
+    padding: 9px 16px; font-size: 14px; font-weight: 700; cursor: pointer; transition: filter .15s;
+  }
+  button:hover { filter: brightness(1.1); }
+  button.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-weight: 500; }
+  button.ghost:hover { color: var(--text); border-color: var(--muted); }
+
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; font-family: var(--mono); }
+
+  /* Search results */
+  .results { margin-bottom: 24px; }
+  .result {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 8px; cursor: pointer;
+  }
+  .result:hover { border-color: var(--amber); }
+  .result .rid { font-family: var(--mono); font-size: 12px; color: var(--gold); }
+  .result .excerpt { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
+
+  /* Sections */
+  h2 {
+    font-size: 15px; text-transform: uppercase; letter-spacing: .1em; color: var(--gold);
+    margin: 36px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+
+  /* Timeline lane */
+  .lane { position: relative; padding-left: 30px; }
+  .lane::before {
+    content: ''; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px;
+    background: linear-gradient(to bottom, var(--amber), var(--border) 80%);
+  }
+  .lane-item { position: relative; margin-bottom: 14px; }
+  .lane-item::before {
+    content: ''; position: absolute; left: -27px; top: 20px; width: 12px; height: 12px; border-radius: 50%;
+    background: var(--bg); border: 3px solid var(--amber);
+  }
+  .lane-item.consolidated::before { border-color: var(--gold); background: var(--gold); }
+  .card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; cursor: pointer; transition: border-color .15s;
+  }
+  .card:hover { border-color: var(--amber); }
+  .card .top { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .card .num { font-family: var(--mono); font-weight: 700; color: var(--gold); font-size: 14px; }
+  .card .bid { font-family: var(--mono); font-size: 13px; color: var(--text); }
+  .card .badges { margin-left: auto; display: flex; gap: 6px; }
+  .badge { font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding: 2px 8px; border-radius: 20px; border: 1px solid; }
+  .badge.shelf { color: var(--muted); border-color: var(--border); }
+  .badge.lineage { color: var(--blue); border-color: var(--blue-deep); }
+  .badge.consolidated { color: var(--gold); border-color: #7d531c; }
+  .card .meta { font-size: 12px; color: var(--muted); margin-top: 8px; font-family: var(--mono); word-break: break-all; }
+  .card .prev { font-size: 12px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+  .card .body {
+    margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+    font-size: 13.5px; color: var(--text); white-space: pre-wrap; max-height: 340px; overflow: auto;
+    display: none;
+  }
+  .card.open .body { display: block; }
+  .card .body pre { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: pre-wrap; margin-bottom: 10px; }
+
+  /* Chain view */
+  .chain-row {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 6px; font-family: var(--mono); font-size: 12.5px;
+  }
+  .chain-row .cnum { color: var(--gold); font-weight: 700; width: 40px; }
+  .chain-row .cbid { flex: 1; color: var(--text); }
+  .chain-row .cstat { font-weight: 700; text-transform: uppercase; font-size: 11px; }
+  .cstat.ok { color: var(--green); }
+  .cstat.issue { color: var(--red); }
+  .chain-row .csha { color: var(--muted); font-size: 11px; }
+  .link-arrow { text-align: center; color: var(--border); font-size: 14px; margin: -2px 0 6px 26px; font-family: var(--mono); }
+
+  /* Flow chart */
+  .flow-wrap {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; overflow-x: auto;
+  }
+  .flow-wrap svg { display: block; margin: 0 auto; min-width: 760px; }
+  .flow-caption { font-size: 13px; color: var(--muted); margin-top: 14px; line-height: 1.6; }
+  .flow-caption b { color: var(--gold); font-weight: 600; }
+
+  /* Export / footer */
+  .export-bar { display: flex; align-items: center; gap: 12px; margin-top: 28px; }
+  .export-bar .hint { margin: 0; }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  footer .powered { color: var(--gold); }
+  .hidden { display: none; }
+  @media (max-width: 720px) {
+    .controls { grid-template-columns: 1fr; }
+    .brand { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="brand">
+    <div class="orb"></div>
+    <div>
+      <h1>Memory <span class="gold">Lane</span></h1>
+      <div class="tagline">Your memory, on a chain, in your pocket.</div>
+    </div>
+  </div>
+
+  <div class="status-strip" id="statusStrip">
+    <div class="verdict neutral" id="verdict"><span class="dot"></span><span id="verdictText">Checking library…</span></div>
+    <div class="stat"><div class="label">Blocks</div><div class="value" id="sBlocks">—</div></div>
+    <div class="stat"><div class="label">Shelves</div><div class="value" id="sShelves">—</div></div>
+    <div class="stat"><div class="label">Lineages</div><div class="value" id="sLineages">—</div></div>
+    <div class="stat"><div class="label">Library</div><div class="value" style="font-size:14px; word-break:break-all;" id="sLibrary">—</div></div>
+  </div>
+
+  <div class="controls">
+    <div class="control">
+      <div class="label">Resume phrase — your key</div>
+      <div class="row">
+        <input type="text" id="resumeInput" placeholder="e.g. cb_sample_0004">
+        <button id="resumeBtn">Resume</button>
+      </div>
+      <div class="hint">One string crosses sessions. The library holds everything else.</div>
+    </div>
+    <div class="control">
+      <div class="label">Search your memory</div>
+      <div class="row">
+        <input type="text" id="searchInput" placeholder="e.g. consolidation">
+        <button id="searchBtn">Search</button>
+      </div>
+      <div class="hint">Plain-text search across every block body.</div>
+    </div>
+  </div>
+
+  <div class="results hidden" id="searchResults"></div>
+
+  <h2>Timeline Lane</h2>
+  <div class="lane" id="lane"><div class="empty">Loading…</div></div>
+
+  <h2>Chain Integrity</h2>
+  <p class="empty" style="margin-bottom:12px;">Every block carries a fingerprint of the block before it. Changing anything breaks the chain — verification recomputes every fingerprint and walks the links.</p>
+  <div id="chainView"><div class="empty">Loading…</div></div>
+
+  <h2>How It Works</h2>
+  <div class="flow-wrap">
+    <!-- Flow chart: inline SVG -->
+    <svg viewBox="0 0 800 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Memory Lane linked-record flow">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#f0a030"/>
+        </marker>
+        <linearGradient id="finger" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#52d273"/>
+          <stop offset="100%" stop-color="#2d4a2d"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Row 1: sessions -->
+      <text x="40" y="34" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">EVERY SESSION</text>
+      <rect x="40" y="46" width="150" height="54" rx="8" fill="#141519" stroke="#f0a030" stroke-width="1.5"/>
+      <text x="115" y="70" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">SESSION</text>
+      <text x="115" y="88" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">notes · decisions · state</text>
+
+      <line x1="190" y1="73" x2="238" y2="73" stroke="#f0a030" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <rect x="240" y="46" width="170" height="54" rx="8" fill="#141519" stroke="#e6a817" stroke-width="1.5"/>
+      <text x="325" y="68" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">MICRO BLOCK</text>
+      <text x="325" y="86" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">sealed record</text>
+      <rect x="250" y="72" width="150" height="12" rx="4" fill="url(#finger)"/>
+      <text x="325" y="81" text-anchor="middle" fill="#0d0e12" font-size="8.5" font-family="monospace" font-weight="bold">SHA-256 FINGERPRINT</text>
+
+      <!-- Arrow down to compaction -->
+      <line x1="325" y1="100" x2="325" y2="128" stroke="#f0a030" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <!-- Row 2: compaction -->
+      <text x="40" y="146" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">EVERY 6 SESSIONS</text>
+      <rect x="40" y="158" width="400" height="60" rx="8" fill="#141519" stroke="#f0a030" stroke-width="1.5"/>
+      <text x="240" y="182" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">6 MICRO BLOCKS → 1 SHELF BLOCK</text>
+      <text x="240" y="200" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">6→1 compaction · the library grows linearly, never exponentially</text>
+
+      <!-- Arrow down -->
+      <line x1="240" y1="218" x2="240" y2="246" stroke="#f0a030" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <!-- Row 3: shelf block + chain -->
+      <text x="40" y="264" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">LINKED RECORDS</text>
+      <rect x="40" y="276" width="170" height="58" rx="8" fill="#141519" stroke="#e6a817" stroke-width="1.5"/>
+      <text x="125" y="298" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">SHELF BLOCK</text>
+      <text x="125" y="316" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">numbered · sealed</text>
+
+      <line x1="210" y1="305" x2="258" y2="305" stroke="#f0a030" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <rect x="260" y="276" width="180" height="58" rx="8" fill="#141519" stroke="#e6a817" stroke-width="1.5"/>
+      <text x="350" y="296" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">SHELF BLOCK +1</text>
+      <text x="350" y="314" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">carries prev fingerprint</text>
+
+      <!-- Arrow down to library -->
+      <line x1="240" y1="334" x2="240" y2="362" stroke="#f0a030" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+      <!-- Row 4: library -->
+      <text x="40" y="380" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">STORAGE</text>
+      <rect x="40" y="392" width="400" height="58" rx="8" fill="#141519" stroke="#6fadff" stroke-width="1.5"/>
+      <text x="240" y="414" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">CONTINUITY LIBRARY</text>
+      <text x="240" y="432" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">files are truth · shelves · volumes · manifest · you own the files</text>
+
+      <!-- Right column: verify -->
+      <rect x="560" y="46" width="200" height="54" rx="8" fill="#141519" stroke="#52d273" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="660" y="68" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">VERIFY ANY TIME</text>
+      <text x="660" y="86" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">recompute · walk links</text>
+
+      <line x1="660" y1="100" x2="660" y2="128" stroke="#52d273" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+
+      <rect x="560" y="130" width="200" height="88" rx="8" fill="#2d4a2d" stroke="#52d273" stroke-width="1.5"/>
+      <text x="660" y="156" text-anchor="middle" fill="#52d273" font-size="12" font-family="monospace" font-weight="bold">YOUR MEMORY IS INTACT</text>
+      <text x="660" y="176" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">any change breaks a link,</text>
+      <text x="660" y="190" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">and the break is visible</text>
+      <text x="660" y="206" text-anchor="middle" fill="#52d273" font-size="10" font-family="monospace">tamper-evident · auditable</text>
+
+      <line x1="560" y1="174" x2="460" y2="174" stroke="#52d273" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+      <text x="510" y="162" text-anchor="middle" fill="#52d273" font-size="9" font-family="monospace">verify</text>
+    </svg>
+    <div class="flow-caption">
+      <b>Your memory is a chain of sealed records, not a chat log.</b> Every session leaves a micro block — a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks fold into one shelf block, so the library grows one shelf per six sessions instead of one file per session. Each shelf block carries the fingerprint of the block before it, so the whole history is linked: change anything and the break is visible. The files are yours, stored on your machine, organized into shelves and volumes with a manifest — no cloud hoarder in the middle. A single resume phrase pulls the whole library back when you need it. That's Memory Lane: you own the memory, the chain keeps it honest.
+    </div>
+  </div>
+
+  <div class="export-bar">
+    <button id="exportBtn">Export library (JSON)</button>
+    <button class="ghost" id="refreshBtn">Refresh</button>
+    <span class="hint" id="exportHint">Deterministic JSON bundle of the whole library.</span>
+  </div>
+
+  <footer>
+    <span>Memory Lane — linked memory records you own.</span>
+    <span class="powered">Powered by 2ndNatureAi</span>
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const state = { blocks: [] };
+
+async function j(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(url + ' → ' + r.status);
+  return r.json();
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function setVerdict(kind, text) {
+  const v = $('verdict');
+  v.className = 'verdict ' + kind;
+  $('verdictText').textContent = text;
+}
+
+async function loadStatus() {
+  try {
+    const s = await j('/api/status');
+    $('sBlocks').textContent = s.stats.totalBlocks;
+    $('sShelves').textContent = s.stats.totalShelves;
+    $('sLineages').textContent = s.stats.lineageCount;
+    $('sLibrary').textContent = s.library.replace(/\\/g, '/');
+    if (s.chain.intact) {
+      setVerdict('good', 'Your memory is intact — ' + s.chain.okCount + '/' + s.chain.total + ' links verified');
+    } else if (s.chain.status === 'unchecked') {
+      setVerdict('neutral', 'Chain verified except ' + s.chain.unchecked + ' unverifiable link(s) — no recorded fingerprint to compare');
+    } else {
+      setVerdict('bad', 'Chain issues: ' + s.chain.issues + ' of ' + s.chain.total + ' blocks need attention');
+    }
+  } catch (e) {
+    setVerdict('bad', 'Could not reach library: ' + e.message);
+  }
+}
+
+async function loadBlocks() {
+  const lane = $('lane');
+  try {
+    const d = await j('/api/blocks');
+    state.blocks = d.blocks;
+    if (!d.blocks.length) {
+      lane.innerHTML = '<div class="empty">No blocks in this library yet.</div>';
+      return;
+    }
+    lane.innerHTML = '';
+    for (const b of d.blocks) {
+      const div = document.createElement('div');
+      div.className = 'lane-item' + (b.block_id.includes('consolidated') ? ' consolidated' : '');
+      const isCons = b.block_id.includes('consolidated');
+      div.innerHTML = `
+        <div class="card" data-id="${b.lib_id}">
+          <div class="top">
+            <span class="num">#${String(b.lib_id).padStart(3,'0')}</span>
+            <span class="bid">${esc(b.block_id)}</span>
+            <span class="badges">
+              <span class="badge shelf">${esc(b.shelf)}</span>
+              ${isCons ? '<span class="badge consolidated">shelf block</span>' : '<span class="badge lineage">' + esc(b.lineage || 'lineage') + '</span>'}
+            </span>
+          </div>
+          <div class="meta">sha ${esc(b.sha256)}…${b.prev_block_id ? ' · prev ' + esc(b.prev_block_id) : ''}</div>
+          <div class="body"><pre>Loading…</pre></div>
+        </div>`;
+      div.querySelector('.card').addEventListener('click', () => toggleBlock(div, b.lib_id));
+      lane.appendChild(div);
+    }
+  } catch (e) {
+    lane.innerHTML = '<div class="empty">Failed to load blocks: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function toggleBlock(item, libId) {
+  const card = item.querySelector('.card');
+  const body = card.querySelector('.body');
+  if (card.classList.contains('open')) {
+    card.classList.remove('open');
+    return;
+  }
+  card.classList.add('open');
+  if (body.dataset.loaded) return;
+  try {
+    const d = await j('/api/blocks/' + libId);
+    if (d.present) {
+      body.innerHTML = '<pre>' + esc(JSON.stringify(d.fields || {}, null, 2)) + '</pre>' + esc(d.body || '(no body)');
+    } else {
+      body.textContent = d.reason || 'block file missing';
+    }
+    body.dataset.loaded = '1';
+  } catch (e) {
+    body.textContent = 'failed: ' + e.message;
+  }
+}
+
+async function loadChain() {
+  const view = $('chainView');
+  try {
+    const d = await j('/api/chain');
+    let html = '';
+    for (const b of d.blocks) {
+      const ok = b.status === 'ok';
+      const detail = b.prevCheck && b.prevCheck.status !== 'ok' ? ' · prev link ' + b.prevCheck.status : '';
+      html += `
+        <div class="chain-row">
+          <span class="cnum">#${String(b.lib_id).padStart(3,'0')}</span>
+          <span class="cbid">${esc(b.block_id)}</span>
+          <span class="csha">${esc(b.computedSha || '—')}…</span>
+          <span class="cstat ${ok ? 'ok' : 'issue'}">${ok ? 'ok' : esc(b.status) + detail}</span>
+        </div>`;
+      if (b.prevBlockId && ok) {
+        html += '<div class="link-arrow">▲ ' + esc(b.prevBlockId) + '</div>';
+      }
+    }
+    view.innerHTML = html || '<div class="empty">No blocks.</div>';
+  } catch (e) {
+    view.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function doResume() {
+  const phrase = $('resumeInput').value.trim();
+  const box = $('searchResults');
+  if (!phrase) return;
+  box.classList.remove('hidden');
+  box.innerHTML = '<div class="empty">Looking up “' + esc(phrase) + '”…</div>';
+  try {
+    const d = await j('/api/resume?phrase=' + encodeURIComponent(phrase));
+    if (d.found && d.blocks && d.blocks.length) {
+      box.innerHTML = '<div class="empty" style="margin-bottom:8px;">Resume phrase found — ' + d.blocks.length + ' block(s). Scroll to the timeline below.</div>' +
+        d.blocks.map((b) => `<div class="result" onclick="location.hash='#';document.querySelector('[data-id=&quot;' + ${b.lib_id} + '&quot;]').scrollIntoView({behavior:'smooth'})"><span class="rid">#${String(b.lib_id).padStart(3,'0')}</span> ${esc(b.block_id)}</div>`).join('');
+    } else {
+      box.innerHTML = '<div class="empty">No block matches that resume phrase.</div>';
+    }
+  } catch (e) {
+    box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
+  }
+}
+
+async function doSearch() {
+  const q = $('searchInput').value.trim();
+  const box = $('searchResults');
+  if (!q) return;
+  box.classList.remove('hidden');
+  box.innerHTML = '<div class="empty">Searching for “' + esc(q) + '”…</div>';
+  try {
+    const d = await j('/api/search?q=' + encodeURIComponent(q));
+    if (!d.matches.length) {
+      box.innerHTML = '<div class="empty">No matches for “' + esc(q) + '”.</div>';
+      return;
+    }
+    box.innerHTML = '<div class="empty" style="margin-bottom:8px;">' + d.count + ' match(es) for “' + esc(q) + '”</div>' +
+      d.matches.map((m) => `<div class="result" onclick="scrollToBlock(${m.lib_id})"><span class="rid">#${String(m.lib_id).padStart(3,'0')}</span> ${esc(m.block_id)}<div class="excerpt">${esc(m.excerpt)}</div></div>`).join('');
+  } catch (e) {
+    box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
+  }
+}
+
+window.scrollToBlock = function(libId) {
+  const el = document.querySelector('[data-id="' + libId + '"]');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+};
+
+$('resumeBtn').addEventListener('click', doResume);
+$('resumeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doResume(); });
+$('searchBtn').addEventListener('click', doSearch);
+$('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+
+$('exportBtn').addEventListener('click', async () => {
+  try {
+    const d = await j('/api/export');
+    const blob = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'memory-lane-export.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    $('exportHint').textContent = 'Exported ' + d.blockCount + ' blocks.';
+  } catch (e) {
+    $('exportHint').textContent = 'Export failed: ' + e.message;
+  }
+});
+
+$('refreshBtn').addEventListener('click', () => {
+  loadStatus(); loadBlocks(); loadChain();
+});
+
+loadStatus();
+loadBlocks();
+loadChain();
+</script>
+</body>
+</html>

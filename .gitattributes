@@ -1,0 +1,12 @@
+# Force LF line endings everywhere — the sample library's SHA-256
+# fingerprints are computed over LF bytes. CRLF conversion would break
+# chain verification on a fresh checkout.
+* text=auto eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.mjs text eol=lf
+*.js text eol=lf
+*.cjs text eol=lf
+*.html text eol=lf
+*.png binary
+*.jpg binary

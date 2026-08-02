@@ -1,0 +1,117 @@
+{
+  "version": "1.0",
+  "project": "maya-memory-lane",
+  "generated": "2026-08-02T23:05:41.647Z",
+  "total_entries": 27,
+  "total_bytes": 293737,
+  "files": {
+    ".gitignore": {
+      "sha256": "89d95301b280d52e437869145b2eab9c5896e02723ac9a1907a0ff178b2ea7bb",
+      "size": 75
+    },
+    "LICENSE.txt": {
+      "sha256": "66dff18c299dbf223ba9692aa0b372be2bda2fbf12485a063f6f4b2ae930704a",
+      "size": 1164
+    },
+    "README.md": {
+      "sha256": "2030d4232769c4136524979b5ead319224215bd1c9402fd296c0d7b705474228",
+      "size": 4658
+    },
+    "SECURITY.md": {
+      "sha256": "0d0065708568668a34ddb34a414969a3678e2b7b3971019c6330ce5bbd74a159",
+      "size": 1441
+    },
+    "docs/images/memory-lane-public.png": {
+      "sha256": "378cdc6b77e602080d66c68ef806c99000e215bd26318a2a53c47edcac8cdecf",
+      "size": 214838
+    },
+    "lib/memoryLaneCore.js": {
+      "sha256": "c6d51badc1c01f6824977baf2f80aceb7114e5b11e35f5ee76d8eeceaa4a483a",
+      "size": 11623
+    },
+    "package.json": {
+      "sha256": "57eb88f0c38a544d0ad22af284cad6b64dc9951071ff64f4f6aa23c9e1fb52f7",
+      "size": 542
+    },
+    "public/memory-lane.html": {
+      "sha256": "4b50c4180d41e1d8436acb092cc69d73549fc2ebd5de4710b3782e08ce1d8133",
+      "size": 25083
+    },
+    "sample-library/LIBRARY_README.md": {
+      "sha256": "3be7eed2604ff212ed9c2992e1440a5f671da0eb5a77dfaf1d74c06fe0a36f30",
+      "size": 310
+    },
+    "sample-library/MANIFEST.json": {
+      "sha256": "a0472b16f5bf18088f2e97addd6975b3e83fbd7e216b61708f351b391023bac9",
+      "size": 4742
+    },
+    "sample-library/blocks/micro-2026-07/cb_sample_0001.md": {
+      "sha256": "4682a9698d80dcaa9fd5b7d284700f2c4b6f130187c29ff7f1e7394e6487fdf8",
+      "size": 981
+    },
+    "sample-library/blocks/micro-2026-07/cb_sample_0002.md": {
+      "sha256": "a8ba535ff030184496972829f9c771c70d9dff1bb1b1e1deb47121a204fc51b5",
+      "size": 987
+    },
+    "sample-library/blocks/micro-2026-07/cb_sample_0003.md": {
+      "sha256": "a0535275d0fab6fedaa25ee58790fe8d4944e89cb8560556cd6206b21931809a",
+      "size": 958
+    },
+    "sample-library/blocks/micro-2026-07/cb_sample_0004.md": {
+      "sha256": "dcdce06e303212877dc3ffe8b5b4d886d88e86444d6e3e09696ed3573e62cd1e",
+      "size": 932
+    },
+    "sample-library/blocks/micro-2026-07/cb_sample_0005.md": {
+      "sha256": "11d55273999ef15ab19b1c7e9b6fd418055c89e5f7cc1f165d49cf649b5f1f12",
+      "size": 935
+    },
+    "sample-library/blocks/micro-2026-07/cb_sample_0006.md": {
+      "sha256": "1ffa6e37388aa2995384606433aef1877cef77590ec4b5cc9be0fafdc2596a2c",
+      "size": 946
+    },
+    "sample-library/shelves/shelf-001/block-001.md": {
+      "sha256": "4682a9698d80dcaa9fd5b7d284700f2c4b6f130187c29ff7f1e7394e6487fdf8",
+      "size": 981
+    },
+    "sample-library/shelves/shelf-001/block-002.md": {
+      "sha256": "a8ba535ff030184496972829f9c771c70d9dff1bb1b1e1deb47121a204fc51b5",
+      "size": 987
+    },
+    "sample-library/shelves/shelf-001/block-003.md": {
+      "sha256": "a0535275d0fab6fedaa25ee58790fe8d4944e89cb8560556cd6206b21931809a",
+      "size": 958
+    },
+    "sample-library/shelves/shelf-001/block-004.md": {
+      "sha256": "dcdce06e303212877dc3ffe8b5b4d886d88e86444d6e3e09696ed3573e62cd1e",
+      "size": 932
+    },
+    "sample-library/shelves/shelf-001/block-005.md": {
+      "sha256": "11d55273999ef15ab19b1c7e9b6fd418055c89e5f7cc1f165d49cf649b5f1f12",
+      "size": 935
+    },
+    "sample-library/shelves/shelf-001/block-006.md": {
+      "sha256": "1ffa6e37388aa2995384606433aef1877cef77590ec4b5cc9be0fafdc2596a2c",
+      "size": 946
+    },
+    "sample-library/shelves/shelf-001/shelf-manifest.json": {
+      "sha256": "27b7d8a71f267bcf6fb1788c6d22dba90efc8b3cd450078e2b8d549ed23ac69a",
+      "size": 3196
+    },
+    "sample-library/shelves/shelf-002/block-007.md": {
+      "sha256": "45c8b381fa1b6e9a4c50eb94ce1ed81745553b466618b0f60f3eba927cf023fe",
+      "size": 2232
+    },
+    "sample-library/shelves/shelf-002/shelf-manifest.json": {
+      "sha256": "adc1b41161fb5fc90dad2db0287be8e2d1a95ff19a2f544be35891f37e065b32",
+      "size": 666
+    },
+    "sample-library/volumes/volume-memory-layer/volume-manifest.json": {
+      "sha256": "cf8575c0f13f87895db03d1367dfb0fe3c145f7797210abfbefc5a2bd75d83d9",
+      "size": 3967
+    },
+    "server.mjs": {
+      "sha256": "609cc51118df61be308f2d8313b746d5eddc53438b95676f583ac06aefb3ec07",
+      "size": 7722
+    }
+  }
+}
