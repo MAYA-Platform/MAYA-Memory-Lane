@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "project": "maya-memory-lane",
-  "total_entries": 28,
-  "total_bytes": 294719,
+  "total_entries": 31,
+  "total_bytes": 3476578,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -17,36 +17,48 @@
       "size": 1164
     },
     "README.md": {
-      "sha256": "e7f1274012eb1cc9c21360cc38ac4cae62b7ac754902f348794c3ea83804fcff",
-      "size": 5549
+      "sha256": "e87b92da6e02554fe6a33eeaa8e0ed6d728bdbac7c5fcef4486bf2130d8d7c40",
+      "size": 6287
     },
     "SECURITY.md": {
       "sha256": "0d0065708568668a34ddb34a414969a3678e2b7b3971019c6330ce5bbd74a159",
       "size": 1441
     },
+    "docs/images/memory-lane-demo.mp4": {
+      "sha256": "1f472811dd15721bdfc4d840392322f18c6e2ba593254fe8c81892d3e90e9ad1",
+      "size": 3173472
+    },
     "docs/images/memory-lane-public.png": {
-      "sha256": "451bab4696e36c6cb0dfc91233ead11cd7ca8410419e2c607cdabba946e1849e",
-      "size": 214578
+      "sha256": "d2b077172a295280383c50b4f6e6821e5d1c8ef413509f81167b556e69c2e380",
+      "size": 215549
+    },
+    "empty-library/LIBRARY_README.md": {
+      "sha256": "7f46acee7161a8177a00a63610a6c19a2d2152d43930182578d9d86ad2ad73d9",
+      "size": 390
+    },
+    "empty-library/MANIFEST.json": {
+      "sha256": "80eab7db7c712297aee80e79bd117bb0e81d76a0da08662312875bfede15de74",
+      "size": 351
     },
     "lib/memoryLaneCore.js": {
-      "sha256": "c6d51badc1c01f6824977baf2f80aceb7114e5b11e35f5ee76d8eeceaa4a483a",
-      "size": 11623
+      "sha256": "0b7c8505cbaf4af174ab616a97b3ce9e7cfc5fe662f4f74c98d4f10ff20b909e",
+      "size": 11690
     },
     "package.json": {
       "sha256": "57eb88f0c38a544d0ad22af284cad6b64dc9951071ff64f4f6aa23c9e1fb52f7",
       "size": 542
     },
     "public/memory-lane.html": {
-      "sha256": "4310a6046f01f7cfea8b601d1381d50530ed49ae35ce93a32ae55755646bfa1d",
-      "size": 25178
+      "sha256": "7017187cccfaed7db475621005aab273f762e1fc4de8da726db218f2619557fd",
+      "size": 29026
     },
     "sample-library/LIBRARY_README.md": {
       "sha256": "3be7eed2604ff212ed9c2992e1440a5f671da0eb5a77dfaf1d74c06fe0a36f30",
       "size": 310
     },
     "sample-library/MANIFEST.json": {
-      "sha256": "dd57f75faf446b9ef64320f4d92c8611c64103d4b372f7ab5e724b1bb4ca3cc9",
-      "size": 4742
+      "sha256": "5859269cb45091a826e664f5ea953002cd706149049e5d9562eff3bc4cd1e361",
+      "size": 4746
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0001.md": {
       "sha256": "db3158e5f861f438c3e8385bc31d4ec5b24d137ae91daecb2caf9846cc06e925",
@@ -61,8 +73,8 @@
       "size": 928
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0004.md": {
-      "sha256": "177cc0cef9d6c036a20bddf39f325c4a41387c5285cc932cece0c87b30e33657",
-      "size": 880
+      "sha256": "b3eea579d6c1b2919ec046f2f3fc188e5f1e7931d869a0f1c421d167bcd79a18",
+      "size": 869
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0005.md": {
       "sha256": "447f64e5078f70891f1ef3c27f0d7f9059b3dd5e4a3ced33bf62d0a8d9fc36b1",
@@ -85,8 +97,8 @@
       "size": 928
     },
     "sample-library/shelves/shelf-001/block-004.md": {
-      "sha256": "177cc0cef9d6c036a20bddf39f325c4a41387c5285cc932cece0c87b30e33657",
-      "size": 880
+      "sha256": "b3eea579d6c1b2919ec046f2f3fc188e5f1e7931d869a0f1c421d167bcd79a18",
+      "size": 869
     },
     "sample-library/shelves/shelf-001/block-005.md": {
       "sha256": "447f64e5078f70891f1ef3c27f0d7f9059b3dd5e4a3ced33bf62d0a8d9fc36b1",
@@ -97,7 +109,7 @@
       "size": 913
     },
     "sample-library/shelves/shelf-001/shelf-manifest.json": {
-      "sha256": "7441b7243d64cee80b70ea55372afbb38d46edb539a5f406d26b67d98ca3a458",
+      "sha256": "13f646793bece8194751ee3051e9c2d83d3e63778ad4d81ea4e697865784b4ce",
       "size": 3196
     },
     "sample-library/shelves/shelf-002/block-007.md": {
@@ -109,12 +121,12 @@
       "size": 666
     },
     "sample-library/volumes/volume-memory-layer/volume-manifest.json": {
-      "sha256": "fb825d528e31f01e3cc285883e08cca2673f0c7ae3c798bbf22d4c7159ca1bd1",
+      "sha256": "8c8ce68d57c2e47b1eda416c76fee72cdea0eb14d31cf0655b7fb28d616c2830",
       "size": 3967
     },
     "server.mjs": {
-      "sha256": "ee397e366d32c4467440e7bf6faa3439091cd87e9a1ab9ff744de450e907abc2",
-      "size": 8152
+      "sha256": "b00604613cee67b98f74b45e23dcc218ef7faefb613856eb20eb74cbcad89c72",
+      "size": 10192
     }
   }
 }

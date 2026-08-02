@@ -12,7 +12,9 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 
 ![Memory Lane](docs/images/memory-lane-public.png)
 
-*Shown with the bundled sample library. Point it at your own library with `MEMORY_LANE_LIBRARY` and the same interface reads your real records.*
+*Shown with the bundled sample loaded via the "Load sample" button. A fresh clone opens blank: your lane is empty until you seal records, which is the correct first run for a personal memory product. The sample is fabricated demo data that never touches your machine.*
+
+**Live demo:** [watch in action](docs/images/memory-lane-demo.mp4) — real click-through of the first-run empty lane, loading the sample, expanding a block, searching, and resetting to blank.
 
 ## What it does
 
@@ -38,6 +40,8 @@ Open `http://127.0.0.1:8766/`.
 
 No dependency installation is required. The package uses Node's built-in runtime and test runner.
 
+**First run is blank on purpose.** A fresh clone shows an empty memory lane, not demo data. Click **Load sample library** in the interface to explore the bundled 7-block demo (fabricated data, clearly labeled), then **Start fresh** to return to empty. Your records never appear in anyone else's clone.
+
 ## Pointing at your own library
 
 The server reads whatever library you point it at:
@@ -46,7 +50,7 @@ The server reads whatever library you point it at:
 MEMORY_LANE_LIBRARY=/path/to/your/library node server.mjs
 ```
 
-A library is a directory containing a `MANIFEST.json` and a `shelves/` tree of block files. The bundled `sample-library/` shows the exact format (regenerate it any time with `npm run make-sample`). Any library that follows that format, shelves, manifests, SHA-256 fingerprints, prev links, loads straight into the interface.
+A library is a directory containing a `MANIFEST.json` and a `shelves/` tree of block files. The bundled `empty-library/` is the blank default; `sample-library/` shows the exact format (regenerate it any time with `npm run make-sample`). Any library that follows that format, shelves, manifests, SHA-256 fingerprints, prev links, loads straight into the interface.
 
 ## How the chain works
 
@@ -79,9 +83,10 @@ That's the whole trust model: you can prove your memory hasn't been altered, and
 lib/memoryLaneCore.js        library reader: load, verify, search, resume, export
 public/memory-lane.html      the interface (single file, zero deps)
 server.mjs                   zero-dependency HTTP server
+empty-library/               the blank first-run library (0 records, default)
 tools/make-sample-library.mjs  deterministic sample library generator
 sample-library/              the bundled demo library (7 blocks, regenerable)
-tests/                       38 tests across core + server
+tests/                       45 tests across core + server
 ```
 
 ## Support & reporting issues

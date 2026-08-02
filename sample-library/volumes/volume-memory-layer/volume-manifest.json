@@ -60,7 +60,7 @@
       "volume": "volume-memory-layer",
       "status": "active",
       "revision_version": "0.1",
-      "sha256": "177cc0cef9d6c036a20bddf39f325c4a41387c5285cc932cece0c87b30e33657",
+      "sha256": "b3eea579d6c1b2919ec046f2f3fc188e5f1e7931d869a0f1c421d167bcd79a18",
       "prev_block_id": "cb_sample_0003",
       "prev_sha256": "7d93f732903e857cad904438fbac8977745a166be025b37e42e2976ff56ebd5b",
       "supersedes_id": null,
@@ -78,7 +78,7 @@
       "revision_version": "0.1",
       "sha256": "447f64e5078f70891f1ef3c27f0d7f9059b3dd5e4a3ced33bf62d0a8d9fc36b1",
       "prev_block_id": "cb_sample_0004",
-      "prev_sha256": "177cc0cef9d6c036a20bddf39f325c4a41387c5285cc932cece0c87b30e33657",
+      "prev_sha256": "b3eea579d6c1b2919ec046f2f3fc188e5f1e7931d869a0f1c421d167bcd79a18",
       "supersedes_id": null,
       "superseded_by_id": null
     },

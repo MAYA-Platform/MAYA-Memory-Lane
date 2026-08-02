@@ -14,8 +14,9 @@
  *   GET /api/resume?phrase=        -> resolve a resume phrase
  *   GET /api/export                -> deterministic JSON export of the library
  *
- * The library it reads defaults to ./sample-library (a deterministic demo)
- * and can be pointed at any real Continuity Library via the
+ * The library it reads defaults to ./empty-library (blank first run: your
+ * memory lane is empty until you seal records or load the bundled sample)
+ * and can be pointed at any real Memory Lane library via the
  * MEMORY_LANE_LIBRARY environment variable. Files are the source of truth;
  * this server never writes to the library.
  *
@@ -40,7 +41,15 @@ import {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 8766);
-const LIBRARY_PATH = path.resolve(process.env.MEMORY_LANE_LIBRARY || path.join(ROOT, 'sample-library'));
+const DEFAULT_LIBRARY_PATH = path.join(ROOT, 'empty-library');
+const SAMPLE_LIBRARY_PATH = path.join(ROOT, 'sample-library');
+// A fresh boot is BLANK by default. The bundled sample is only loaded when
+// the user explicitly clicks "Load sample" (or MEMORY_LANE_LIBRARY points
+// at a real library). A user's clone never sees anyone else's data.
+let activeLibraryPath = process.env.MEMORY_LANE_LIBRARY
+  ? path.resolve(process.env.MEMORY_LANE_LIBRARY)
+  : DEFAULT_LIBRARY_PATH;
+const EXTERNAL_LIBRARY = Boolean(process.env.MEMORY_LANE_LIBRARY);
 const UI_PATH = path.join(ROOT, 'public', 'memory-lane.html');
 const IMAGES_DIR = path.join(ROOT, 'public', 'images');
 
@@ -67,20 +76,28 @@ function sendFile(res, filePath) {
 }
 
 function getLibrary() {
-  const lib = loadLibrary(LIBRARY_PATH);
+  const lib = loadLibrary(activeLibraryPath);
   if (!lib.ok) return lib;
   return lib;
 }
 
 /**
- * Public library label. When MEMORY_LANE_LIBRARY is unset (the bundled sample),
- * show a relative, machine-agnostic label instead of the absolute path.
- * An externally supplied library is shown as given.
+ * Public library label. Never leaks an absolute machine path: the bundled
+ * empty and sample libraries are shown by their relative name; an external
+ * library is shown as given (it is the user's own path).
  */
 function libraryLabel() {
-  if (!process.env.MEMORY_LANE_LIBRARY) return 'sample-library (bundled)';
-  const rel = path.relative(ROOT, LIBRARY_PATH);
-  return rel && !rel.startsWith('..') ? rel : LIBRARY_PATH;
+  if (activeLibraryPath === SAMPLE_LIBRARY_PATH) return 'sample-library (bundled)';
+  if (activeLibraryPath === DEFAULT_LIBRARY_PATH) return 'empty-library (bundled)';
+  const rel = path.relative(ROOT, activeLibraryPath);
+  return rel && !rel.startsWith('..') ? rel : activeLibraryPath;
+}
+
+/** Current mode: 'empty' | 'sample' | 'external'. */
+function currentMode() {
+  if (EXTERNAL_LIBRARY) return 'external';
+  if (activeLibraryPath === SAMPLE_LIBRARY_PATH) return 'sample';
+  return 'empty';
 }
 
 const routes = {
@@ -92,6 +109,7 @@ const routes = {
     sendJson(res, 200, {
       ok: true,
       library: libraryLabel(),
+      mode: currentMode(),
       stats,
       chain: {
         intact: chain.intact,
@@ -193,6 +211,34 @@ const routes = {
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const bundle = exportLibrary(lib);
     sendJson(res, 200, bundle);
+  },
+
+  '/api/mode': (req, res) => {
+    sendJson(res, 200, { ok: true, mode: currentMode(), library: libraryLabel() });
+  },
+
+  '/api/load-sample': (req, res) => {
+    if (req.method !== 'POST') {
+      res.writeHead(405, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: false, error: 'method not allowed' }));
+    }
+    if (EXTERNAL_LIBRARY) {
+      return sendJson(res, 400, { ok: false, error: 'an external library is configured; sample switching is disabled' });
+    }
+    activeLibraryPath = SAMPLE_LIBRARY_PATH;
+    sendJson(res, 200, { ok: true, mode: 'sample', library: libraryLabel() });
+  },
+
+  '/api/load-empty': (req, res) => {
+    if (req.method !== 'POST') {
+      res.writeHead(405, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ ok: false, error: 'method not allowed' }));
+    }
+    if (EXTERNAL_LIBRARY) {
+      return sendJson(res, 400, { ok: false, error: 'an external library is configured; sample switching is disabled' });
+    }
+    activeLibraryPath = DEFAULT_LIBRARY_PATH;
+    sendJson(res, 200, { ok: true, mode: 'empty', library: libraryLabel() });
   }
 };
 
@@ -226,10 +272,10 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`Memory Lane running at http://127.0.0.1:${PORT}`);
-  console.log(`Library: ${LIBRARY_PATH}`);
-  if (process.env.MEMORY_LANE_LIBRARY) {
-    console.log('(pointed at external library via MEMORY_LANE_LIBRARY)');
+  console.log(`Library: ${libraryLabel()} (mode: ${currentMode()})`);
+  if (EXTERNAL_LIBRARY) {
+    console.log('(external library via MEMORY_LANE_LIBRARY; sample switching disabled)');
   } else {
-    console.log('(default sample library — set MEMORY_LANE_LIBRARY to use your own)');
+    console.log('(blank first run. Click "Load sample" in the UI to explore the bundled demo.)');
   }
 });
