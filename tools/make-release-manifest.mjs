@@ -53,7 +53,6 @@ for (const rel of files) {
 const manifest = {
   version: '1.0',
   project: 'maya-memory-lane',
-  generated: new Date().toISOString(),
   total_entries: files.length,
   total_bytes: totalBytes,
   files: entries
