@@ -35,30 +35,19 @@ const T = {
   micro: (n, title, subject, body) => `---
 artifact_type: memory_block
 block_id: cb_sample_${String(n).padStart(4, '0')}
-display_name: "${title} — Micro Block ${String(n).padStart(3, '0')}"
+display_name: "${title}"
 block_number: ${n}
 status: active
 timestamp: "2026-07-2${n}T23:00:00Z"
-actor: system
-subject: ${subject}
-processing_model: generic-llm
-processing_provider: local
 previous_block: ${n > 1 ? `cb_sample_${String(n - 1).padStart(4, '0')}` : 'none'}
 ---
 
-# Sample Micro Block ${String(n).padStart(3, '0')} — ${title}
-
-## Session Scope
+# ${title}
 
 ${body}
 
-## Completed — Do Not Rerun
-
-- Sample session ${n} captured as a micro block.
-
-## Next Pickup
-
-Continue the sample sequence. Block ${n + 1} follows this one.
+---
+*Sample record ${n} of 6. Fabricated demo content for the Memory Lane sample library.*
 `,
   consolidated: (prevHash, first, last) => `---
 artifact_type: memory_block
@@ -66,48 +55,33 @@ block_id: cb_sample_consolidated_0001_0006
 display_name: "Consolidated Record 001-006"
 block_number: 7
 status: active
-topic: consolidation
+timestamp: "2026-08-01T00:00:00Z"
 previous_block: cb_sample_0006
 previous_hash: ${prevHash}
-timestamp: "2026-08-01T00:00:00Z"
-purpose: consolidated_shelf_record
-actor: system
-subject: "6 sample micro-blocks (cb_sample_0001 ... cb_sample_0006) consolidated into 1 canonical shelf block per 6->1 doctrine"
-processing_model: generic-llm
-processing_provider: local
-author: system
 consolidates: [cb_sample_0001, cb_sample_0002, cb_sample_0003, cb_sample_0004, cb_sample_0005, cb_sample_0006]
 ---
 
-# Consolidated Block 007 — Sample Sessions 001-006
+# Consolidated Record 001-006
 
-## Purpose
+## What this is
 
-Per the 6->1 compaction doctrine, six session micro-blocks (libs ${first}-${last})
-are consolidated into this single canonical shelf block. Micro-blocks remain
-archived byte-for-byte at blocks/micro-2026-07/ with their SHA-256.
+Six sample records (001 through 006) folded into one shelf record. This is
+how the library stays lean: every six records become a single shelf entry,
+so the lane grows one shelf per six sessions instead of one file per session.
 
-## Chained SHA Table
+## Records in this group
 
-| Lib | Block | SHA-256 | Shelf |
-|---|---|---|---|
-| 1 | cb_sample_0001 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 2 | cb_sample_0002 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 3 | cb_sample_0003 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 4 | cb_sample_0004 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 5 | cb_sample_0005 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 6 | cb_sample_0006 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
+| # | Record | Shelf |
+|---|---|---|
+| 1 | cb_sample_0001 | shelf-001 |
+| 2 | cb_sample_0002 | shelf-001 |
+| 3 | cb_sample_0003 | shelf-001 |
+| 4 | cb_sample_0004 | shelf-001 |
+| 5 | cb_sample_0005 | shelf-001 |
+| 6 | cb_sample_0006 | shelf-001 |
 
-## Consolidated Summary
-
-Six sample sessions consolidated into one canonical library record for lineage
-cb_sample, covering libs ${first}-${last}. This is the Memory Lane demo of the
-6->1 compaction model: the library grows one shelf block per six sessions,
-not one file per session.
-
-## Completed — Do Not Rerun
-
-- 6->1 consolidation of libs ${first}-${last} (this block)
+---
+*Sample record 7 of 7. Fabricated demo content for the Memory Lane sample library.*
 `,
 };
 

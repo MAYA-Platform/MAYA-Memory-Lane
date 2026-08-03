@@ -59,7 +59,7 @@ test('readBlock returns frontmatter, body, and computed sha', () => {
   assert.equal(block.present, true);
   assert.equal(block.block_id, 'cb_sample_0001');
   assert.ok(block.fields.artifact_type === 'memory_block');
-  assert.match(block.body, /Sample Micro Block/);
+  assert.match(block.body, /Product Notes/);
   assert.equal(block.sha256.length, 64);
 });
 
@@ -120,7 +120,7 @@ test('verifyChain resolves string prev_block_id links', () => {
 
 test('search finds matches across block bodies', () => {
   const lib = loadLibrary(SAMPLE);
-  const r = search(lib, 'consolidation');
+  const r = search(lib, 'records');
   assert.ok(r.count >= 2);
   assert.ok(r.matches.every((m) => m.lib_id && m.block_id));
 });

@@ -12,9 +12,9 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 
 ![Memory Lane](docs/images/memory-lane-public.png)
 
-*Shown with the bundled sample loaded via the "Load sample" button. A fresh clone opens blank: your lane is empty until you seal records, which is the correct first run for a personal memory product. The sample is fabricated demo data that never touches your machine.*
+*Shown with the bundled sample loaded via the "Load sample library" button. A fresh clone opens blank: your lane is empty until you seal records. The sample is fabricated demo data that never touches your machine.*
 
-**Live demo:** [watch in action](docs/images/memory-lane-demo.mp4) — real click-through of the first-run empty lane, loading the sample, expanding a block, searching, and resetting to blank.
+**Live demo:** [watch in action](docs/images/memory-lane-demo.mp4), a real click-through of the first-run empty lane, loading the sample, expanding a block, searching, and resetting to blank.
 
 ## What it does
 
@@ -50,7 +50,7 @@ The server reads whatever library you point it at:
 MEMORY_LANE_LIBRARY=/path/to/your/library node server.mjs
 ```
 
-A library is a directory containing a `MANIFEST.json` and a `shelves/` tree of block files. The bundled `empty-library/` is the blank default; `sample-library/` shows the exact format (regenerate it any time with `npm run make-sample`). Any library that follows that format, shelves, manifests, SHA-256 fingerprints, prev links, loads straight into the interface.
+A library is a directory containing a `MANIFEST.json` and a `shelves/` tree of block files. The bundled `empty-library/` is the blank default; `sample-library/` shows the exact format (regenerate it any time with `npm run make-sample`). Any library following that format, with shelves, manifests, fingerprints, and previous-block links, loads straight into the interface.
 
 ## How the chain works
 
@@ -95,7 +95,7 @@ Every MAYA product is a public beta. Expect rough edges and rapid iteration.
 
 Found a bug or a sharp edge? Open an issue on this repository. For anything sensitive, use GitHub's **Private vulnerability reporting** (see [SECURITY.md](SECURITY.md)). Never put credentials or private data in a public issue.
 
-If you want your own AI agent to investigate before you report, paste this into it:
+If you want your own AI agent to investigate before you report, paste this prompt into your agent:
 
 ````text
 Investigate a bug report for the MAYA Memory Lane repository. Reproduce
