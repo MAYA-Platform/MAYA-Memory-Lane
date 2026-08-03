@@ -10,7 +10,7 @@ previous_block: none
 
 # Product Notes
 
-First sample session. The user captured a set of product notes for the memory layer and filed them as the first micro block. This is the shape every session leaves behind: a sealed record with a fingerprint.
+First sample session. The user captured a set of product notes for the memory layer and filed them as the first micro block. This is the shape every session leaves behind, a sealed record with a fingerprint.
 
 ---
 *Sample record 1 of 6. Fabricated demo content for the Memory Lane sample library.*

@@ -10,7 +10,7 @@ previous_block: cb_sample_0005
 
 # Market Watch
 
-Logged the market validation notes for the agent-memory category. Six micro blocks now sit in the chain; the next consolidation pass will fold them into one canonical shelf block.
+Logged the market validation notes for the agent-memory category. Six micro blocks now sit in the chain, and the next consolidation pass will fold them into one canonical shelf block.
 
 ---
 *Sample record 6 of 6. Fabricated demo content for the Memory Lane sample library.*

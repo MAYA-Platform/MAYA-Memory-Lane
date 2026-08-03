@@ -66,7 +66,7 @@ consolidates: [cb_sample_0001, cb_sample_0002, cb_sample_0003, cb_sample_0004, c
 ## What this is
 
 Six sample records (001 through 006) folded into one shelf record. This is
-how the library stays lean: every six records become a single shelf entry,
+how the library stays lean. Every six records become a single shelf entry,
 so the lane grows one shelf per six sessions instead of one file per session.
 
 ## Records in this group
@@ -86,12 +86,12 @@ so the lane grows one shelf per six sessions instead of one file per session.
 };
 
 const SESSIONS = [
-  { title: 'Product Notes', subject: 'first session of the sample library', body: 'First sample session. The user captured a set of product notes for the memory layer and filed them as the first micro block. This is the shape every session leaves behind: a sealed record with a fingerprint.' },
-  { title: 'Architecture Review', subject: 'second sample session', body: 'Reviewed the memory-layer architecture against the constraint stack. Decision: files stay the source of truth; any index is derived and disposable. This block records the decision and links back to block 001.' },
+  { title: 'Product Notes', subject: 'first session of the sample library', body: 'First sample session. The user captured a set of product notes for the memory layer and filed them as the first micro block. This is the shape every session leaves behind, a sealed record with a fingerprint.' },
+  { title: 'Architecture Review', subject: 'second sample session', body: 'Reviewed the memory-layer architecture against the constraint stack. Files stay the source of truth, and any index is derived and disposable. This block records the decision and links back to block 001.' },
   { title: 'Budget Pass', subject: 'third sample session', body: 'Audited provider spend and routed more work to local models. The balance picture was captured and filed. Each block carries the fingerprint of the block before it, so the chain reads like a spine.' },
-  { title: 'Team Briefing', subject: 'fourth sample session', body: 'Drafted the weekly team memo. Shared notes are the default reading surface; the library is the record of how decisions were reached.' },
-  { title: 'Release Prep', subject: 'fifth sample session', body: 'Prepared a public product repo for release. Same quality bar as the rest of the family: README, screenshot, tests, license, security policy.' },
-  { title: 'Market Watch', subject: 'sixth sample session', body: 'Logged the market validation notes for the agent-memory category. Six micro blocks now sit in the chain; the next consolidation pass will fold them into one canonical shelf block.' },
+  { title: 'Team Briefing', subject: 'fourth sample session', body: 'Drafted the weekly team memo. Shared notes are the default reading surface, and the library is the record of how decisions were reached.' },
+  { title: 'Release Prep', subject: 'fifth sample session', body: 'Prepared a public product repo for release. Same quality bar as the rest of the family, with a README, screenshot, tests, license, and security policy.' },
+  { title: 'Market Watch', subject: 'sixth sample session', body: 'Logged the market validation notes for the agent-memory category. Six micro blocks now sit in the chain, and the next consolidation pass will fold them into one canonical shelf block.' },
 ];
 
 function build() {

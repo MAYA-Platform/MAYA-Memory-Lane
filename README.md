@@ -2,17 +2,17 @@
 
 **Your memory, on a chain, in your pocket.**
 
-Memory Lane is a local-first, tamper-evident memory library. Every session leaves a sealed record with a SHA-256 fingerprint; every six records fold into one shelf block; and each shelf block carries the fingerprint of the one before it. The result is a chain of linked records you own, organized into shelves and volumes on your own machine, verified in seconds, and resumed with a single phrase.
+Memory Lane is a local-first, tamper-evident memory library. Every session leaves a sealed record with a SHA-256 fingerprint, every six records fold into one shelf block, and each shelf block carries the fingerprint of the one before it. The result is a chain of linked records you own, organized into shelves and volumes on your own machine, verified in seconds, and resumed with a single phrase.
 
 **You own the memory. The chain keeps it honest.**
 
-Memory Lane is a public-beta web interface over a plain-file library. No cloud, no account, no telemetry. The files are the source of truth; the interface is a window over them. If the interface disappears, the library is still right there on disk.
+Memory Lane is a public-beta web interface over a plain-file library. No cloud, no account, no telemetry. The files are the source of truth and the interface is a window over them. If the interface disappears, the library is still right there on disk.
 
 > Memory Lane is a controlled public beta. All data stays local to the machine that runs it. It is not a hosted service and carries no production SLA.
 
 ![Memory Lane](docs/images/memory-lane-public.png)
 
-*Shown with the bundled sample loaded via the "Load sample library" button. A fresh clone opens blank: your lane is empty until you seal records. The sample is fabricated demo data that never touches your machine.*
+*Shown with the bundled sample loaded via the "Load sample library" button. A fresh clone opens blank, your lane is empty until you seal records. The sample is fabricated demo data that never touches your machine.*
 
 **Live demo:** [watch in action](docs/images/memory-lane-demo.mp4), a real click-through of the first-run empty lane, loading the sample, expanding a block, searching, and resetting to blank.
 
@@ -54,7 +54,7 @@ A library is a directory containing a `MANIFEST.json` and a `shelves/` tree of b
 
 ## How the chain works
 
-Every session ends as a **micro block**: a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks are consolidated into one **shelf block**, numbered, timestamped, and chained to the shelf block before it by carrying its fingerprint. Blocks are filed into **shelves** (six per shelf), grouped into **volumes**, and tracked in a **manifest**.
+Every session ends as a **micro block**, a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks are consolidated into one **shelf block**, numbered, timestamped, and chained to the shelf block before it by carrying its fingerprint. Blocks are filed into **shelves** (six per shelf), grouped into **volumes**, and tracked in a **manifest**.
 
 Verification recomputes every fingerprint and walks the links. Three states, deliberately simple:
 
@@ -62,7 +62,7 @@ Verification recomputes every fingerprint and walks the links. Three states, del
 - **Unverifiable**, a link exists but no recorded fingerprint exists to compare (neutral, not corruption)
 - **Needs attention**, a fingerprint mismatches or a referenced block is missing
 
-That's the whole trust model: you can prove your memory hasn't been altered, and if it has, the break tells you exactly where.
+That's the whole trust model. You can prove your memory hasn't been altered, and if it has, the break tells you exactly where.
 
 ## API
 
