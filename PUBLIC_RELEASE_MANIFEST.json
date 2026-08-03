@@ -24,10 +24,6 @@
       "sha256": "7e55395f863bb791087ac7b8c985d392515a8805d3c90979612f00b3f64621d0",
       "size": 1441
     },
-    "docs/images/memory-lane-demo.mp4": {
-      "sha256": "1f472811dd15721bdfc4d840392322f18c6e2ba593254fe8c81892d3e90e9ad1",
-      "size": 3173472
-    },
     "docs/images/memory-lane-public.png": {
       "sha256": "edd444ba6594061acff320fdcd44a42ce3d0727fdb92a38de28c2dfcf45efa2b",
       "size": 215047
@@ -127,6 +123,10 @@
     "server.mjs": {
       "sha256": "b00604613cee67b98f74b45e23dcc218ef7faefb613856eb20eb74cbcad89c72",
       "size": 10192
+    },
+    "docs/images/memory-lane-demo.webm": {
+      "sha256": "40495bf6c79335e89a8635a75c72b0617eec892f48e016b1c3498588dedc7338",
+      "size": 1911239
     }
   }
 }
