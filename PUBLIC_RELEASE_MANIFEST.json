@@ -2,7 +2,7 @@
   "version": "1.0",
   "project": "maya-memory-lane",
   "total_entries": 31,
-  "total_bytes": 3476578,
+  "total_bytes": 3476526,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -57,71 +57,71 @@
       "size": 310
     },
     "sample-library/MANIFEST.json": {
-      "sha256": "5859269cb45091a826e664f5ea953002cd706149049e5d9562eff3bc4cd1e361",
+      "sha256": "91879dc9e2cea83bc757a7ef35958af6cdd3dc6351d8f081db890605aad62096",
       "size": 4746
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0001.md": {
-      "sha256": "db3158e5f861f438c3e8385bc31d4ec5b24d137ae91daecb2caf9846cc06e925",
-      "size": 948
+      "sha256": "d0d13aa5504661e56e8c18089a8edadda4af99ecdeb9f9f01e998f75da96c5c3",
+      "size": 944
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0002.md": {
-      "sha256": "2d47b8ce756471350b4f92b343cdf234f28803633ecdd7a41f902f1bd82a1e7b",
-      "size": 957
+      "sha256": "6f332ddf71706f4d4ab535764f879b40914f5980e81f8a218799fa3080265cb4",
+      "size": 953
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0003.md": {
-      "sha256": "7d93f732903e857cad904438fbac8977745a166be025b37e42e2976ff56ebd5b",
-      "size": 928
+      "sha256": "ded8bbbff34c453276ae7ef5698f606b1743e39eb102bbd7c8787d7c83db073d",
+      "size": 924
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0004.md": {
-      "sha256": "b3eea579d6c1b2919ec046f2f3fc188e5f1e7931d869a0f1c421d167bcd79a18",
-      "size": 869
+      "sha256": "a63f080630300352e04279d50cfd1b47cbde86ae416fa3dea917f3ea8685ac00",
+      "size": 865
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0005.md": {
-      "sha256": "447f64e5078f70891f1ef3c27f0d7f9059b3dd5e4a3ced33bf62d0a8d9fc36b1",
-      "size": 874
+      "sha256": "e304b117646e30684818ab82e9571d00b6d5b11fb9d34db7963ea16312847112",
+      "size": 870
     },
     "sample-library/blocks/micro-2026-07/cb_sample_0006.md": {
-      "sha256": "6f76daedfbd057d898e6600893a5179738e1e5eafb8a2da722b96f19e764b845",
-      "size": 913
+      "sha256": "b5b5f209f62470a7ad4c7e6d4eea8fe24c75ece43535d0656deac958d6f5848b",
+      "size": 909
     },
     "sample-library/shelves/shelf-001/block-001.md": {
-      "sha256": "db3158e5f861f438c3e8385bc31d4ec5b24d137ae91daecb2caf9846cc06e925",
-      "size": 948
+      "sha256": "d0d13aa5504661e56e8c18089a8edadda4af99ecdeb9f9f01e998f75da96c5c3",
+      "size": 944
     },
     "sample-library/shelves/shelf-001/block-002.md": {
-      "sha256": "2d47b8ce756471350b4f92b343cdf234f28803633ecdd7a41f902f1bd82a1e7b",
-      "size": 957
+      "sha256": "6f332ddf71706f4d4ab535764f879b40914f5980e81f8a218799fa3080265cb4",
+      "size": 953
     },
     "sample-library/shelves/shelf-001/block-003.md": {
-      "sha256": "7d93f732903e857cad904438fbac8977745a166be025b37e42e2976ff56ebd5b",
-      "size": 928
+      "sha256": "ded8bbbff34c453276ae7ef5698f606b1743e39eb102bbd7c8787d7c83db073d",
+      "size": 924
     },
     "sample-library/shelves/shelf-001/block-004.md": {
-      "sha256": "b3eea579d6c1b2919ec046f2f3fc188e5f1e7931d869a0f1c421d167bcd79a18",
-      "size": 869
+      "sha256": "a63f080630300352e04279d50cfd1b47cbde86ae416fa3dea917f3ea8685ac00",
+      "size": 865
     },
     "sample-library/shelves/shelf-001/block-005.md": {
-      "sha256": "447f64e5078f70891f1ef3c27f0d7f9059b3dd5e4a3ced33bf62d0a8d9fc36b1",
-      "size": 874
+      "sha256": "e304b117646e30684818ab82e9571d00b6d5b11fb9d34db7963ea16312847112",
+      "size": 870
     },
     "sample-library/shelves/shelf-001/block-006.md": {
-      "sha256": "6f76daedfbd057d898e6600893a5179738e1e5eafb8a2da722b96f19e764b845",
-      "size": 913
+      "sha256": "b5b5f209f62470a7ad4c7e6d4eea8fe24c75ece43535d0656deac958d6f5848b",
+      "size": 909
     },
     "sample-library/shelves/shelf-001/shelf-manifest.json": {
-      "sha256": "13f646793bece8194751ee3051e9c2d83d3e63778ad4d81ea4e697865784b4ce",
+      "sha256": "288802f978c43c6316c6cbc58df9d70bf18b8e66a30af9ac6c0b2d28049afe44",
       "size": 3196
     },
     "sample-library/shelves/shelf-002/block-007.md": {
-      "sha256": "6ea4594fff3928a24d43cce1c28ce8e47baf6093443b04eb3b81d568823a215d",
-      "size": 2202
+      "sha256": "f08a8a3303f89d00f45094850342885e3e7a50931b52fb2794d048beeb248e23",
+      "size": 2198
     },
     "sample-library/shelves/shelf-002/shelf-manifest.json": {
-      "sha256": "016bb178a7919fb9394bcc013be72494eb6feee7843863a891d7d2862ef93ed6",
+      "sha256": "5a2af595bdd556b1b0f7bf7b3c7680ce645a7b024bd86c3a12ca0563e5455e61",
       "size": 666
     },
     "sample-library/volumes/volume-memory-layer/volume-manifest.json": {
-      "sha256": "8c8ce68d57c2e47b1eda416c76fee72cdea0eb14d31cf0655b7fb28d616c2830",
+      "sha256": "bf1de6a51850831d5797e8cdcbe9a1041ef6aecb526959bbb790fb8e08a87dd1",
       "size": 3967
     },
     "server.mjs": {
