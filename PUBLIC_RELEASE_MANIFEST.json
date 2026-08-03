@@ -2,7 +2,7 @@
   "version": "1.0",
   "project": "maya-memory-lane",
   "total_entries": 31,
-  "total_bytes": 3469599,
+  "total_bytes": 3469621,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -17,11 +17,11 @@
       "size": 1164
     },
     "README.md": {
-      "sha256": "2ff14c34e339f0b4a55d694f6a3e467e401405c955d882d18618d7057cdd6496",
-      "size": 6262
+      "sha256": "7da1931e5650b9c25eb592dd845d0a02c787f9812a7f340e970100612450c132",
+      "size": 6284
     },
     "SECURITY.md": {
-      "sha256": "0d0065708568668a34ddb34a414969a3678e2b7b3971019c6330ce5bbd74a159",
+      "sha256": "7e55395f863bb791087ac7b8c985d392515a8805d3c90979612f00b3f64621d0",
       "size": 1441
     },
     "docs/images/memory-lane-demo.mp4": {
@@ -33,7 +33,7 @@
       "size": 215047
     },
     "empty-library/LIBRARY_README.md": {
-      "sha256": "7f46acee7161a8177a00a63610a6c19a2d2152d43930182578d9d86ad2ad73d9",
+      "sha256": "cb11d4f422c1cc965a0f3d22284a5c0c3436acc8eea4f0a5a12b57a698265db4",
       "size": 390
     },
     "empty-library/MANIFEST.json": {
@@ -49,7 +49,7 @@
       "size": 539
     },
     "public/memory-lane.html": {
-      "sha256": "4f0498c9daecc5615b87a58bd78e054503d2991fa6cd59a6f6d6827c5343dd40",
+      "sha256": "0a748a94320c51f9067082edc7174e2a0df5d7be4f0a3fe258c07cf17e80df79",
       "size": 29029
     },
     "sample-library/LIBRARY_README.md": {

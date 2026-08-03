@@ -20,7 +20,7 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 
 - **Linked memory records**, every session becomes a sealed block with a SHA-256 fingerprint, and every block carries the fingerprint of the block before it. Change anything and the break is visible
 - **6→1 compaction**, six session records fold into one shelf block, so the library grows one shelf per six sessions instead of one file per session
-- **Chain verification**, recomputes every fingerprint and walks the links, then tells you plainly: intact, unverifiable, or needs attention
+- **Chain verification**, recomputes every fingerprint and walks the links, then tells you plainly what you need to know: intact, unverifiable, or needs attention
 - **Resume phrase as your key**, one string crosses sessions. The library holds everything else
 - **Full-text search**, plain-text search across every record body
 - **Deterministic export**, a byte-stable JSON bundle of the whole library, one click
