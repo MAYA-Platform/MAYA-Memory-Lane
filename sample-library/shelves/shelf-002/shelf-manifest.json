@@ -11,9 +11,9 @@
       "lineage": "cb_sample",
       "revision_version": "1.0",
       "status": "active",
-      "sha256": "0ea7d4ea0dfd082b099c63caeaceff518107a7787b8dfdd16622be353ffefca6",
+      "sha256": "56943e7d552e68bd10b71b2db7fca36c21ef1d91199edf4abf15622bfb1d3f05",
       "prev_block_id": "cb_sample_0006",
-      "prev_sha256": "aeeff9a8cbe1acb1feceeda6bf625b3720fdb0a3818a92e5b7b4f6f45b8e61ff",
+      "prev_sha256": "64bd593d3c9dfbeff94dd56a316d09b3bc500e4ebdc1d99df58beef7ab3c4b26",
       "supersedes_id": null,
       "superseded_by_id": null,
       "filename": "block-007.md"

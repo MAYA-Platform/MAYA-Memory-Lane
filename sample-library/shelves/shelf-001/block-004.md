@@ -10,7 +10,7 @@ previous_block: cb_sample_0003
 
 # Team Briefing
 
-Drafted the weekly team memo. Shared notes are the default reading surface; the library is the record of how decisions were reached.
+Drafted the weekly team memo. Shared notes are the default reading surface, and the library is the record of how decisions were reached.
 
 ---
 *Sample record 4 of 6. Fabricated demo content for the Memory Lane sample library.*
