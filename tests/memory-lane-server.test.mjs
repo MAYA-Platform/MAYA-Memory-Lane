@@ -139,7 +139,7 @@ test('GET /api/chain returns the full verification walk', async () => {
 });
 
 test('GET /api/search finds matches', async () => {
-  const r = await fetch(`${BASE}/api/search?q=consolidation`);
+  const r = await fetch(`${BASE}/api/search?q=records`);
   assert.equal(r.status, 200);
   const d = await r.json();
   assert.ok(d.count >= 2);

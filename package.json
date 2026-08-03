@@ -2,7 +2,7 @@
   "name": "maya-memory-lane",
   "version": "1.0.0",
   "private": true,
-  "description": "Linked memory records you own. Tamper-evident memory with a resume phrase as the key — local-first, zero dependencies.",
+  "description": "Linked memory records you own. Tamper-evident memory with a resume phrase as the key. Local-first, zero dependencies.",
   "type": "module",
   "main": "server.mjs",
   "scripts": {

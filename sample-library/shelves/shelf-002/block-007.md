@@ -4,45 +4,30 @@ block_id: cb_sample_consolidated_0001_0006
 display_name: "Consolidated Record 001-006"
 block_number: 7
 status: active
-topic: consolidation
-previous_block: cb_sample_0006
-previous_hash: b5b5f209f62470a7ad4c7e6d4eea8fe24c75ece43535d0656deac958d6f5848b
 timestamp: "2026-08-01T00:00:00Z"
-purpose: consolidated_shelf_record
-actor: system
-subject: "6 sample micro-blocks (cb_sample_0001 ... cb_sample_0006) consolidated into 1 canonical shelf block per 6->1 doctrine"
-processing_model: generic-llm
-processing_provider: local
-author: system
+previous_block: cb_sample_0006
+previous_hash: aeeff9a8cbe1acb1feceeda6bf625b3720fdb0a3818a92e5b7b4f6f45b8e61ff
 consolidates: [cb_sample_0001, cb_sample_0002, cb_sample_0003, cb_sample_0004, cb_sample_0005, cb_sample_0006]
 ---
 
-# Consolidated Block 007 — Sample Sessions 001-006
+# Consolidated Record 001-006
 
-## Purpose
+## What this is
 
-Per the 6->1 compaction doctrine, six session micro-blocks (libs 1-6)
-are consolidated into this single canonical shelf block. Micro-blocks remain
-archived byte-for-byte at blocks/micro-2026-07/ with their SHA-256.
+Six sample records (001 through 006) folded into one shelf record. This is
+how the library stays lean: every six records become a single shelf entry,
+so the lane grows one shelf per six sessions instead of one file per session.
 
-## Chained SHA Table
+## Records in this group
 
-| Lib | Block | SHA-256 | Shelf |
-|---|---|---|---|
-| 1 | cb_sample_0001 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 2 | cb_sample_0002 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 3 | cb_sample_0003 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 4 | cb_sample_0004 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 5 | cb_sample_0005 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
-| 6 | cb_sample_0006 | 0000000000000000000000000000000000000000000000000000000000000000 | shelf-001 |
+| # | Record | Shelf |
+|---|---|---|
+| 1 | cb_sample_0001 | shelf-001 |
+| 2 | cb_sample_0002 | shelf-001 |
+| 3 | cb_sample_0003 | shelf-001 |
+| 4 | cb_sample_0004 | shelf-001 |
+| 5 | cb_sample_0005 | shelf-001 |
+| 6 | cb_sample_0006 | shelf-001 |
 
-## Consolidated Summary
-
-Six sample sessions consolidated into one canonical library record for lineage
-cb_sample, covering libs 1-6. This is the Memory Lane demo of the
-6->1 compaction model: the library grows one shelf block per six sessions,
-not one file per session.
-
-## Completed — Do Not Rerun
-
-- 6->1 consolidation of libs 1-6 (this block)
+---
+*Sample record 7 of 7. Fabricated demo content for the Memory Lane sample library.*
