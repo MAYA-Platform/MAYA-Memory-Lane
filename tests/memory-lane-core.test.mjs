@@ -15,7 +15,8 @@ import {
   libraryStats,
   parseBlockFile,
   tokenizeQuery,
-  buildMatchExpression
+  buildMatchExpression,
+  extractFactsSection
 } from '../lib/memoryLaneCore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -301,4 +302,33 @@ test('FTS5 tokenizeQuery handles contraction-heavy queries', () => {
   assert.ok(terms.includes('records'));
   assert.ok(terms.includes('like'));
   assert.ok(!terms.includes('my'));
+});
+
+// ---------- U1: fact-augmented key expansion ----------
+
+test('extractFactsSection pulls facts from block raw', () => {
+  const raw = '---\nblock_id: cb_test\n---\nBody here.\n\n## Extracted facts\n\n- User has a Honda Civic\n- User went to Yellowstone\n';
+  const facts = extractFactsSection(raw);
+  assert.ok(facts.includes('Honda Civic'));
+  assert.ok(facts.includes('Yellowstone'));
+  assert.ok(!facts.includes('Body here'), 'body should not leak into facts');
+});
+
+test('search matches facts-only content via fact column', () => {
+  // build a temp library where a block has facts the body lacks
+  const tmp = fs.mkdtempSync(path.join(process.env.TEMP || '/tmp', 'ml-facts-'));
+  const shelf = path.join(tmp, 'shelves', 'shelf-001');
+  fs.mkdirSync(shelf, { recursive: true });
+  const text = '---\nartifact_type: memory_block\nblock_id: cb_facttest\nlib_id: 1\nblock_number: 1\nstatus: active\nlineage: t\nshelf: shelf-001\nprevious_block: none\nprevious_sha: none\n---\n\nConversation about scheduling and logistics with no mention of the color.\n\n## Extracted facts\n\n- User favorite color is cobalt\n';
+  const sha = crypto.createHash('sha256').update(text, 'utf8').digest('hex');
+  fs.writeFileSync(path.join(shelf, 'block-001.md'), text, { encoding: 'utf8' });
+  fs.writeFileSync(path.join(tmp, 'MANIFEST.json'), JSON.stringify({
+    version: 'v1', total_blocks: 1,
+    blocks: [{ lib_id: 1, block_id: 'cb_facttest', shelf: 'shelf-001', sha256: sha, prev_block_id: null, prev_sha256: null }]
+  }, null, 2), { encoding: 'utf8' });
+  const lib = loadLibrary(tmp);
+  // search for the fact-only term
+  const r = search(lib, 'cobalt');
+  assert.ok(r.count > 0, 'fact-column should surface cobalt even though body omits it');
+  fs.rmSync(tmp, { recursive: true, force: true });
 });
