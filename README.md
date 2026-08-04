@@ -14,8 +14,6 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 
 *Shown with the bundled sample loaded via the "Load sample library" button. A fresh clone opens blank, your lane is empty until you seal records. The sample is fabricated demo data that never touches your machine.*
 
-**Live demo:** [watch in action](docs/images/memory-lane-demo.webm), a real click-through of the first-run empty lane, loading the sample, expanding a block, searching, and resetting to blank.
-
 ## What it does
 
 - **Linked memory records**, every session becomes a sealed block with a SHA-256 fingerprint, and every block carries the fingerprint of the block before it. Change anything and the break is visible
