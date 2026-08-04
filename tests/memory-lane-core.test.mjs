@@ -13,7 +13,9 @@ import {
   resolveResume,
   exportLibrary,
   libraryStats,
-  parseBlockFile
+  parseBlockFile,
+  tokenizeQuery,
+  buildMatchExpression
 } from '../lib/memoryLaneCore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -254,4 +256,49 @@ test('sample library is deterministic across regeneration', () => {
   const newManifest = fs.readFileSync(path.join(tmp, 'sample-library', 'MANIFEST.json'), 'utf8');
   assert.equal(sha256(newManifest), sha256(origManifest));
   fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+// ---------- FTS5 search (v2) ----------
+
+test('FTS5 tokenizeQuery strips stopwords and dedupes', () => {
+  const terms = tokenizeQuery('How many days had passed between the Sunday mass and my trip?');
+  assert.ok(terms.includes('days'));
+  assert.ok(terms.includes('sunday'));
+  assert.ok(terms.includes('trip'));
+  assert.ok(!terms.includes('the'));
+  assert.ok(!terms.includes('had'));
+  assert.ok(!terms.includes('how'));
+});
+
+test('FTS5 buildMatchExpression OR-chains prefix terms', () => {
+  const expr = buildMatchExpression('favorite color cobalt');
+  assert.equal(expr, '(favorite* OR color* OR cobalt*)');
+  // quoted phrase anchors, terms OR'd
+  const phr = buildMatchExpression('"dark mode" preference');
+  assert.ok(phr.includes('"dark mode"'));
+  assert.ok(phr.includes('preference*'));
+});
+
+test('FTS5 search finds matches with BM25 score (FTS active)', () => {
+  const lib = loadLibrary(SAMPLE);
+  const r = search(lib, 'fingerprint chain verify', { limit: 5 });
+  assert.ok(r.count > 0);
+  // matches carry a score when FTS is active
+  assert.ok(r.matches[0].score !== undefined, 'FTS5 match should expose a bm25 score');
+});
+
+test('FTS5 search handles natural questions via tokenization', () => {
+  // "How many records are in the memory lane library?" -> records/memory/lane/library
+  const lib = loadLibrary(SAMPLE);
+  const r = search(lib, 'How many records are in the memory lane library?');
+  assert.ok(r.count > 0, 'natural question should surface record blocks');
+  assert.ok(r.matches.length > 0);
+});
+
+test('FTS5 tokenizeQuery handles contraction-heavy queries', () => {
+  // "I'd like to see my records" -> like/see/records (i/d/to/my stripped)
+  const terms = tokenizeQuery("I'd like to see my records");
+  assert.ok(terms.includes('records'));
+  assert.ok(terms.includes('like'));
+  assert.ok(!terms.includes('my'));
 });
