@@ -123,10 +123,6 @@
     "server.mjs": {
       "sha256": "b00604613cee67b98f74b45e23dcc218ef7faefb613856eb20eb74cbcad89c72",
       "size": 10192
-    },
-    "docs/images/memory-lane-demo.webm": {
-      "sha256": "40495bf6c79335e89a8635a75c72b0617eec892f48e016b1c3498588dedc7338",
-      "size": 1911239
     }
   }
 }
