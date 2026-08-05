@@ -17,10 +17,11 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 ## What it does
 
 - **Linked memory records**, every session becomes a sealed block with a SHA-256 fingerprint, and every block carries the fingerprint of the block before it. Change anything and the break is visible
+- **Automatic ingestion**, drop a transcript into the inbox (or POST it to the API) and Memory Lane extracts durable facts, seals a chain-linked block, and files it — no human step in between
 - **6→1 compaction**, six session records fold into one shelf block, so the library grows one shelf per six sessions instead of one file per session
 - **Chain verification**, recomputes every fingerprint and walks the links, then tells you plainly what you need to know: intact, unverifiable, or needs attention
 - **Resume phrase as your key**, one string crosses sessions. The library holds everything else
-- **Full-text search**, plain-text search across every record body
+- **Full-text search**, plain-text search across every record body, boosted by extracted facts
 - **Deterministic export**, a byte-stable JSON bundle of the whole library, one click
 - **Zero dependencies**, Node's built-in runtime and test runner, no npm install required
 - **Files are truth**, the library is a folder of markdown + JSON manifests. Delete the index, rebuild everything from the chain
@@ -62,6 +63,37 @@ Verification recomputes every fingerprint and walks the links. Three states, del
 
 That's the whole trust model. You can prove your memory hasn't been altered, and if it has, the break tells you exactly where.
 
+## Automatic ingestion
+
+Memory Lane runs itself. Three surfaces, same chain underneath:
+
+**1. Inbox watcher (drop a file, walk away).** Point the watcher at a folder and it seals everything that lands there:
+
+```bash
+python tools/inbox-watch.py --inbox /path/to/inbox --library /path/to/library --once
+```
+
+New `.md`, `.txt`, `.json`, or `.log` files are extracted, sealed as chain-linked blocks, and archived to `inbox/processed/<date>/`. Run it on a timer (`npm run watch` loops every 60s, or wire it as a cron job) and the library grows itself. Nothing new in the folder means nothing happens — silent, free.
+
+**2. API (any agent can push a memory).** The server accepts new memories over HTTP:
+
+```bash
+curl -X POST http://127.0.0.1:8766/api/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"text":"Josh leased a 2026 Honda Civic in matte black.","source":"telegram"}'
+```
+
+Auto-extraction runs unless you pass explicit `facts` (or `"extract": false`). The response includes the new `lib_id`, `block_id`, and a fresh chain verdict.
+
+**3. CLI (scripts and cron).** Same pipeline from the command line:
+
+```bash
+node tools/ingest.mjs transcript.md --source hermes
+cat notes.txt | node tools/ingest.mjs --title "Evening notes"
+```
+
+**How extraction works.** The recommended model is **deepseek v4 flash** through a Merge Gateway key (`MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`), falling back to local Ollama when no key is set. The model turns a raw transcript into a `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. Extraction is best-effort by design: if the model is unreachable, the raw text is still sealed and searchable — a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
+
 ## API
 
 | Endpoint | Description |
@@ -74,17 +106,22 @@ That's the whole trust model. You can prove your memory hasn't been altered, and
 | `GET /api/search?q=` | Search across block bodies |
 | `GET /api/resume?phrase=` | Resolve a resume phrase |
 | `GET /api/export` | Deterministic JSON export |
+| `POST /api/ingest` | Seal a new memory (auto fact extraction) |
+| `POST /api/blocks/write` | Seal a new memory with explicit facts (no LLM) |
 
 ## Repository layout
 
 ```text
-lib/memoryLaneCore.js        library reader: load, verify, search, resume, export
+lib/memoryLaneCore.js        library core: load, verify, search, resume, export, append
+lib/extract.js               fact extraction: deepseek v4 flash via Merge, Ollama fallback
 public/memory-lane.html      the interface (single file, zero deps)
-server.mjs                   zero-dependency HTTP server
+server.mjs                   zero-dependency HTTP server (read + write endpoints)
 empty-library/               the blank first-run library (0 records, default)
+tools/ingest.mjs             CLI ingestion: file, --text, or stdin
+tools/inbox-watch.py         inbox watcher: auto-seal files in a drop folder
 tools/make-sample-library.mjs  deterministic sample library generator
 sample-library/              the bundled demo library (7 blocks, regenerable)
-tests/                       45 tests across core + server
+tests/                       52 tests across core + server + ingest
 ```
 
 ## Support & reporting issues

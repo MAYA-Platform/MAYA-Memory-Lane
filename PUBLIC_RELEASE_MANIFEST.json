@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "project": "maya-memory-lane",
-  "total_entries": 31,
-  "total_bytes": 3469621,
+  "total_entries": 33,
+  "total_bytes": 336960,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -17,12 +17,16 @@
       "size": 1164
     },
     "README.md": {
-      "sha256": "7da1931e5650b9c25eb592dd845d0a02c787f9812a7f340e970100612450c132",
-      "size": 6284
+      "sha256": "0ac6483decff4744e422cfbe6a9401d2d6e4d196867d0ec7f028d87582c66241",
+      "size": 8620
     },
     "SECURITY.md": {
       "sha256": "7e55395f863bb791087ac7b8c985d392515a8805d3c90979612f00b3f64621d0",
       "size": 1441
+    },
+    "demo-transcript.md": {
+      "sha256": "c5d1d4b3ee4d8aa3cc6a82eadd8a6db23b614af1d4a5b676949bada232fe3e3a",
+      "size": 483
     },
     "docs/images/memory-lane-public.png": {
       "sha256": "edd444ba6594061acff320fdcd44a42ce3d0727fdb92a38de28c2dfcf45efa2b",
@@ -36,16 +40,24 @@
       "sha256": "80eab7db7c712297aee80e79bd117bb0e81d76a0da08662312875bfede15de74",
       "size": 351
     },
+    "lib/embeddings.js": {
+      "sha256": "6c56c7b4b3432822f8abd39c8fd32c0144e886bfe0630065ccf8a723f446f1a5",
+      "size": 7622
+    },
+    "lib/extract.js": {
+      "sha256": "71f31dd855d5a180361d2f047fefcfddebd85b3ccead13dd3784873c799d3ae9",
+      "size": 9426
+    },
     "lib/memoryLaneCore.js": {
-      "sha256": "0b7c8505cbaf4af174ab616a97b3ce9e7cfc5fe662f4f74c98d4f10ff20b909e",
-      "size": 11690
+      "sha256": "95e0f4911b0741ec690c1bca18e4de0f8e515983119ec9460dd61cf34570bdde",
+      "size": 27490
     },
     "package.json": {
-      "sha256": "12ce5913f9ef0bf56059978eb06e545553a3471f738f36061bbb62b91245e4ef",
-      "size": 539
+      "sha256": "36180c80d6e01eeb605eec1e070653ac73e367d2e3e5b4e5272e6a16133ffa76",
+      "size": 666
     },
     "public/memory-lane.html": {
-      "sha256": "0a748a94320c51f9067082edc7174e2a0df5d7be4f0a3fe258c07cf17e80df79",
+      "sha256": "a579ecf88aedeeed0b11b52059a10dc593f0c5375f2351da162012a5f9a45823",
       "size": 29029
     },
     "sample-library/LIBRARY_README.md": {
@@ -121,8 +133,8 @@
       "size": 3967
     },
     "server.mjs": {
-      "sha256": "b00604613cee67b98f74b45e23dcc218ef7faefb613856eb20eb74cbcad89c72",
-      "size": 10192
+      "sha256": "25321aef4db35827151cb15112a17eed4d5339eedd26a36e7dab95d82f7dcb37",
+      "size": 15209
     }
   }
 }
