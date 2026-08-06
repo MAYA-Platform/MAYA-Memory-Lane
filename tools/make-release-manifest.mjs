@@ -15,7 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 
 const IGNORE = new Set([
-  '.git', 'node_modules', '.hermes', 'tools', 'tests'
+  '.git', 'node_modules', '.hermes', 'tests'
 ]);
 const IGNORE_FILES = new Set([
   'PUBLIC_RELEASE_MANIFEST.json'
