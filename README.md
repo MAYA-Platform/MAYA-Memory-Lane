@@ -97,6 +97,26 @@ cat notes.txt | node tools/ingest.mjs --title "Evening notes"
 
 **How extraction works.** The recommended model is **deepseek v4 flash** through a Merge Gateway key (`MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`), falling back to local Ollama when no key is set. The model turns a raw transcript into a `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. Extraction is best-effort by design: if the model is unreachable, the raw text is still sealed and searchable — a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
 
+## Agents can read it (MCP bridge)
+
+Memory Lane isn't just a UI — it's an **agent memory layer**. A zero-dependency MCP server (`tools/memory-lane-mcp.mjs`) exposes the live library to any agent (Hermes, MAYA, staff crons) as callable tools:
+
+| Tool | What it does |
+|---|---|
+| `ml_search(query)` | Full-text search across all blocks |
+| `ml_answer(question)` | Ask a natural-language question — exact match or synthesized from evidence |
+| `ml_recent(limit)` | Digest of the most recent blocks (call at session start) |
+| `ml_resume(phrase)` | Resolve a resume phrase to blocks |
+
+Register it with any MCP-capable agent:
+
+```bash
+hermes mcp add memory-lane --command node \
+  --args "E:/MAYA_BULK/memory-lane-public-repo/tools/memory-lane-mcp.mjs"
+```
+
+Once registered, the agent can pull your memory in real time: "what did we decide about the launch?" → `ml_answer` → the answer with the source block. This is the read side that completes the loop — memory collects itself (write side) and answers questions across sessions (read side).
+
 ## API
 
 | Endpoint | Description |

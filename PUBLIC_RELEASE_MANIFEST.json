@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "project": "maya-memory-lane",
-  "total_entries": 34,
-  "total_bytes": 1524760,
+  "total_entries": 39,
+  "total_bytes": 1557748,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -17,8 +17,8 @@
       "size": 1164
     },
     "README.md": {
-      "sha256": "5a9a24978d55198285c29acd18cc629bb293bb422eb3f1981a6a4e93820bc82b",
-      "size": 9295
+      "sha256": "cfaaae3178a1f2a20cd97ed7a370637fcd9678f80d8dc61624861d9be1bd0b7b",
+      "size": 10347
     },
     "SECURITY.md": {
       "sha256": "7e55395f863bb791087ac7b8c985d392515a8805d3c90979612f00b3f64621d0",
@@ -139,6 +139,26 @@
     "server.mjs": {
       "sha256": "ea43235a281723202606fb1d256cd87197d813403b694ac9dac541502a7a87a0",
       "size": 15881
+    },
+    "tools/inbox-watch.py": {
+      "sha256": "dad33de64f679c7d71f6eb2633fa009be5b36c37eeb4975cdd5f49b185890881",
+      "size": 5666
+    },
+    "tools/ingest.mjs": {
+      "sha256": "d12f2ae431f50e0bae96f9705091998927d78c6c73c40c19ccffc6b988daf07f",
+      "size": 7228
+    },
+    "tools/make-release-manifest.mjs": {
+      "sha256": "f53dba2a83ca24fbec906be7e80a79bf577ff18354216e74d24b572d1d0ef1f3",
+      "size": 1819
+    },
+    "tools/make-sample-library.mjs": {
+      "sha256": "9bd161400a0fb38d329d050e8102030eb2c156e3fc3b5dbeef624c4592e5dac0",
+      "size": 9507
+    },
+    "tools/memory-lane-mcp.mjs": {
+      "sha256": "11e2d25f192c00947abdd28e2a54094951c3e380e96c3c0061778ac492699d0e",
+      "size": 7716
     }
   }
 }
