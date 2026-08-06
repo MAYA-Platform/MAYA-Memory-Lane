@@ -8,6 +8,7 @@
  *   GET /                          -> memory-lane.html
  *   GET /api/status                -> library stats + chain verdict
  *   GET /api/blocks                -> block list (manifest order)
+ *   GET /api/recent?n=             -> recent blocks digest (bodies, for session start)
  *   GET /api/blocks/:libId         -> one block (frontmatter + body)
  *   GET /api/chain                 -> full SHA-256 chain verification walk
  *   GET /api/search?q=             -> plain-text search across block bodies
@@ -197,6 +198,30 @@ const routes = {
         prev_block_id: b.prev_block_id || null
       }));
     sendJson(res, 200, { ok: true, count: blocks.length, blocks });
+  },
+
+  '/api/recent': (req, res) => {
+    const lib = getLibrary();
+    if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const n = Math.min(Math.max(Number(url.searchParams.get('n') || 5) || 5, 1), 20);
+    const recent = lib.blocks
+      .slice()
+      .sort((a, b) => a.lib_id - b.lib_id)
+      .slice(-n)
+      .reverse()
+      .map((entry) => {
+        const block = readBlock(lib, entry.lib_id);
+        return {
+          lib_id: entry.lib_id,
+          block_id: entry.block_id,
+          display_name: entry.canonical_name || entry.block_id,
+          lineage: entry.lineage || null,
+          body: block && block.present ? block.body.slice(0, 300) : '',
+          sha256: (entry.sha256 || '').slice(0, 16)
+        };
+      });
+    sendJson(res, 200, { ok: true, count: recent.length, blocks: recent });
   },
 
   '/api/chain': (req, res) => {
