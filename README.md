@@ -14,6 +14,8 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 
 *Shown with the bundled sample loaded via the "Load sample library" button. A fresh clone opens blank, your lane is empty until you seal records. The sample is fabricated demo data that never touches your machine.*
 
+**Live demo:** [watch in action](docs/images/ml-demo.webm) — real click-through of a live library: search, ask your memory (exact match + synthesized answer with evidence), and the linked block timeline.
+
 ## What it does
 
 - **Linked memory records**, every session becomes a sealed block with a SHA-256 fingerprint, and every block carries the fingerprint of the block before it. Change anything and the break is visible
@@ -22,6 +24,7 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 - **Chain verification**, recomputes every fingerprint and walks the links, then tells you plainly what you need to know: intact, unverifiable, or needs attention
 - **Resume phrase as your key**, one string crosses sessions. The library holds everything else
 - **Full-text search**, plain-text search across every record body, boosted by extracted facts
+- **Ask your memory**, ask a natural-language question and get an answer — exact hits return instantly for free, and when your wording doesn't match, a model reads the retrieved evidence and answers honestly (or says it doesn't know). No invented facts
 - **Deterministic export**, a byte-stable JSON bundle of the whole library, one click
 - **Zero dependencies**, Node's built-in runtime and test runner, no npm install required
 - **Files are truth**, the library is a folder of markdown + JSON manifests. Delete the index, rebuild everything from the chain
@@ -104,6 +107,7 @@ cat notes.txt | node tools/ingest.mjs --title "Evening notes"
 | `GET /api/blocks/:libId` | One block (frontmatter + body) |
 | `GET /api/chain` | Full chain verification walk |
 | `GET /api/search?q=` | Search across block bodies |
+| `GET /api/answer?q=` | Ask a question — direct / synthesized / none (retrieval confidence gate) |
 | `GET /api/resume?phrase=` | Resolve a resume phrase |
 | `GET /api/export` | Deterministic JSON export |
 | `POST /api/ingest` | Seal a new memory (auto fact extraction) |
@@ -114,14 +118,15 @@ cat notes.txt | node tools/ingest.mjs --title "Evening notes"
 ```text
 lib/memoryLaneCore.js        library core: load, verify, search, resume, export, append
 lib/extract.js               fact extraction: deepseek v4 flash via Merge, Ollama fallback
+lib/answer.js                answer gate: direct / synthesized / none (retrieval confidence)
 public/memory-lane.html      the interface (single file, zero deps)
-server.mjs                   zero-dependency HTTP server (read + write endpoints)
+server.mjs                   zero-dependency HTTP server (read + write + answer endpoints)
 empty-library/               the blank first-run library (0 records, default)
 tools/ingest.mjs             CLI ingestion: file, --text, or stdin
 tools/inbox-watch.py         inbox watcher: auto-seal files in a drop folder
 tools/make-sample-library.mjs  deterministic sample library generator
 sample-library/              the bundled demo library (7 blocks, regenerable)
-tests/                       52 tests across core + server + ingest
+tests/                       73 tests across core + server + ingest + answer
 ```
 
 ## Support & reporting issues

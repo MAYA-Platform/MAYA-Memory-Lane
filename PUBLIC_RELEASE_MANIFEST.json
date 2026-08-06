@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "project": "maya-memory-lane",
-  "total_entries": 33,
-  "total_bytes": 336960,
+  "total_entries": 34,
+  "total_bytes": 1524760,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -17,20 +17,20 @@
       "size": 1164
     },
     "README.md": {
-      "sha256": "0ac6483decff4744e422cfbe6a9401d2d6e4d196867d0ec7f028d87582c66241",
-      "size": 8620
+      "sha256": "5a9a24978d55198285c29acd18cc629bb293bb422eb3f1981a6a4e93820bc82b",
+      "size": 9295
     },
     "SECURITY.md": {
       "sha256": "7e55395f863bb791087ac7b8c985d392515a8805d3c90979612f00b3f64621d0",
       "size": 1441
     },
-    "demo-transcript.md": {
-      "sha256": "c5d1d4b3ee4d8aa3cc6a82eadd8a6db23b614af1d4a5b676949bada232fe3e3a",
-      "size": 483
-    },
     "docs/images/memory-lane-public.png": {
       "sha256": "edd444ba6594061acff320fdcd44a42ce3d0727fdb92a38de28c2dfcf45efa2b",
       "size": 215047
+    },
+    "docs/images/ml-demo.webm": {
+      "sha256": "c1d62626a3778fa3a5793f530b51181d62c32f633596f0b6477fcd6c87e421f4",
+      "size": 1178584
     },
     "empty-library/LIBRARY_README.md": {
       "sha256": "cb11d4f422c1cc965a0f3d22284a5c0c3436acc8eea4f0a5a12b57a698265db4",
@@ -40,25 +40,29 @@
       "sha256": "80eab7db7c712297aee80e79bd117bb0e81d76a0da08662312875bfede15de74",
       "size": 351
     },
+    "lib/answer.js": {
+      "sha256": "37137ae5c80ebfb45b9ff6a3c4da7c4db4a416677e194957cfaf00cadd514f4b",
+      "size": 5789
+    },
     "lib/embeddings.js": {
       "sha256": "6c56c7b4b3432822f8abd39c8fd32c0144e886bfe0630065ccf8a723f446f1a5",
       "size": 7622
     },
     "lib/extract.js": {
-      "sha256": "71f31dd855d5a180361d2f047fefcfddebd85b3ccead13dd3784873c799d3ae9",
-      "size": 9426
+      "sha256": "482238ba8ccf5a09c90aa9071deb092225c09f0e14a26d849df63f4bfbf6740e",
+      "size": 9428
     },
     "lib/memoryLaneCore.js": {
       "sha256": "95e0f4911b0741ec690c1bca18e4de0f8e515983119ec9460dd61cf34570bdde",
       "size": 27490
     },
     "package.json": {
-      "sha256": "36180c80d6e01eeb605eec1e070653ac73e367d2e3e5b4e5272e6a16133ffa76",
-      "size": 666
+      "sha256": "573d71352d05e6795f7bb5025027b7005187f8da8d95b524481a6b625cf34481",
+      "size": 700
     },
     "public/memory-lane.html": {
-      "sha256": "a579ecf88aedeeed0b11b52059a10dc593f0c5375f2351da162012a5f9a45823",
-      "size": 29029
+      "sha256": "2d0c4cb50599dc44223aca67faee0a87de7f7ec49737819709df9f0020ba0b75",
+      "size": 31556
     },
     "sample-library/LIBRARY_README.md": {
       "sha256": "3be7eed2604ff212ed9c2992e1440a5f671da0eb5a77dfaf1d74c06fe0a36f30",
@@ -133,8 +137,8 @@
       "size": 3967
     },
     "server.mjs": {
-      "sha256": "25321aef4db35827151cb15112a17eed4d5339eedd26a36e7dab95d82f7dcb37",
-      "size": 15209
+      "sha256": "ea43235a281723202606fb1d256cd87197d813403b694ac9dac541502a7a87a0",
+      "size": 15881
     }
   }
 }

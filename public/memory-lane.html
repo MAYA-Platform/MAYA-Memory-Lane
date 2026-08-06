@@ -125,6 +125,20 @@
   .result .excerpt { font-size: 13px; color: var(--muted); margin-top: 4px; }
   .empty { color: var(--muted); font-size: 13px; padding: 8px 2px; }
 
+  /* Ask your memory */
+  .ask-answer {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin-bottom: 8px;
+  }
+  .ask-mode {
+    display: inline-block; font-family: var(--mono); font-size: 11px;
+    letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px;
+    border-radius: 20px; margin-bottom: 8px;
+  }
+  .ask-mode.direct { color: #52d273; border: 1px solid rgba(82,210,115,.35); }
+  .ask-mode.synth { color: var(--gold); border: 1px solid rgba(240,160,48,.35); }
+  .answer-text { font-size: 14px; color: var(--fg); line-height: 1.5; }
+
   /* Sections */
   h2 {
     font-size: 15px; text-transform: uppercase; letter-spacing: .1em; color: var(--gold);
@@ -250,9 +264,18 @@
       </div>
       <div class="hint">Plain-text search across every block body.</div>
     </div>
+    <div class="control">
+      <div class="label">Ask your memory</div>
+      <div class="row">
+        <input type="text" id="askInput" aria-label="Ask your memory" placeholder="e.g. what did I decide about the launch?">
+        <button id="askBtn">Ask</button>
+      </div>
+      <div class="hint">Answers from your memory. Exact hits are instant; when your wording doesn't match, a model reads the evidence and answers honestly.</div>
+    </div>
   </div>
 
   <div class="results hidden" id="searchResults"></div>
+  <div class="results hidden" id="askResults"></div>
 
   <div id="contentSections" class="hidden">
     <h2>Timeline Lane</h2>
@@ -541,13 +564,41 @@ async function doSearch() {
   }
 }
 
+async function doAsk() {
+  const q = $('askInput').value.trim();
+  const box = $('askResults');
+  if (!q) return;
+  box.classList.remove('hidden');
+  box.innerHTML = '<div class="empty">Asking your memory “' + esc(q) + '”…</div>';
+  try {
+    const d = await j('/api/answer?q=' + encodeURIComponent(q));
+    if (d.mode === 'none') {
+      box.innerHTML = '<div class="empty">No memory found for “' + esc(q) + '”. Try different wording, or seal the memory first.</div>';
+      return;
+    }
+    const modeLabel = d.mode === 'direct'
+      ? '<span class="ask-mode direct">exact match</span>'
+      : '<span class="ask-mode synth">synthesized from memory</span>';
+    const source = d.source
+      ? `<div class="excerpt" style="margin-top:6px;">from <b>${esc(d.source)}</b></div>`
+      : (d.evidence && d.evidence.length
+          ? `<div class="excerpt" style="margin-top:6px;">evidence: ${d.evidence.slice(0, 2).map((e) => esc(e.block_id)).join(', ')}</div>`
+          : '');
+    box.innerHTML = `<div class="ask-answer">${modeLabel}<div class="answer-text">${esc(d.answer)}</div>${source}</div>`;
+  } catch (e) {
+    box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
+  }
+}
+
 async function reloadAll() {
   await loadStatus();
   await loadBlocks();
   await loadChain();
   $('searchResults').classList.add('hidden');
+  $('askResults').classList.add('hidden');
   $('resumeInput').value = '';
   $('searchInput').value = '';
+  $('askInput').value = '';
 }
 
 window.scrollToBlock = function(libId) {
@@ -579,6 +630,8 @@ $('resumeBtn').addEventListener('click', doResume);
 $('resumeInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doResume(); });
 $('searchBtn').addEventListener('click', doSearch);
 $('searchInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doSearch(); });
+$('askBtn').addEventListener('click', doAsk);
+$('askInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAsk(); });
 
 $('exportBtn').addEventListener('click', async () => {
   try {
