@@ -15,6 +15,8 @@
  *   GET /api/export                -> deterministic JSON export of the library
  *   POST /api/ingest               -> seal a new memory (auto fact extraction)
  *   POST /api/blocks               -> seal a new memory with explicit facts
+ *   GET /api/answer?q=             -> answer a question (direct / synthesized /
+ *                                     none — the retrieval confidence gate)
  *
  * Write endpoints (v3, 2026-08-05): a library is no longer read-only. POST a
  * transcript (or a hand-written memory) and Memory Lane extracts durable
@@ -58,6 +60,7 @@ import {
   appendBlock
 } from './lib/memoryLaneCore.js';
 import { ingestTranscript } from './lib/extract.js';
+import { answerQuestion } from './lib/answer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
@@ -356,7 +359,19 @@ const routes = {
   },
 
   '/api/ingest': (req, res) => routes['/api/write-memory'](req, res, { autoExtract: true }),
-  '/api/blocks/write': (req, res) => routes['/api/write-memory'](req, res, { autoExtract: false })
+  '/api/blocks/write': (req, res) => routes['/api/write-memory'](req, res, { autoExtract: false }),
+
+  '/api/answer': async (req, res) => {
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const q = url.searchParams.get('q') || '';
+    if (!q.trim()) {
+      return sendJson(res, 400, { ok: false, error: 'q is required' });
+    }
+    const lib = getLibrary();
+    if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
+    const result = await answerQuestion(lib, q);
+    sendJson(res, 200, { ok: true, ...result });
+  }
 };
 
 const server = http.createServer((req, res) => {
