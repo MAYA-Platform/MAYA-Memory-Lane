@@ -117,6 +117,59 @@ hermes mcp add memory-lane --command node \
 
 Once registered, the agent can pull your memory in real time: "what did we decide about the launch?" → `ml_answer` → the answer with the source block. This is the read side that completes the loop — memory collects itself (write side) and answers questions across sessions (read side).
 
+## Benchmarks & independent research
+
+Memory Lane is benchmarked against the closest agent-memory systems — same dataset, same queries, same scoring, each system running its real pipeline. The full writeup lives in [`benchmarks/SIDE_BY_SIDE_REPORT.md`](benchmarks/SIDE_BY_SIDE_REPORT.md), the pre-registered method in [`benchmarks/BENCHMARK_PROTOCOL.md`](benchmarks/BENCHMARK_PROTOCOL.md), and the exact runners in [`benchmarks/harness/`](benchmarks/harness/). Every controlled figure below traces to a logged run JSON — nothing is hand-typed into this report.
+
+### Controlled runs — LongMemEval oracle, 500 instances, identical conditions
+
+| Metric | Memory Lane | Honcho | LangMem | Mem0 |
+|---|---|---|---|---|
+| recall_all@5 | **61.1%** | 40.0% | 72.2% | 68.1% |
+| recall_all@10 | **73.2%** | 47.9% | 81.8% | 77.8% |
+| ndcg_any@5 | **62.0%** | 28.5% | 35.9% | 33.0% |
+| ndcg_any@10 | **65.5%** | 29.5% | 36.8% | 33.9% |
+
+What each system ran (fair-mirror — their real product pipelines, not strawmen):
+
+- **Memory Lane** — deterministic FTS5 (BM25). No LLM, no embeddings, zero cost. This is the honest headline: an exact-match store with no model in the loop out-retrieves a hosted semantic API on the same protocol.
+- **Honcho** — hosted semantic API (`peer.search`, raw messages).
+- **LangMem** — native extraction (`create_memory_manager`, gpt-4o-mini via Merge Gateway) + semantic store search (bge-m3, local Ollama).
+- **Mem0** — native pipeline (`add` + `search`, gpt-4o-mini extraction, Chroma local + bge-m3). Note: Chroma disables Mem0's hybrid BM25 lane (semantic-only) — a documented product constraint of this configuration.
+
+The honest reading, stated plainly: **LangMem and Mem0 out-retrieve Memory Lane on this protocol** (72.2% and 68.1% vs 61.1% recall@5). Memory Lane beats Honcho outright, holds mid-pack behind the LLM-extraction systems on raw recall, and **leads on rank-aware ndcg@5** — while owning capabilities none of them claim (SHA-256 chain integrity, resume phrases, 6→1 compaction, portability, offline operation, zero recurring cost). We publish our own losses alongside our wins; that is the point of a pre-registered protocol.
+
+### Infra-constrained lanes (documented, not hidden)
+
+- **Letta / MemGPT** — adapter written (`harness/run_lane_a_letta.py`), server crashes at startup on Windows (Letta 0.16.8 async-lifecycle bug, config-independent; verified twice with clean homes). Runs when the Windows story or a Linux/Docker lane exists.
+- **Zep / Graphiti** — adapter written (`harness/run_lane_a_graphiti.py`), requires Neo4j via Docker (not viable on the test box without resource risk). Runs when Docker/Neo4j is available.
+
+### What we will NOT claim
+
+- ❌ "Memory Lane beats the top 5" — we claim measured results vs Honcho, LangMem, and Mem0, plus code-level capability findings for all.
+- ❌ "Memory Lane is better than LangMem/Mem0 at retrieval" — the controlled runs show otherwise; we report it as measured.
+- ❌ Any semantic-recall number for ML — it has none, and we say so.
+- ❌ Any number without a trace — every controlled figure points to a logged run file.
+- ❌ Retrieval claims about Letta/Graphiti — not run (infra-constrained); their external numbers are labeled as such.
+
+### Why vendor numbers aren't in the controlled table
+
+Vendor self-reports in this category diverge from independent evals by up to **45 points** (Mem0: 94.4% vendor claim vs 49.0% independent eval). External numbers are kept strictly separate in the report, labeled `[VENDOR]` / `[INDEPENDENT]`, and never mixed into our controlled runs.
+
+### Reproduce it
+
+```bash
+git clone https://github.com/MAYA-Platform/MAYA-Memory-Lane
+# dataset: huggingface.co/datasets/xiaowu0162/longmemeval-cleaned
+# runners: benchmarks/harness/ (private credentials read from config at runtime)
+python run_all_lanes.py --all                       # ML vs Honcho, Lanes B-E
+python run_lane_a_langmem.py                        # LangMem lane
+python run_lane_a_mem0.py --clean                   # Mem0 lane (then --query-only to re-query)
+python harness/generate_sbs_report.py               # regenerates this report from fresh logs
+```
+
+Every figure regenerates from the latest run JSONs. The protocol was pre-registered before any numbers existed — no hindsight bias.
+
 ## API
 
 | Endpoint | Description |
@@ -147,6 +200,8 @@ tools/inbox-watch.py         inbox watcher: auto-seal files in a drop folder
 tools/make-sample-library.mjs  deterministic sample library generator
 sample-library/              the bundled demo library (7 blocks, regenerable)
 tests/                       73 tests across core + server + ingest + answer
+benchmarks/                  pre-registered protocol, side-by-side report, and harness runners (ML vs Honcho/LangMem/Mem0 + adapters for Letta/Graphiti)
+docs/                        specs and design docs (auto-observation spec, etc.)
 ```
 
 ## Support & reporting issues
