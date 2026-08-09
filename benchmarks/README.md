@@ -22,6 +22,7 @@ We never claim to have run a competitor on our harness when we did not.
 |---|---|
 | `BENCHMARK_PROTOCOL.md` | Pre-registered method, written before any run (no hindsight bias). Defines lanes, dataset, metrics, and the honesty rules. |
 | `SIDE_BY_SIDE_REPORT.md` | The current side-by-side: controlled runs, ML capability proofs, LLM QA lane, external vendor numbers, capability matrix, and explicit "what we will NOT claim." Every controlled figure traces to a logged run file. |
+| `THEORY_TO_PROOF_REPORT.html` | Founder-facing narrative report of the same data: theory → hypothesis → experiment → results → proof, with honest boundaries and full reproducibility. Same numbers as the side-by-side, human-readable. |
 | `README.md` | This file. |
 
 ## Reproducibility
