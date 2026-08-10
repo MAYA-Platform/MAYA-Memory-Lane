@@ -386,6 +386,54 @@ const routes = {
   '/api/ingest': (req, res) => routes['/api/write-memory'](req, res, { autoExtract: true }),
   '/api/blocks/write': (req, res) => routes['/api/write-memory'](req, res, { autoExtract: false }),
 
+  '/api/observe': async (req, res) => {
+    // POST — run the deterministic Observer over one message (or a batch).
+    // Body: { message: "text", speaker?, session_id?, timestamp? } or
+    //       { messages: [...] }.
+    if (req.method !== 'POST') {
+      return sendJson(res, 405, { ok: false, error: 'method not allowed' });
+    }
+    const lib = getLibrary();
+    if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
+    if (!activeLibraryPath) {
+      return sendJson(res, 400, { ok: false, error: 'a library must be mounted to observe' });
+    }
+    const body = await readJsonBody(req);
+    if (body && body.error) return sendJson(res, 400, { ok: false, error: body.error });
+    const { observeMessage } = await import('./lib/observations.js');
+    const captures = [];
+    const msgs = Array.isArray(body && body.messages) ? body.messages
+      : (body && body.message) ? [body] : [];
+    for (const m of msgs) {
+      if (!m || !m.message) continue;
+      const obs = observeMessage(lib, {
+        speaker: m.speaker || 'user',
+        content: m.message,
+        session_id: m.session_id || null,
+        message_id: m.message_id || null,
+        timestamp: m.timestamp || undefined,
+        source_ref: m.source_ref || null,
+      });
+      if (obs) captures.push(obs);
+    }
+    const stats = (await import('./lib/observations.js')).observationStats(lib);
+    sendJson(res, 200, { ok: true, captured: captures.length, observations: captures, stats });
+  },
+
+  '/api/inject': async (req, res) => {
+    // GET — return the session-start snapshot (Injector output).
+    // Query: ?topics=a,b&pins=x,y&budget=3500
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const lib = getLibrary();
+    if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
+    const { buildSnapshot } = await import('./lib/injector.js');
+    const topics = (url.searchParams.get('topics') || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const pins = (url.searchParams.get('pins') || '').split(',').map((s) => s.trim()).filter(Boolean);
+    const budget = parseInt(url.searchParams.get('budget') || '3500', 10);
+    const result = buildSnapshot(lib, { topics, pins, budget });
+    sendJson(res, 200, { ok: true, snapshot: result.snapshot, charCount: result.charCount });
+  },
+
   '/api/answer': async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const q = url.searchParams.get('q') || '';
