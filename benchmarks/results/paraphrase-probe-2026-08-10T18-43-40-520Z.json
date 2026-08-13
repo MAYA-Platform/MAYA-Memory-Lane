@@ -1,0 +1,10 @@
+{
+  "run_id": "2026-08-10T18-43-40-520Z",
+  "system": "memory-lane-paraphrase-probe",
+  "instances": 16,
+  "fts_recall_5": 0.2125,
+  "hybrid_recall_5": 0.3145833333333333,
+  "delta": 0.10208333333333333,
+  "dense": "fts5+rrf+vertex-text-embedding-004",
+  "chain_intact": true
+}

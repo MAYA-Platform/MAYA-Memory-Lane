@@ -1,0 +1,11 @@
+{
+  "run_id": "2026-08-06T22-25-24-376491+00-00",
+  "system": "honcho",
+  "dataset": "longmemeval_oracle.json",
+  "instances": 500,
+  "dataset_sha256": "821a2034d219ab45846873dd14c14f12cfe7776e73527a483f9dac095d38620c",
+  "session_recall_all_5": 0.39976666666666666,
+  "session_recall_all_10": 0.47940000000000005,
+  "session_ndcg_any_5": 0.2847666666666667,
+  "session_ndcg_any_10": 0.2949080086580086
+}

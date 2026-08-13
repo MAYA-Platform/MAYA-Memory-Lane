@@ -1,0 +1,23 @@
+{
+  "started": "2026-08-06T22:25:23.630055+00:00",
+  "run_id": "2026-08-06T22-25-23-630055+00-00",
+  "items": 500,
+  "lanes": {
+    "honcho_lane_a": {
+      "rc": 0,
+      "out_tail": "see results/"
+    },
+    "ml_lane_a": {
+      "rc": 0,
+      "out_tail": "see results/"
+    },
+    "lane_b": {
+      "rc": 0,
+      "out_tail": "see results/"
+    },
+    "lanes_cde": {
+      "rc": 0,
+      "out_tail": "see results/"
+    }
+  }
+}

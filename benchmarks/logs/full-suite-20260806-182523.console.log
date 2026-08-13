@@ -1,0 +1,13 @@
+[2026-08-06T22-25-23-631057+00-00] Honcho Lane A starting (500 items)...
+[2026-08-06T22-34-29-453988+00-00] Honcho Lane A done rc=0
+[2026-08-06T22-34-29-453988+00-00] Memory Lane Lane A starting (500 items)...
+[2026-08-06T22-34-45-708369+00-00] Memory Lane Lane A done rc=0
+[2026-08-06T22-34-45-708369+00-00] Memory Lane Lanes B-E starting...
+[2026-08-06T22-34-48-605873+00-00] Memory Lane Lanes B-E done
+
+=== MEMORY LANE vs HONCHO — 24h BENCHMARK RUN ===
+Run: 2026-08-06T22-25-23-630055+00-00
+Started: 2026-08-06T22:25:23.630055+00:00
+Receipt: E:\MAYA_BULK\memory-lane-benchmark\results\RUN_RECEIPT_2026-08-06T22-25-23-630055+00-00.json
+Lanes executed: honcho_lane_a, ml_lane_a, lane_b, lanes_cde
+Full metrics in results/ — JSONL traces in logs/

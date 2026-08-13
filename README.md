@@ -14,14 +14,12 @@ Memory Lane is a public-beta web interface over a plain-file library. No cloud, 
 
 *Shown with the bundled sample loaded via the "Load sample library" button. A fresh clone opens blank, your lane is empty until you seal records. The sample is fabricated demo data that never touches your machine.*
 
-**Live demo:** [watch in action](docs/images/ml-demo.webm) — real click-through of a live library: search, ask your memory (exact match + synthesized answer with evidence), and the linked block timeline.
-
 ## What it does
 
 - **Linked memory records**, every session becomes a sealed block with a SHA-256 fingerprint, and every block carries the fingerprint of the block before it. Change anything and the break is visible
 - **Automatic ingestion**, drop a transcript into the inbox (or POST it to the API) and Memory Lane extracts durable facts, seals a chain-linked block, and files it — no human step in between
 - **6→1 compaction**, six session records fold into one shelf block, so the library grows one shelf per six sessions instead of one file per session
-- **Chain verification**, recomputes every fingerprint and walks the links, then tells you plainly what you need to know: intact, unverifiable, or needs attention
+- **Chain verification**, recomputes every fingerprint and walks the links, then tells you plainly what you need to know: intact, unverifiable, or needs attention. The boundary, stated honestly: the manifest is the anchor of trust, so verification catches modification by anyone who cannot rewrite the manifest too. That is integrity detection, not an externally anchored audit log — the chain proves nothing was changed behind your back while you hold the files, it does not prove provenance to a third party
 - **Resume phrase as your key**, one string crosses sessions. The library holds everything else
 - **Full-text search**, plain-text search across every record body, boosted by extracted facts
 - **Ask your memory**, ask a natural-language question and get an answer — exact hits return instantly for free, and when your wording doesn't match, a model reads the retrieved evidence and answers honestly (or says it doesn't know). No invented facts
@@ -119,7 +117,9 @@ Once registered, the agent can pull your memory in real time: "what did we decid
 
 ## Benchmarks & independent research
 
-Memory Lane is benchmarked against the closest agent-memory systems — same dataset, same queries, same scoring, each system running its real pipeline. The full writeup lives in [`benchmarks/SIDE_BY_SIDE_REPORT.md`](benchmarks/SIDE_BY_SIDE_REPORT.md), the pre-registered method in [`benchmarks/BENCHMARK_PROTOCOL.md`](benchmarks/BENCHMARK_PROTOCOL.md), and the exact runners in [`benchmarks/harness/`](benchmarks/harness/). Every controlled figure below traces to a logged run JSON — nothing is hand-typed into this report.
+Memory Lane is benchmarked against the closest agent-memory systems — same dataset, same queries, same scoring, each system running its real pipeline. The full writeup lives in [`benchmarks/SIDE_BY_SIDE_REPORT.md`](benchmarks/SIDE_BY_SIDE_REPORT.md), the method in [`benchmarks/BENCHMARK_PROTOCOL.md`](benchmarks/BENCHMARK_PROTOCOL.md), the exact runners in [`benchmarks/harness/`](benchmarks/harness/), the run traces in [`benchmarks/logs/`](benchmarks/logs/), and the aggregated results in [`benchmarks/results/`](benchmarks/results/). Every controlled figure below traces to a committed run log — nothing is hand-typed into this report, and anyone can rerun the lanes from the committed harness.
+
+**One honest framing note up front:** the controlled table below uses the **oracle** LongMemEval variant, which is the exact-match-friendly lane — FTS5's natural strength and semantic search's weak spot. We publish it because it is the protocol we pre-registered, and we publish the **paraphrase probe** (same questions, different wording) as the companion table below, where FTS5 drops and the semantic lane shows its value. Both tables together are the honest picture; either alone is not.
 
 ### Controlled runs — LongMemEval oracle, 500 instances, identical conditions
 
@@ -138,6 +138,19 @@ What each system ran (fair-mirror — their real product pipelines, not strawmen
 - **Mem0** — native pipeline (`add` + `search`, gpt-4o-mini extraction, Chroma local + bge-m3). Note: Chroma disables Mem0's hybrid BM25 lane (semantic-only) — a documented product constraint of this configuration.
 
 The honest reading, stated plainly: **LangMem and Mem0 out-retrieve Memory Lane on this protocol** (72.2% and 68.1% vs 61.1% recall@5). Memory Lane beats Honcho outright, holds mid-pack behind the LLM-extraction systems on raw recall, and **leads on rank-aware ndcg@5** — while owning capabilities none of them claim (SHA-256 chain integrity, resume phrases, 6→1 compaction, portability, offline operation, zero recurring cost). We publish our own losses alongside our wins; that is the point of a pre-registered protocol.
+
+**Pipeline asymmetry, stated honestly.** The three pipelines are not identical and we don't pretend they are: LangMem and Mem0 ran their native extraction stage (gpt-4o-mini summarizing transcripts into memory before search), Memory Lane ran raw transcripts with no extraction stage in this lane, and Honcho ran `peer.search` on raw messages without its memory-generation stage. That is "each system's real pipeline" only in the sense that each ran its own product code end to end; it is not a controlled comparison of equivalent preprocessing. We also record that the protocol's own §5.1 notes Honcho's Phase 1 evaluation reported 83% recall/search on its own internal eval, versus 40.0% here on the shared protocol — a spread worth reading carefully before trusting either number in isolation.
+
+### Paraphrase probe — where semantic recall shows its value (companion table)
+
+The oracle lane is FTS5's home turf: the LongMemEval questions contain exact keywords the transcript already holds. Real-world memory questions don't — "the thing about my car GPS in March" rarely matches the stored text verbatim. This probe paraphrases each question (same meaning, different words) and measures whether retrieval still finds the gold session. N=16, Memory Lane only (FTS5 vs FTS5+Vertex embeddings), trace: `benchmarks/logs/paraphrase-probe-*.jsonl`:
+
+| Retrieval lane | recall@5 | Δ |
+|---|---|---|
+| FTS5 only (zero-dep, offline) | 21.3% | — |
+| FTS5 + Vertex embeddings (RRF hybrid) | 31.5% | +10.2 pts |
+
+The honest reading: paraphrase breaks exact-match retrieval hard (21.3%), and the semantic lane recovers a third of what FTS5 missed — on the same hardware, at pennies per query instead of a subscription. This is a small-N single-system probe, not a head-to-head, and we label it as such. The controlled head-to-head on paraphrased queries is on the roadmap; if retrieval quality on natural-language recall matters to you, this is the table to watch.
 
 ### Infra-constrained lanes (documented, not hidden)
 
@@ -160,15 +173,16 @@ Vendor self-reports in this category diverge from independent evals by up to **4
 
 ```bash
 git clone https://github.com/MAYA-Platform/MAYA-Memory-Lane
+cd MAYA-Memory-Lane/benchmarks
 # dataset: huggingface.co/datasets/xiaowu0162/longmemeval-cleaned
-# runners: benchmarks/harness/ (private credentials read from config at runtime)
-python run_all_lanes.py --all                       # ML vs Honcho, Lanes B-E
-python run_lane_a_langmem.py                        # LangMem lane
-python run_lane_a_mem0.py --clean                   # Mem0 lane (then --query-only to re-query)
-python harness/generate_sbs_report.py               # regenerates this report from fresh logs
+# credentials: HONCHO_API_KEY env var for the Honcho lane (see harness/run_lane_a_honcho.py)
+python harness/run_all_lanes.py --all             # ML vs Honcho + Lanes B-E (~30-40 min)
+python harness/run_lane_a_langmem.py              # LangMem lane (gpt-4o-mini extraction)
+python harness/run_lane_a_mem0.py --clean         # Mem0 lane (then --query-only to re-query)
+python harness/generate_sbs_report.py             # regenerates the report from fresh logs
 ```
 
-Every figure regenerates from the latest run JSONs. The protocol was pre-registered before any numbers existed — no hindsight bias.
+Every figure regenerates from the latest run JSONs, and the committed `benchmarks/logs/` + `benchmarks/results/` show the exact runs behind the published tables. On pre-registration, stated honestly: the protocol and the first report entered git in the same commit, so the evidence trail shows the intent and the method but not a timestamped lock before the first run. The protocol is written to constrain scoring and reporting choices regardless; treat it as a method document, not a witnessed preregistration.
 
 ## API
 
