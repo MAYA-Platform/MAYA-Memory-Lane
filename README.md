@@ -237,7 +237,7 @@ anything anywhere without my explicit approval.
 
 ## License
 
-2ndNatureAi Public Beta Evaluation License 1.0, see [LICENSE.txt](LICENSE.txt).
+MIT, see [LICENSE.txt](LICENSE.txt).
 
 ---
 

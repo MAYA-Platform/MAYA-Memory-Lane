@@ -15,5 +15,5 @@
   "engines": {
     "node": ">=22"
   },
-  "license": "SEE LICENSE IN LICENSE.txt"
+  "license": "MIT"
 }
