@@ -6,7 +6,7 @@ instances, same queries, same gold standard, same scoring semantics.
 
 Fair-mirror design (how LangMem is actually used, not a strawman):
   - Extraction: langmem.create_memory_manager (their schema-based LLM extraction,
-    the product's core claim) via DeepSeek v4-flash through Merge Gateway.
+    the product's core claim) via DeepSeek v4-flash via DeepSeek.
   - Storage: langgraph InMemoryStore with semantic index (bge-m3 via Ollama,
     local, free — same embeddings cost class as our own lane).
   - Search: store.search(query=<raw question>) — same raw-query search shape
@@ -15,7 +15,7 @@ Fair-mirror design (how LangMem is actually used, not a strawman):
     metadata; a question's gold sessions are scored against the ranked
     session ids derived from retrieved memories).
 
-Note on extraction cost: one LLM call per session via Merge (~$0.00004) —
+Note on extraction cost: one LLM call per session via DeepSeek (~$0.00004) —
 the full 940-session ingest is well under $0.10.
 
 Usage:
@@ -33,7 +33,7 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from llm_backend import _load_merge_config  # noqa: E402
+from llm_backend import _load_deepseek_config  # noqa: E402
 
 from langgraph.store.memory import InMemoryStore  # noqa: E402
 from langmem import create_memory_manager  # noqa: E402
@@ -86,7 +86,7 @@ def main():
     dataset = json.loads(Path(args.dataset).read_text(encoding="utf-8"))[: args.items]
 
     # LLM (DeepSeek) + store (InMemory, bge-m3 via Ollama)
-    cfg = _load_merge_config()
+    cfg = _load_deepseek_config()
     llm = ChatOpenAI(
         model=args.model,
         api_key=cfg["api_key"],

@@ -113,7 +113,7 @@ def main():
     ap.add_argument("--items", type=int, default=10, help="number of questions to enrich (their sessions)")
     ap.add_argument("--out", default=str(BENCH / "libraries" / "ml-lane-f-facts"))
     ap.add_argument("--model", default="qwen2.5:3b")
-    ap.add_argument("--backend", default="local", choices=["local", "merge"], help="LLM backend: local (Ollama) or merge (main provider)")
+    ap.add_argument("--backend", default="local", choices=["local", "deepseek"], help="LLM backend: local (Ollama) or merge (main provider)")
     ap.add_argument("--entities", action="store_true", help="U5: also extract entities into frontmatter")
     ap.add_argument("--dataset", default=str(BENCH / "datasets" / "longmemeval_oracle.json"))
     ap.add_argument("--src", default=str(BENCH / "libraries" / "ml-lane-f"))
@@ -172,8 +172,8 @@ def main():
                 obs_date = line.split(":", 1)[1].strip().strip('"').strip("'")
                 break
         recent = accumulated_facts.get(sid_match, [])
-        facts = extract_facts(transcript, None if args.backend == "merge" else args.model, args.backend, obs_date=obs_date, recent_facts=recent)
-        entities = extract_entities(transcript, None if args.backend == "merge" else args.model, args.backend) if args.entities else []
+        facts = extract_facts(transcript, None if args.backend == "deepseek" else args.model, args.backend, obs_date=obs_date, recent_facts=recent)
+        entities = extract_entities(transcript, None if args.backend == "deepseek" else args.model, args.backend) if args.entities else []
         if facts:
             accumulated_facts[sid_match] = (recent + facts)[-20:]  # keep last 20 for dedup
             # append facts section to the block body, recompute hash, update manifest

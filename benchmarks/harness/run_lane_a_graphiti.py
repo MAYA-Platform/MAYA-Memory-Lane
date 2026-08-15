@@ -16,7 +16,7 @@ Fair-mirror design (Graphiti's real product — temporal knowledge graph):
 Note: Graphiti is a temporal-graph system; its search returns *facts* (edges),
 not sessions. We map facts back to sessions via group_id. LLM extraction and
 embedding run through the clients passed at construction (gpt-4o-mini via
-Merge for LLM, bge-m3 via Ollama for embeddings — same cost class as other
+DeepSeek for LLM, bge-m3 via Ollama for embeddings — same cost class as other
 lanes). This is Graphiti's real ingestion pipeline (it always extracts
 entities/facts from raw episodes).
 
@@ -34,7 +34,7 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from llm_backend import _load_merge_config  # noqa: E402
+from llm_backend import _load_deepseek_config  # noqa: E402
 
 
 def sha256_bytes(b):
@@ -68,9 +68,9 @@ def main():
     run_id = datetime.now(timezone.utc).isoformat().replace(":", "-").replace(".", "-")
     dataset = json.loads(Path(args.dataset).read_text(encoding="utf-8"))[: args.items]
 
-    cfg = _load_merge_config()
+    cfg = _load_deepseek_config()
 
-    # LLM + embedder clients — gpt-4o-mini via Merge, bge-m3 via Ollama
+    # LLM + embedder clients — gpt-4o-mini via DeepSeek, bge-m3 via Ollama
     try:
         from graphiti_core.llm_client import OpenAIClient, LLMConfig
         from graphiti_core.embedder import OpenAIEmbedder, EmbedderConfig

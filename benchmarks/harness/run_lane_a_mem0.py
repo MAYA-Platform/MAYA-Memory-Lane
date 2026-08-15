@@ -6,8 +6,8 @@ queries, same gold standard, same scoring semantics.
 
 Fair-mirror design (Mem0's real product pipeline, not a strawman):
   - add(messages, user_id=session_id): Mem0's native LLM extraction + storage.
-    Extraction model: gpt-4o-mini via Merge Gateway. NOTE: DeepSeek v4-flash
-    via Merge returns content in the `thinking` field, which Mem0's extraction
+    Extraction model: gpt-4o-mini via DeepSeek. NOTE: DeepSeek v4-flash
+    via DeepSeek returns content in the `thinking` field, which Mem0's extraction
     parser reads as empty (extracts nothing). gpt-4o-mini is OpenAI-native and
     is also the family Mem0's own benchmarks use (GPT-4o), so this is a
     conservative, comparable setup.
@@ -17,7 +17,7 @@ Fair-mirror design (Mem0's real product pipeline, not a strawman):
   - Retrieval unit: haystack session id (via user_id, which we set to the
     haystack session id at ingest).
 
-Cost: one extraction LLM call per session via Merge (~$0.00004) — the full
+Cost: one extraction LLM call per session via DeepSeek (~$0.00004) — the full
 940-session ingest is well under $0.10.
 
 Usage:
@@ -35,7 +35,7 @@ from pathlib import Path
 
 BENCH = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from llm_backend import _load_merge_config  # noqa: E402
+from llm_backend import _load_deepseek_config  # noqa: E402
 
 from mem0 import Memory  # noqa: E402
 
@@ -71,7 +71,7 @@ def main():
     run_id = datetime.now(timezone.utc).isoformat().replace(":", "-").replace(".", "-")
     dataset = json.loads(Path(args.dataset).read_text(encoding="utf-8"))[: args.items]
 
-    cfg = _load_merge_config()
+    cfg = _load_deepseek_config()
     chroma_path = str(BENCH / "libraries" / "mem0-chroma")
     if args.clean and not args.query_only and Path(chroma_path).exists():
         shutil.rmtree(chroma_path, ignore_errors=True)

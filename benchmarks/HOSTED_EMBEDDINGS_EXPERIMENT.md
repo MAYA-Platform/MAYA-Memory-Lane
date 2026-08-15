@@ -30,7 +30,7 @@ product path for "users without a local model": same library, hosted lane, still
 - `benchmarks/harness/run_lane_h_paraphrase.mjs` (benchmark dir): Lane H
   paraphrase probe runner.
 - `benchmarks/harness/generate_paraphrase_probe.py` (benchmark dir): builds the
-  paraphrase probe via Merge/DeepSeek.
+  paraphrase probe via DeepSeek/DeepSeek.
 
 ## Lane A — Retrieval recall (500 LongMemEval questions, identical protocol)
 
@@ -54,7 +54,7 @@ Notes:
 
 The honest test for "the thing about my car GPS" (different words, same
 meaning, FTS5 can't match). N LongMemEval questions are paraphrased via
-Merge/DeepSeek (instructed to avoid original keywords); gold sessions are
+DeepSeek (instructed to avoid original keywords); gold sessions are
 unchanged. Recall@5 measured for FTS5-only vs FTS5+Vertex on the paraphrase.
 
 | Metric | FTS5 only | FTS5 + Vertex | Delta |
@@ -90,6 +90,6 @@ reproducible and the Lane A delta is the statistically cleaner number.)
   run silently failed with an expired token (0 delta) and required refresh +
   re-run. The embeddings module needs a token-refresh hook for long runs —
   flagged as follow-up work.
-- The Merge/DeepSeek paraphrase generator skips ~60% of questions (thinking
+- The DeepSeek paraphrase generator skips ~60% of questions (thinking
   model returns empty content at modest max_tokens). 16/40 usable; fine for a
   directional probe, needs a non-thinking lane for a larger run.

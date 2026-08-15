@@ -8,9 +8,9 @@ Protocol (pre-registered in BENCHMARK_PROTOCOL.md §Lane G):
   1. Ingests LongMemEval sessions into a Memory Lane library.
   2. Runs the deterministic Observer over every haystack message →
      observations.jsonl.
-  3. Runs the Distiller (merge/DeepSeek) → DERIVED.md + PROFILE_SNAPSHOT.md.
+  3. Runs the Distiller (DeepSeek) → DERIVED.md + PROFILE_SNAPSHOT.md.
   4. For each question, answers with THREE conditions, same answerer model
-     (DeepSeek v4-flash via Merge), judged by gold-answer containment:
+     (DeepSeek v4-flash via DeepSeek), judged by gold-answer containment:
        - baseline : no memory context (zero-shot)
        - ours     : FTS5 retrieval + ML observation snapshot + derived profile
        - honcho   : FTS5 retrieval + Honcho peer context (hosted service ON)
@@ -82,7 +82,7 @@ Is the AI answer correct (same fact, entity, or value as the gold answer, even i
 
 
 def judge_llm(question, response, gold):
-    """LLM judge (DeepSeek via Merge) — tolerant of paraphrase. Falls back to
+    """LLM judge (DeepSeek via DeepSeek) — tolerant of paraphrase. Falls back to
     substring judge when the LLM call fails. Returns 1.0/0.0."""
     if not gold or not response:
         return 0.0
@@ -94,7 +94,7 @@ def judge_llm(question, response, gold):
         return 0.0
     out, _ = L.strip_cost(L.llm_call(
         JUDGE_PROMPT.format(question=question[:400], gold=gold[:200], answer=response[:400]),
-        backend="merge", max_tokens=500,
+        backend="deepseek", max_tokens=500,
     ))
     verdict = (out or "").strip().upper()
     if verdict.startswith("YES"):
@@ -193,7 +193,7 @@ def main():
             print(p.stderr[-500:])
     if not (lib_dir / "DERIVED.md").exists():
         print("[lane-g] no DERIVED.md — running Distiller...")
-        p = subprocess.run([sys.executable, "distill_observations.py", "--lib", str(lib_dir), "--backend", "merge"],
+        p = subprocess.run([sys.executable, "distill_observations.py", "--lib", str(lib_dir), "--backend", "deepseek"],
                            capture_output=True, text=True, cwd=BENCH / "harness", timeout=600)
         print(p.stdout.strip()[-800:])
 
@@ -229,7 +229,7 @@ def main():
 
         # Condition A: baseline (zero-shot, no memory)
         a = L.strip_cost(L.llm_call(ANSWER_PROMPT.format(context="(no context)", question=q),
-                                    backend="merge", max_tokens=800))[0]
+                                    backend="deepseek", max_tokens=800))[0]
 
         # Condition B: ours (facts + ML snapshot + derived profile)
         ours_ctx = f"RETRIEVED FACTS:\n{facts_text or '(none)'}"
@@ -238,7 +238,7 @@ def main():
         if derived:
             ours_ctx += f"\n\nDERIVED PROFILE:\n{derived}"
         b = L.strip_cost(L.llm_call(ANSWER_PROMPT.format(context=ours_ctx, question=q),
-                                    backend="merge", max_tokens=800))[0]
+                                    backend="deepseek", max_tokens=800))[0]
 
         # Condition C: honcho (hosted ON)
         c = None
@@ -246,7 +246,7 @@ def main():
             h_ctx = honcho_context(q, api_key)
             honcho_ctx = f"RETRIEVED FACTS:\n{facts_text or '(none)'}\n\nRETRIEVED MEMORY:\n{fts_text}\n\nHONCHO CONTEXT:\n{h_ctx}"
             c = L.strip_cost(L.llm_call(ANSWER_PROMPT.format(context=honcho_ctx, question=q),
-                                        backend="merge", max_tokens=800))[0]
+                                        backend="deepseek", max_tokens=800))[0]
 
         g = gold.get(qid, "")
         row = {
@@ -279,7 +279,7 @@ def main():
         "honcho_accuracy": honcho,
         "ours_vs_honcho_delta": (ours - honcho) if honcho is not None else None,
         "honcho_enabled": args.honcho,
-        "notes": "deterministic gold-substring judge; DeepSeek v4-flash via Merge answerer",
+        "notes": "deterministic gold-substring judge; DeepSeek v4-flash via DeepSeek answerer",
     }
     (BENCH / "results" / f"lane-g-pipeline-{metrics['run_id']}.json").write_text(
         json.dumps(metrics, indent=2), encoding="utf-8")

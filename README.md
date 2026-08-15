@@ -93,7 +93,7 @@ node tools/ingest.mjs transcript.md --source hermes
 cat notes.txt | node tools/ingest.mjs --title "Evening notes"
 ```
 
-**How extraction works.** The recommended model is **deepseek v4 flash** through a Merge Gateway key (`MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`), falling back to local Ollama when no key is set. The model turns a raw transcript into a `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. Extraction is best-effort by design: if the model is unreachable, the raw text is still sealed and searchable — a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
+**How extraction works.** The recommended model is **deepseek v4 flash** through the DeepSeek API (`MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`), falling back to local Ollama when no key is set. The model turns a raw transcript into a `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. Extraction is best-effort by design: if the model is unreachable, the raw text is still sealed and searchable — a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
 
 ## Agents can read it (MCP bridge)
 
@@ -134,7 +134,7 @@ What each system ran (fair-mirror — their real product pipelines, not strawmen
 
 - **Memory Lane** — deterministic FTS5 (BM25). No LLM, no embeddings, zero cost. This is the honest headline: an exact-match store with no model in the loop out-retrieves a hosted semantic API on the same protocol.
 - **Honcho** — hosted semantic API (`peer.search`, raw messages).
-- **LangMem** — native extraction (`create_memory_manager`, gpt-4o-mini via Merge Gateway) + semantic store search (bge-m3, local Ollama).
+- **LangMem** — native extraction (`create_memory_manager`, gpt-4o-mini via DeepSeek) + semantic store search (bge-m3, local Ollama).
 - **Mem0** — native pipeline (`add` + `search`, gpt-4o-mini extraction, Chroma local + bge-m3). Note: Chroma disables Mem0's hybrid BM25 lane (semantic-only) — a documented product constraint of this configuration.
 
 The honest reading, stated plainly: **LangMem and Mem0 out-retrieve Memory Lane on this protocol** (72.2% and 68.1% vs 61.1% recall@5). Memory Lane beats Honcho outright, holds mid-pack behind the LLM-extraction systems on raw recall, and **leads on rank-aware ndcg@5** — while owning capabilities none of them claim (SHA-256 chain integrity, resume phrases, 6→1 compaction, portability, offline operation, zero recurring cost). We publish our own losses alongside our wins; that is the point of a pre-registered protocol.
@@ -204,7 +204,7 @@ Every figure regenerates from the latest run JSONs, and the committed `benchmark
 
 ```text
 lib/memoryLaneCore.js        library core: load, verify, search, resume, export, append
-lib/extract.js               fact extraction: deepseek v4 flash via Merge, Ollama fallback
+lib/extract.js               fact extraction: deepseek v4 flash via DeepSeek, Ollama fallback
 lib/answer.js                answer gate: direct / synthesized / none (retrieval confidence)
 public/memory-lane.html      the interface (single file, zero deps)
 server.mjs                   zero-dependency HTTP server (read + write + answer endpoints)

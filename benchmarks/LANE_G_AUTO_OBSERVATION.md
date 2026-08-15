@@ -13,14 +13,14 @@ The Auto-Observation pipeline from `AUTO_OBSERVATION_SPEC.md` is now **implement
 |---|---|---|---|
 | **Observer** | Deterministic signal capture (decision/correction/preference/instruction/boundary/fact/identity/state) — rule-based, zero-LLM, bounded excerpts, dedup, append-only JSONL ledger | `lib/observations.js` | ✅ built + tested (11 tests) |
 | **Store** | Append-only ledger + FTS5 search + audit ledger `OBSERVATIONS.md` | `lib/observations.js` | ✅ |
-| **Distiller** | Cross-session synthesis (merge/DeepSeek or local) → `DERIVED.md` + `PROFILE_SNAPSHOT.md` | `harness/distill_observations.py` | ✅ built, live-verified |
+| **Distiller** | Cross-session synthesis (DeepSeek or local) → `DERIVED.md` + `PROFILE_SNAPSHOT.md` | `harness/distill_observations.py` | ✅ built, live-verified |
 | **Injector** | Session-start snapshot (recency + salience + topic + pins, budget-capped, drop-in contract) | `lib/injector.js` | ✅ built + tested |
 | **Server wiring** | `POST /api/observe` + `GET /api/inject` | `server.mjs` | ✅ |
 | **Fact extraction** | LLM fact extraction into blocks (the "answers become findable" stage) | `harness/auto_extract_facts.py` | ✅ existing, reused |
 
 Tests: **88 passing** (77 prior + 11 new for observer/injector).
 
-## Live benchmark (Lane G, LongMemEval, DeepSeek v4-flash via Merge answerer + LLM judge)
+## Live benchmark (Lane G, LongMemEval, DeepSeek v4-flash via DeepSeek answerer + LLM judge)
 
 Same protocol for all conditions. Baseline = zero-shot (no memory). Ours = full ML pipeline (observer + facts + distiller + injector + hybrid retrieval). Honcho = hosted service ON (same retrieval + Honcho semantic context).
 
@@ -41,13 +41,13 @@ Same protocol for all conditions. Baseline = zero-shot (no memory). Ours = full 
 
 ## What this proves
 
-1. **The distiller/synthesis engine is equal-tier with Honcho's** — the same class of cross-session conclusions ("user transitioned from renter to homeowner", "user switched from iOS to Android in February 2023"), produced locally via DeepSeek/Merge at ~$0.005-0.01 per pass.
+1. **The distiller/synthesis engine is equal-tier with Honcho's** — the same class of cross-session conclusions ("user transitioned from renter to homeowner", "user switched from iOS to Android in February 2023"), produced locally via DeepSeek at ~$0.005-0.01 per pass.
 2. **The full pipeline works without Honcho** — observer → store → distiller → injector, all local-first, zero recurring cost.
 3. **Retrieval is not the bottleneck for these questions** — FTS5 top-5 finds the gold session 94% of the time; the answer-model + fact-extraction stage is what separates correct from "I don't know."
 
 ## Cost
 
-- Full pipeline per library: ~$0.01-0.02 (DeepSeek via Merge for fact extraction + distillation).
+- Full pipeline per library: ~$0.01-0.02 (DeepSeek via DeepSeek for fact extraction + distillation).
 - Honcho comparison: hosted dependency, no recurring cost on our side.
 
 ## Files

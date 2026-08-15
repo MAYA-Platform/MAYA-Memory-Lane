@@ -8,7 +8,7 @@ or a shared derived summary. This is Honcho's "background reasoning" —
 conclusions drawn from multiple observations, not just explicit facts.
 
 Usage:
-  python derive_conclusions.py --lib <library_dir> [--backend merge] [--items N]
+  python derive_conclusions.py --lib <library_dir> [--backend deepseek] [--items N]
 
 Writes derived conclusions into each block's frontmatter as
 `derived_conclusions:` (comma-joined) and a `DERIVED.md` summary at the
@@ -44,11 +44,11 @@ CONCLUSIONS:
 
 
 def ollama_prompt(prompt, backend, model, max_tokens=4000):
-    # merge backend uses its configured default model — pass None so llm_backend
+    # deepseek backend uses its configured default model — pass None so llm_backend
     # resolves it, avoiding the "openai/qwen2.5:3b" prefixed-name 404.
     # max_tokens 4000: v4-pro thinking burns output budget on reasoning before
     # answering; 1500 returned empty content on long synthesis prompts.
-    model_arg = None if backend == "merge" else model
+    model_arg = None if backend == "deepseek" else model
     out, cost = L.strip_cost(L.llm_call(prompt, backend=backend, model=model_arg, max_tokens=max_tokens))
     return out, cost
 
@@ -65,7 +65,7 @@ def parse_list(out):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lib", default=str(BENCH / "libraries" / "ml-lane-f-facts"))
-    ap.add_argument("--backend", default="local", choices=["local", "merge"])
+    ap.add_argument("--backend", default="local", choices=["local", "deepseek"])
     ap.add_argument("--model", default="qwen2.5:3b")
     ap.add_argument("--limit-facts", type=int, default=200, help="max facts to feed the deriv er")
     args = ap.parse_args()

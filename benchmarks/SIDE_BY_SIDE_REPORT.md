@@ -32,7 +32,7 @@ Mem0, Zep/Graphiti, Letta, and LangMem were **code-level studied** (repos cloned
 
 Run timestamps: Memory Lane 2026-08-06 22:34 UTC · Honcho 2026-08-06 22:25 UTC · LangMem 2026-08-06 23:25 UTC · Mem0 2026-08-07 04:22 UTC
 
-**Setup per system (fair-mirror):** Memory Lane = deterministic FTS5 (no LLM, no embeddings). Honcho = hosted semantic API (`peer.search`, raw messages). LangMem = native extraction (`create_memory_manager`, gpt-4o-mini via Merge) + semantic store search (bge-m3 local). Mem0 = native pipeline (`add` + `search`, gpt-4o-mini via Merge extraction, Chroma local + bge-m3). Letta = native server + archival-memory search (SQLite, embedder server-side). Graphiti = native temporal graph (Neo4j, gpt-4o-mini, bge-m3). Same dataset, same queries, same gold standard, same scoring — each system ran its own real pipeline.
+**Setup per system (fair-mirror):** Memory Lane = deterministic FTS5 (no LLM, no embeddings). Honcho = hosted semantic API (`peer.search`, raw messages). LangMem = native extraction (`create_memory_manager`, gpt-4o-mini via DeepSeek) + semantic store search (bge-m3 local). Mem0 = native pipeline (`add` + `search`, gpt-4o-mini via DeepSeek extraction, Chroma local + bge-m3). Letta = native server + archival-memory search (SQLite, embedder server-side). Graphiti = native temporal graph (Neo4j, gpt-4o-mini, bge-m3). Same dataset, same queries, same gold standard, same scoring — each system ran its own real pipeline.
 **Context for reading these numbers honestly:** Memory Lane's retrieval is deterministic FTS5 (BM25, zero embeddings, zero LLM). Honcho's is semantic. LongMemEval questions are paraphrased, so exact-match struggles and semantic shines — but after the FTS5 upgrade (commit 6366ba8), ML's recall@5 moved from a 0.1% baseline to exceed Honcho under identical conditions (baseline history in `BASELINE_REPORT.md`; latest controlled numbers in the table above, regenerated from the freshest logged runs each time this report is generated).
 
 ---
@@ -56,7 +56,7 @@ Same retrieval (FTS5), identical hard multi-session temporal questions. Shows th
 | Backend | Judge acc | Substring acc | Cost/q | Source |
 |---|---|---|---|---|
 | Local qwen2.5:3b | 0% | 30% | $0 | `results/LLM_BACKEND_COMPARISON.md` (10-q pilot) |
-| Main model (DeepSeek v4-flash via Merge) | 40% | 60% | ~$0.00004 | `results/LLM_BACKEND_COMPARISON.md` (10-q pilot) |
+| Main model (DeepSeek v4-flash via DeepSeek) | 40% | 60% | ~$0.00004 | `results/LLM_BACKEND_COMPARISON.md` (10-q pilot) |
 
 Caveat (in the source doc): 10 questions is a pilot, not significance. Dual scoring exists because small local judges are unreliable ('no' to correct answers).
 

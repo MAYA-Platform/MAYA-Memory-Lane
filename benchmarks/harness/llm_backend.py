@@ -4,7 +4,7 @@
 Provides a single llm_call() that routes to one of two backends:
 
   backend='local'  -> Ollama (zero cost, runs on user's machine)
-  backend='merge'  -> Merge Gateway / user's main provider (tiny token cost,
+  backend='deepseek'  -> DeepSeek / user's main provider (tiny token cost,
                       much stronger model)
 
 This is the "install-time three paths" architecture in miniature:
@@ -12,7 +12,7 @@ This is the "install-time three paths" architecture in miniature:
   - main/provider model only
   - both (local default, provider for heavy jobs)
 
-Merge credentials are read from Hermes config.yaml (providers.merge).
+DeepSeek credentials are read from the environment (DEEPSEEK_API_KEY) or the DEEPSEEK_API_KEY environment variable.
 """
 import json
 import urllib.request
@@ -27,15 +27,15 @@ HERMES_HOME = Path(os.environ.get("HERMES_HOME", r"~/.hermes"))
 OLLAMA = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
 
 
-def _load_merge_config():
-    """Read Merge Gateway credentials from Hermes config.yaml."""
+def _load_deepseek_config():
+    """Read DeepSeek credentials from environment variables."""
     import yaml
     cfg_path = HERMES_HOME / "config.yaml"
     cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
-    merge = cfg.get("providers", {}).get("merge", {})
-    key = merge.get("api_key") or os.environ.get("MERGE_API_KEY")
-    base = merge.get("base_url", "https://api-gateway.merge.dev/v1/openai")
-    default_model = merge.get("default_model") or "deepseek/deepseek-v4-flash"
+    prov = cfg.get("providers", {}).get("deepseek", {})
+    key = prov.get("api_key") or os.environ.get("DEEPSEEK_API_KEY")
+    base = prov.get("base_url", "https://api.deepseek.com/v1")
+    default_model = prov.get("default_model") or "deepseek/deepseek-v4-flash"
     return {"api_key": key, "base_url": base, "default_model": default_model}
 
 
@@ -43,8 +43,8 @@ def llm_call(prompt, backend="local", model=None, max_tokens=800, timeout=180):
     """Single LLM call across backends. Returns response text or __ERROR__."""
     if backend == "local":
         return _ollama(prompt, model or "qwen2.5:3b", max_tokens, timeout)
-    elif backend == "merge":
-        return _merge(prompt, model, max_tokens, timeout)
+    elif backend == "deepseek":
+        return _deepseek(prompt, model, max_tokens, timeout)
     return f"__ERROR__ unknown backend {backend}"
 
 
@@ -63,10 +63,10 @@ def _ollama(prompt, model, max_tokens, timeout):
         return f"__ERROR__ {e}"
 
 
-def _merge(prompt, model, max_tokens, timeout):
-    cfg = _load_merge_config()
+def _deepseek(prompt, model, max_tokens, timeout):
+    cfg = _load_deepseek_config()
     if not cfg["api_key"]:
-        return "__ERROR__ no Merge API key found"
+        return "__ERROR__ no DeepSeek API key found"
     model = model or cfg["default_model"]
     body = json.dumps({
         "model": model,

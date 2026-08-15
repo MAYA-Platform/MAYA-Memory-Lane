@@ -10,10 +10,10 @@ plus the extracted facts across blocks, and synthesizes:
      injection contract for the hosted service
 
 This is the "Distiller" stage of Observer → Store → Distiller → Injector.
-Runs on the merge (DeepSeek via Merge) or local (Ollama) backend.
+Runs on the DeepSeek or local (Ollama) backend.
 
 Usage:
-  python distill_observations.py --lib <library_dir> [--backend merge|local]
+  python distill_observations.py --lib <library_dir> [--backend deepseek|local]
                                  [--model qwen2.5:3b] [--max-obs 400]
 
 Writes:
@@ -119,7 +119,7 @@ def load_facts(lib_dir: Path, limit=300):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--lib", default=str(Path(__file__).resolve().parent.parent / "libraries" / "ml-lane-a"))
-    ap.add_argument("--backend", default="merge", choices=["local", "merge"])
+    ap.add_argument("--backend", default="deepseek", choices=["local", "deepseek"])
     ap.add_argument("--model", default="qwen2.5:3b")
     ap.add_argument("--max-obs", type=int, default=400)
     args = ap.parse_args()
@@ -136,7 +136,7 @@ def main():
     facts_text = "\n".join(f"- {f}" for f in facts) or "- (none)"
 
     # Stage 1: derive conclusions
-    model_arg = None if args.backend == "merge" else args.model
+    model_arg = None if args.backend == "deepseek" else args.model
     out, cost = L.strip_cost(L.llm_call(
         DERIVE_PROMPT.format(observations=obs_text, facts=facts_text),
         backend=args.backend, model=model_arg, max_tokens=4000,

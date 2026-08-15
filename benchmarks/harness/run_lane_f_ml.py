@@ -120,9 +120,9 @@ def main():
     ap.add_argument("--items", type=int, default=100)
     ap.add_argument("--k", type=int, default=10, help="top-k sessions retrieved")
     ap.add_argument("--model", default="qwen2.5:3b")
-    ap.add_argument("--backend", default="local", choices=["local", "merge"], help="LLM backend: local (Ollama) or merge (main provider)")
+    ap.add_argument("--backend", default="local", choices=["local", "deepseek"], help="LLM backend: local (Ollama) or merge (main provider)")
     ap.add_argument("--rerank", action="store_true", help="U6: LLM-rerank candidates before answering")
-    ap.add_argument("--model-override", default="", help="explicit model for merge backend (e.g. deepseek/deepseek-v4-flash)")
+    ap.add_argument("--model-override", default="", help="explicit model for deepseek backend (e.g. deepseek/deepseek-v4-flash)")
     ap.add_argument("--lib", default="", help="library dir to search (default: ml-lane-f)")
     ap.add_argument("--dataset", default=str(BENCH / "datasets" / "longmemeval_oracle.json"))
     args = ap.parse_args()
@@ -161,7 +161,7 @@ def main():
         answer_prompt = ANSWER_PROMPT_CON.format(context=context, q=q)
         # merge (v4-pro thinking) burns output budget on evidence notes — needs
         # 2000+ tokens; local qwen is fine at 800.
-        ans_tokens = 2000 if args.backend == "merge" else 800
+        ans_tokens = 2000 if args.backend == "deepseek" else 800
         response = llm(answer_prompt, args.model if args.backend == "local" else (args.model_override or None), args.backend, max_tokens=ans_tokens)
 
         # Judge with LongMemEval official logic
@@ -203,7 +203,7 @@ def main():
         "run_id": run_id,
         "system": "memory-lane + llm",
         "backend": args.backend,
-        "model": args.model if args.backend == "local" else ("merge-default (deepseek-v4-pro)" if not args.model_override else args.model_override),
+        "model": args.model if args.backend == "local" else ("deepseek-v4-pro" if not args.model_override else args.model_override),
         "k": args.k,
         "instances": len(results),
         "qa_accuracy": acc,
@@ -211,7 +211,7 @@ def main():
         "correct": sum(r["correct"] for r in results),
         "correct_substring": sum(r["correct_substring"] for r in results),
         "dataset_sha256": hashlib.sha256(Path(args.dataset).read_bytes()).hexdigest(),
-        "note": "Paired pipeline: Memory Lane FTS5 retrieval + LLM answerer + LongMemEval official judge. Backend selectable (local Ollama or Merge main model). qa_accuracy uses model judge; qa_accuracy_substring adds deterministic gold-substring containment.",
+        "note": "Paired pipeline: Memory Lane FTS5 retrieval + LLM answerer + LongMemEval official judge. Backend selectable (local Ollama or DeepSeek main model). qa_accuracy uses model judge; qa_accuracy_substring adds deterministic gold-substring containment.",
     }
     (BENCH / "logs").mkdir(exist_ok=True)
     (BENCH / "results").mkdir(exist_ok=True)

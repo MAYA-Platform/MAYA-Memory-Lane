@@ -2,7 +2,7 @@
 """Generate the paraphrase probe for Lane H.
 
 Takes the first N LongMemEval questions and produces a paraphrase of each
-(different words, same meaning) using the Merge/DeepSeek backend. The gold
+(different words, same meaning) using the DeepSeek backend. The gold
 answer sessions are carried over unchanged, so we can measure whether
 retrieval still finds the right session when the question says the same
 thing in different words.
@@ -42,9 +42,9 @@ def main():
     fail = 0
     for i, inst in enumerate(data):
         q = inst["question"]
-        # DeepSeek-via-Merge is a thinking model: max_tokens < ~500 returns
+        # DeepSeek is a thinking model: max_tokens < ~500 returns
         # empty content (thinking swallows the budget). Use 800.
-        raw = llm_call(PROMPT_TMPL.format(q=q), backend="merge", max_tokens=800)
+        raw = llm_call(PROMPT_TMPL.format(q=q), backend="deepseek", max_tokens=800)
         if raw.startswith("__ERROR__"):
             p = ""
         else:

@@ -21,7 +21,7 @@
  *
  * Write endpoints (v3, 2026-08-05): a library is no longer read-only. POST a
  * transcript (or a hand-written memory) and Memory Lane extracts durable
- * facts via the recommended model (deepseek v4 flash through Merge Gateway,
+ * facts via the recommended model (deepseek v4 flash via DeepSeek,
  * falling back to local Ollama), appends a chain-linked block, and returns
  * the new block plus a fresh chain verdict. The same max+1 / prev_sha256
  * semantics as the continuity registrar keep the chain tamper-evident.
