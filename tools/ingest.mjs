@@ -3,7 +3,7 @@
  * Memory Lane — ingest CLI (v3, 2026-08-05).
  *
  * Seal a transcript or memory into a Memory Lane library from the command
- * line. This is the automation surface: the inbox watcher, Hermes session
+ * line. This is the automation surface: the inbox watcher, an agent session
  * closeout, and any agent cron all funnel through this one command.
  *
  * Usage:
@@ -13,7 +13,7 @@
  *
  * Options:
  *   --title <str>     block title (default: first line of text)
- *   --source <str>    provenance tag (telegram, inbox, hermes, api...)
+ *   --source <str>    provenance tag (telegram, inbox, cli, api...)
  *   --lineage <str>   lineage name (default: auto)
  *   --facts "a|b|c"   explicit facts, skips LLM extraction
  *   --no-extract      seal raw text without LLM fact extraction
@@ -64,7 +64,7 @@ Usage:
 
 Options:
   --title <str>     block title (default: first line)
-  --source <str>    provenance tag (telegram, inbox, hermes, api)
+  --source <str>    provenance tag (telegram, inbox, cli, api)
   --lineage <str>   lineage name (default: auto)
   --facts "a|b|c"   explicit facts, skips LLM extraction
   --no-extract      seal raw text without LLM fact extraction

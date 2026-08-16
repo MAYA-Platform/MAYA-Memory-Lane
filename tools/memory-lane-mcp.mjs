@@ -2,7 +2,7 @@
 /**
  * Memory Lane — MCP bridge (v1, 2026-08-05).
  *
- * Exposes the Memory Lane live library to ANY agent (Hermes, MAYA, staff
+ * Exposes the Memory Lane live library to any MCP-capable agent (
  * crons) as callable tools over the Model Context Protocol (stdio). This is
  * the READ path that makes the library a real-time agent upgrade instead of
  * a write-only vault:
@@ -16,8 +16,8 @@
  * existing lib (memoryLaneCore + answer). The library path comes from
  * MEMORY_LANE_LIBRARY or defaults to the live library.
  *
- * Register with Hermes:
- *   hermes mcp add memory-lane --command node \
+ * Register with any MCP-capable agent (example uses the Hermes CLI):
+ *   <agent> mcp add memory-lane --command node \
  *     --args "E:/MAYA_BULK/memory-lane-public-repo/tools/memory-lane-mcp.mjs"
  *
  * Manual smoke test:

@@ -70,10 +70,10 @@ test('answerQuestion degrades to best excerpt when no LLM key configured', async
     lineage: 'auto'
   });
   const lib = loadLibrary(tmp);
-  const prevHome = process.env.HERMES_HOME;
-  // Point HERMES_HOME at a dir with no config.yaml so resolveExtractConfig
-  // finds no Merge key (empty-string env var still falls through to config).
-  process.env.HERMES_HOME = fs.mkdtempSync(path.join(process.env.TEMP || '/tmp', 'ml-nohome-'));
+  const prevKey = process.env.MEMORY_LANE_API_KEY;
+  // No key set -> resolveExtractConfig falls back to Ollama (no apiKey),
+  // so synthesis must degrade to the best excerpt, never throw.
+  delete process.env.MEMORY_LANE_API_KEY;
   try {
     // Vague phrasing with a partial hit: no exact term presence -> would
     // synthesize, but no key -> must degrade to direct excerpt, never throw.
@@ -81,8 +81,8 @@ test('answerQuestion degrades to best excerpt when no LLM key configured', async
     assert.equal(r.mode, 'direct');
     assert.ok(r.note || r.answer.length > 0);
   } finally {
-    if (prevHome === undefined) delete process.env.HERMES_HOME;
-    else process.env.HERMES_HOME = prevHome;
+    if (prevKey === undefined) delete process.env.MEMORY_LANE_API_KEY;
+    else process.env.MEMORY_LANE_API_KEY = prevKey;
   }
   fs.rmSync(tmp, { recursive: true, force: true });
 });

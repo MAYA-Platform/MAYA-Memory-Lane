@@ -21,8 +21,8 @@ We never claim to have run a competitor on our harness when we did not.
 | File | What it is |
 |---|---|
 | `BENCHMARK_PROTOCOL.md` | Pre-registered method, written before any run (no hindsight bias). Defines lanes, dataset, metrics, and the honesty rules. |
-| `SIDE_BY_SIDE_REPORT.md` | The current side-by-side: controlled runs, ML capability proofs, LLM QA lane, external vendor numbers, capability matrix, and explicit "what we will NOT claim." Every controlled figure traces to a logged run file. |
-| `THEORY_TO_PROOF_REPORT.html` | Founder-facing narrative report of the same data: theory → hypothesis → experiment → results → proof, with honest boundaries and full reproducibility. Same numbers as the side-by-side, human-readable. |
+| `SIDE_BY_SIDE_REPORT.md` | The current side-by-side: controlled runs, Memory Lane capability proofs, LLM QA lane, external vendor numbers, capability matrix, and explicit "what we will NOT claim." Every controlled figure traces to a logged run file. |
+| `THEORY_TO_PROOF_REPORT.html` | Narrative report of the same data: theory → hypothesis → experiment → results → proof, with honest boundaries and full reproducibility. Same numbers as the side-by-side, human-readable. |
 | `README.md` | This file. |
 
 ## Reproducibility
@@ -33,7 +33,7 @@ and Python 3:
 ```bash
 git clone https://github.com/MAYA-Platform/MAYA-Memory-Lane
 # dataset: huggingface.co/datasets/xiaowu0162/longmemeval-cleaned
-# harness (private, holds credentials): E:/MAYA_BULK/memory-lane-benchmark/harness
+# harness (private, holds credentials)
 python run_all_lanes.py --all     # Lane A both systems + Lanes B-E
 python harness/generate_sbs_report.py   # regenerates SIDE_BY_SIDE_REPORT.md from fresh logs
 ```

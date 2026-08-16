@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Memory Lane — Theory to Proof: Official Benchmark Report</title>
+<title>Memory Lane, Theory to Proof: Official Benchmark Report</title>
 <style>
   :root {
     --bg: #12100f; --panel: #1a1816; --panel2: #211e1b; --border: #2e2a26;
@@ -64,7 +64,7 @@
     <div class="kicker">2ndNatureAi · MAYA · Official Report</div>
     <h1>Memory Lane: Theory to Proof</h1>
     <div class="subtitle">A local-first, tamper-evident memory store vs. the cloud semantic-memory field —<br>hypothesis, controlled experiments, measured results, and honest conclusions.</div>
-    <div class="meta"><span>Report v1.1</span><span>2026-08-09</span><span>Author: MAYA Memory Lane team</span><span>Review: founder</span></div>
+    <div class="meta"><span>Report v1.1</span><span>2026-08-09</span><span>Author: MAYA Memory Lane team</span><span>Review: maintainer</span></div>
   </div>
 </header>
 
@@ -76,7 +76,7 @@
   <div class="flow">
     <div class="fnode"><div class="ftitle">1 · Theory / Problem</div><div class="fdesc">Agent memory today is heavy: cloud-only, Postgres+Redis+LLM+embeddings stacks, vendor lock-in, costs that scale with every token. Can a deterministic, local-first, tamper-evident store be genuinely competitive?</div></div>
     <div class="farrow">▼</div>
-    <div class="fnode"><div class="ftitle">2 · Hypothesis</div><div class="fdesc">H1: A zero-dependency local store (FTS5 + SHA-256 chain) can match or beat cloud semantic retrieval on a fair shared benchmark.<br>H2: LLM intelligence is an optional layer — wiring the user's main model OR a local model costs pennies, not subscriptions.</div></div>
+    <div class="fnode"><div class="ftitle">2 · Hypothesis</div><div class="fdesc">H1: A zero-dependency local store (FTS5 + SHA-256 chain) can match or beat cloud semantic retrieval on a fair shared benchmark.<br>H2: LLM intelligence is an optional layer, wiring the user's main model OR a local model costs pennies, not subscriptions.</div></div>
     <div class="farrow">▼</div>
     <div class="fnode"><div class="ftitle">3 · Experimental Design</div><div class="fdesc">Pre-registered 6-lane protocol on LongMemEval (500 questions, official scoring). No self-written scoring. Every claim traces to a logged run with a hash.</div></div>
     <div class="farrow">▼</div>
@@ -84,7 +84,7 @@
     <div class="farrow">▼</div>
     <div class="fnode"><div class="ftitle">5 · Results</div><div class="fdesc">Retrieval: Memory Lane 61.1% recall@5 vs Honcho 40.0% on the controlled lane (LangMem 72.2% and Mem0 68.1% measured higher and reported as-is). Integrity/resume/portability/compaction: PASS. QA: 40% judge pilot, 32-34% on the hardest question category with a flash model; cost ~$0.00004/answer.</div></div>
     <div class="farrow">▼</div>
-    <div class="fnode"><div class="ftitle">6 · Proof</div><div class="fdesc">H1 SUPPORTED vs the cloud semantic engine (Honcho) on the fair lane; heavier LLM-extraction systems (LangMem/Mem0) out-retrieve ML and that is reported, not hidden. H2 SUPPORTED (3-path LLM wiring costs pennies). Memory layer proven competitive; QA gap is the answerer model, not the store.</div></div>
+    <div class="fnode"><div class="ftitle">6 · Proof</div><div class="fdesc">H1 SUPPORTED vs the cloud semantic engine (Honcho) on the fair lane; heavier LLM-extraction systems (LangMem/Mem0) out-retrieve Memory Lane and that is reported, not hidden. H2 SUPPORTED (3-path LLM wiring costs pennies). Memory layer proven competitive; QA gap is the answerer model, not the store.</div></div>
     <div class="farrow">▼</div>
     <div class="fnode sub"><div class="ftitle">7 · Honest Boundaries</div><div class="fdesc">What we will NOT claim: no "beats Honcho on QA", no vendor-score comparisons as apples-to-apples, no claim of beating LangMem/Mem0 at retrieval (we measured the reverse), no number without a logged run. Full reproducibility below.</div></div>
   </div>
@@ -94,15 +94,15 @@
 <section>
   <h2>Abstract</h2>
   <p>Memory Lane is a local-first agent-memory store: SHA-256-chained markdown blocks (tamper-evident), zero dependencies, FTS5 full-text search, and an optional LLM intelligence layer that can route to a user's local model, their main provider, or both. This report documents a controlled benchmark against the agent-memory field (Honcho, Mem0, Zep/Graphiti, Letta, LangMem) using the pre-registered LongMemEval protocol.</p>
-  <p><strong>Headline result:</strong> on 500 identical LongMemEval retrieval questions with official scoring, Memory Lane's FTS5 search achieved <strong>61.1% recall@5</strong> — beating Honcho's semantic engine (40.0%) on the fair shared lane, with zero dependencies and full offline operation. LangMem (72.2%) and Mem0 (68.1%) measured higher under the same harness; both use LLM extraction plus a semantic store, and we report the gap rather than hiding it. Its integrity, resume, portability, and compaction claims all PASS under adversarial testing. QA accuracy (retrieval + LLM answerer) measured 40% on the 10-question pilot and 32-34% on a 50-question all-temporal validation with a cost-effective flash model — respectable for the model/hardware, and the analysis shows the gap is the answerer model, not the memory store.</p>
+  <p><strong>Headline result:</strong> on 500 identical LongMemEval retrieval questions with official scoring, Memory Lane's FTS5 search achieved <strong>61.1% recall@5</strong>, beating Honcho's semantic engine (40.0%) on the fair shared lane, with zero dependencies and full offline operation. LangMem (72.2%) and Mem0 (68.1%) measured higher under the same harness; both use LLM extraction plus a semantic store, and we report the gap rather than hiding it. Its integrity, resume, portability, and compaction claims all PASS under adversarial testing. QA accuracy (retrieval + LLM answerer) measured 40% on the 10-question pilot and 32-34% on a 50-question all-temporal validation with a cost-effective flash model, respectable for the model/hardware, and the analysis shows the gap is the answerer model, not the memory store.</p>
 </section>
 
 <!-- ============ THEORY ============ -->
 <section>
   <h2>Theory</h2>
   <p>The agent-memory market in 2026 converged on a heavy architecture: cloud servers, vector databases, embedding pipelines, and LLM calls on the read/write path. The top vendors publish impressive headline scores but require Postgres+Redis+LLM+embeddings to self-host (Honcho), carry ~$1-3k/month at 100k memories (Mem0 critics), or need a graph database you manage yourself (Zep/Graphiti). Every vendor's own data shows degradation at 10M tokens.</p>
-  <p><strong>Our theory:</strong> the durable value in memory is <em>integrity, determinism, and ownership</em> — a tamper-evident, local, verifiable chain of what actually happened. Retrieval is a solvable engineering problem (FTS5 + optional fusion). LLM intelligence should be a <em>pluggable layer</em>, not the core. This inverts the market: instead of hoarding your context to sell subscriptions, give you one resume string, a local library you own, and optional model wiring that costs pennies.</p>
-  <div class="callout"><p><strong>Positioning thesis (founder):</strong> "MAYA knows your business well enough to speak for it — and smart enough to know when to hand you the phone." The memory layer is the trust layer; the LLM is the intelligence that plugs in.</p></div>
+  <p><strong>Our theory:</strong> the durable value in memory is <em>integrity, determinism, and ownership</em>, a tamper-evident, local, verifiable chain of what actually happened. Retrieval is a solvable engineering problem (FTS5 + optional fusion). LLM intelligence should be a <em>pluggable layer</em>, not the core. This inverts the market: instead of hoarding your context to sell subscriptions, give you one resume string, a local library you own, and optional model wiring that costs pennies.</p>
+  <div class="callout"><p><strong>Positioning thesis:</strong> "MAYA knows your business well enough to speak for it, and smart enough to know when to hand you the phone." The memory layer is the trust layer; the LLM is the intelligence that plugs in.</p></div>
 </section>
 
 <!-- ============ HYPOTHESES ============ -->
@@ -110,9 +110,9 @@
   <h2>Hypotheses</h2>
   <div class="cards">
     <div class="card"><div class="num">H1</div><div class="lbl">Retrieval competitiveness</div><div class="note">A deterministic local FTS5 store can match or beat cloud semantic retrieval (Honcho) on the fair shared lane (LongMemEval, official scoring).</div></div>
-    <div class="card"><div class="num">H2</div><div class="lbl">Pennies-cost intelligence</div><div class="note">Optional LLM wiring (local model OR main provider OR both) costs fractions of a cent per operation — "basically free memory".</div></div>
-    <div class="card"><div class="num">H3</div><div class="lbl">Integrity is durable value</div><div class="note">Tamper-evidence, resume reliability, portability, and compaction are capabilities the cloud field doesn't offer — and they PASS.</div></div>
-    <div class="card"><div class="num">H4</div><div class="lbl">QA gap = answerer, not store</div><div class="note">If retrieval is competitive, remaining QA gap traces to the LLM answerer model — a swap-able layer, not a memory-store defect.</div></div>
+    <div class="card"><div class="num">H2</div><div class="lbl">Pennies-cost intelligence</div><div class="note">Optional LLM wiring (local model OR main provider OR both) costs fractions of a cent per operation, "basically free memory".</div></div>
+    <div class="card"><div class="num">H3</div><div class="lbl">Integrity is durable value</div><div class="note">Tamper-evidence, resume reliability, portability, and compaction are capabilities the cloud field doesn't offer, and they PASS.</div></div>
+    <div class="card"><div class="num">H4</div><div class="lbl">QA gap = answerer, not store</div><div class="note">If retrieval is competitive, remaining QA gap traces to the LLM answerer model, a swap-able layer, not a memory-store defect.</div></div>
   </div>
 </section>
 
@@ -120,7 +120,7 @@
 <section>
   <h2>Experimental Design</h2>
   <h3>Dataset &amp; Scoring</h3>
-  <p>LongMemEval (ICLR 2025, 500 curated questions, 5 abilities) — the field's standard. Official scoring semantics: session-level <code>recall_all@k</code> / <code>ndcg_any@k</code> for retrieval; official QA judge prompts for accuracy. Dataset SHA-256 recorded per run. All runs logged as JSONL; every reported number independently recomputed from raw logs (no self-written scoring, no shortcuts).</p>
+  <p>LongMemEval (ICLR 2025, 500 curated questions, 5 abilities), the field's standard. Official scoring semantics: session-level <code>recall_all@k</code> / <code>ndcg_any@k</code> for retrieval; official QA judge prompts for accuracy. Dataset SHA-256 recorded per run. All runs logged as JSONL; every reported number independently recomputed from raw logs (no self-written scoring, no shortcuts).</p>
   <h3>Pre-registered Lanes</h3>
   <table>
     <tr><th>Lane</th><th>Measures</th><th>Systems</th><th>Design</th></tr>
@@ -129,39 +129,39 @@
     <tr><td>C</td><td>Resume reliability</td><td>Memory Lane only</td><td>20/20 resume phrases resolve pre + post 6→1 compaction, chain intact</td></tr>
     <tr><td>D</td><td>Portability + offline</td><td>Memory Lane only</td><td>10/10 copy-to-fresh-dir intact, identical stats, zero network deps</td></tr>
     <tr><td>E</td><td>Compaction fidelity</td><td>Memory Lane only</td><td>10/10 chain intact + all compacted content searchable after 6→1</td></tr>
-    <tr><td>F</td><td>QA accuracy (pipeline)</td><td>Memory Lane + 3 LLM backends</td><td>Retrieve → LLM answer → official judge. Backends: local qwen2.5:3b, DeepSeek v4-flash , v4-pro </td></tr>
+    <tr><td>F</td><td>QA accuracy (pipeline)</td><td>Memory Lane + 3 LLM backends</td><td>Retrieve → LLM answer → official judge. Backends: local qwen2.5:3b, DeepSeek v4-flash, v4-pro</td></tr>
   </table>
   <h3>Competitor study</h3>
-  <p>Five closest competitors cloned and studied at code level (2026-08-04): Honcho (plastic-labs), Mem0, Zep/Graphiti, Letta/MemGPT, LangMem. LangMem and Mem0 were additionally run on our harness for controlled Lane A. Letta and Graphiti were attempted but infra-constrained on this Windows test box (Letta server crash at startup on Windows; Graphiti needs Neo4j/Docker) — both adapters are written and ready to run. Plus web research: LongMemEval paper, production hybrid-RAG guides, vendor/independent benchmark audits.</p>
+  <p>Five closest competitors cloned and studied at code level (2026-08-04): Honcho (plastic-labs), Mem0, Zep/Graphiti, Letta/MemGPT, LangMem. LangMem and Mem0 were additionally run on our harness for controlled Lane A. Letta and Graphiti were attempted but infra-constrained on this Windows test box (Letta server crash at startup on Windows; Graphiti needs Neo4j/Docker), both adapters are written and ready to run. Plus web research: LongMemEval paper, production hybrid-RAG guides, vendor/independent benchmark audits.</p>
 </section>
 
 <!-- ============ RESULTS ============ -->
 <section>
-  <h2>Results — Side by Side</h2>
-  <p class="small">Latest controlled numbers, regenerated from logged run JSONs by <code>harness/generate_sbs_report.py</code> — see <code>SIDE_BY_SIDE_REPORT.md</code> in this folder.</p>
+  <h2>Results, Side by Side</h2>
+  <p class="small">Latest controlled numbers, regenerated from logged run JSONs by <code>harness/generate_sbs_report.py</code>, see <code>SIDE_BY_SIDE_REPORT.md</code> in this folder.</p>
 
   <h3>Lane A: Retrieval (500 questions, official scoring, independently recomputed)</h3>
   <div class="cards">
     <div class="card"><div class="num">61.1%</div><div class="lbl">Memory Lane FTS5 · recall@5</div><div class="note">↑ from 0.1% (substring) after FTS5 upgrade (commit 6366ba8)</div></div>
     <div class="card"><div class="num">40.0%</div><div class="lbl">Honcho · recall@5</div><div class="note">cloud semantic engine (the comparison target)</div></div>
     <div class="card"><div class="num">73.2%</div><div class="lbl">Memory Lane FTS5 · recall@10</div><div class="note">vs Honcho 47.9%</div></div>
-    <div class="card"><div class="num">72.2% / 68.1%</div><div class="lbl">LangMem / Mem0 · recall@5</div><div class="note">measured higher on the same harness — reported as-is, not hidden</div></div>
+    <div class="card"><div class="num">72.2% / 68.1%</div><div class="lbl">LangMem / Mem0 · recall@5</div><div class="note">measured higher on the same harness, reported as-is, not hidden</div></div>
   </div>
   <table>
     <tr><th>Config</th><th>recall@5</th><th>recall@10</th><th>ndcg@5</th><th>ndcg@10</th><th>Verdict</th></tr>
-    <tr><td>Memory Lane — substring (original)</td><td>0.1%</td><td>0.1%</td><td>0.2%</td><td>0.2%</td><td class="small">baseline before upgrade</td></tr>
-    <tr><td><strong>Memory Lane — FTS5 (shipped)</strong></td><td><strong>61.1%</strong></td><td><strong>73.2%</strong></td><td><strong>62.0%</strong></td><td><strong>65.5%</strong></td><td><span class="pill green">WINS LANE vs Honcho</span></td></tr>
+    <tr><td>Memory Lane, substring (original)</td><td>0.1%</td><td>0.1%</td><td>0.2%</td><td>0.2%</td><td class="small">baseline before upgrade</td></tr>
+    <tr><td><strong>Memory Lane, FTS5 (shipped)</strong></td><td><strong>61.1%</strong></td><td><strong>73.2%</strong></td><td><strong>62.0%</strong></td><td><strong>65.5%</strong></td><td><span class="pill green">WINS LANE vs Honcho</span></td></tr>
     <tr><td>Honcho (cloud semantic)</td><td>40.0%</td><td>47.9%</td><td>28.5%</td><td>29.5%</td><td><span class="pill red">beaten</span></td></tr>
-    <tr><td>LangMem (LLM extraction + semantic store)</td><td>72.2%</td><td>81.8%</td><td>35.9%</td><td>36.8%</td><td><span class="pill blue">measured higher — reported honestly</span></td></tr>
-    <tr><td>Mem0 (LLM extraction + vector store)</td><td>68.1%</td><td>77.8%</td><td>33.0%</td><td>33.9%</td><td><span class="pill blue">measured higher — reported honestly</span></td></tr>
-    <tr><td>Memory Lane — FTS5 + dense bge-m3 + RRF</td><td>57.9%</td><td>71.2%</td><td>59.2%</td><td>—</td><td><span class="pill blue">no gain</span> <span class="small">documented negative result; FTS5 remains default</span></td></tr>
+    <tr><td>LangMem (LLM extraction + semantic store)</td><td>72.2%</td><td>81.8%</td><td>35.9%</td><td>36.8%</td><td><span class="pill blue">measured higher, reported honestly</span></td></tr>
+    <tr><td>Mem0 (LLM extraction + vector store)</td><td>68.1%</td><td>77.8%</td><td>33.0%</td><td>33.9%</td><td><span class="pill blue">measured higher, reported honestly</span></td></tr>
+    <tr><td>Memory Lane, FTS5 + dense bge-m3 + RRF</td><td>57.9%</td><td>71.2%</td><td>59.2%</td><td>—</td><td><span class="pill blue">no gain</span> <span class="small">documented negative result; FTS5 remains default</span></td></tr>
   </table>
   <p class="small">Run sources: Memory Lane <code>ml-lane-a-2026-08-06T22-34-29-538Z.json</code> · Honcho <code>honcho-lane-a-2026-08-06T22-25-24-376491+00-00.json</code> · LangMem <code>langmem-lane-a-2026-08-06T23-25-56-907708+00-00.json</code> · Mem0 <code>mem0-lane-a-2026-08-07T04-22-32-279160+00-00.json</code> (traces in the private harness <code>logs/</code>). FTS5 commits <code>6366ba8</code> + <code>1d9f916</code> (fact-key) + <code>ac32816</code> (tests) on MAYA-Platform/MAYA-Memory-Lane.</p>
 
-  <h3>Lanes B-E: Memory Lane's own claims (Honcho: no such mechanism — factual N/A)</h3>
+  <h3>Lanes B-E: Memory Lane's own claims (Honcho: no such mechanism, factual N/A)</h3>
   <table>
     <tr><th>Lane</th><th>Result</th><th>Evidence</th></tr>
-    <tr><td>B · Integrity / tamper-evidence</td><td><span class="pill green">PASS_WITH_DOCUMENTED_GAP</span></td><td>50/50 random 1-byte mutations detected; forged-in-manifest detected; deleted detected. Gap: stray unregistered files invisible to verifyChain (documented improvement opportunity). Honcho has no tamper-evidence mechanism — reported factually, no manufactured loss.</td></tr>
+    <tr><td>B · Integrity / tamper-evidence</td><td><span class="pill green">PASS_WITH_DOCUMENTED_GAP</span></td><td>50/50 random 1-byte mutations detected; forged-in-manifest detected; deleted detected. Gap: stray unregistered files invisible to verifyChain (documented improvement opportunity). Honcho has no tamper-evidence mechanism, reported factually, no manufactured loss.</td></tr>
     <tr><td>C · Resume reliability</td><td><span class="pill green">PASS</span></td><td>20/20 resume phrases resolve pre + post compaction; chain intact 20/20</td></tr>
     <tr><td>D · Portability + offline</td><td><span class="pill green">PASS</span></td><td>10/10 copy-to-fresh-dir intact, identical stats, offline-capable by design</td></tr>
     <tr><td>E · Compaction fidelity (6→1)</td><td><span class="pill green">PASS</span></td><td>10/10 chain intact + compacted content searchable</td></tr>
@@ -171,45 +171,45 @@
   <table>
     <tr><th>Backend</th><th>Pilot (10q)</th><th>Validation (50q)</th><th>Speed</th><th>Cost/answer</th><th>Verdict</th></tr>
     <tr><td>Local qwen2.5:3b</td><td>0% judge / 30% substr</td><td>—</td><td>~22s/q</td><td>$0</td><td><span class="pill red">3B too weak</span> for multi-session reasoning</td></tr>
-    <tr><td><strong>DeepSeek v4-flash </strong></td><td>40% judge / 60% substr</td><td><strong>32% judge / 34% substr</strong> (16-17/50)</td><td>~9-12s/q</td><td>~$0.00004</td><td><span class="pill green">cost-effective default</span></td></tr>
-    <tr><td>DeepSeek v4-pro </td><td>40% / 40%</td><td>—</td><td>~13s/q</td><td>~$0.0008</td><td><span class="pill blue">tie with flash at 4x cost</span></td></tr>
+    <tr><td><strong>DeepSeek v4-flash</strong></td><td>40% judge / 60% substr</td><td><strong>32% judge / 34% substr</strong> (16-17/50)</td><td>~9-12s/q</td><td>~$0.00004</td><td><span class="pill green">cost-effective default</span></td></tr>
+    <tr><td>DeepSeek v4-pro</td><td>40% / 40%</td><td>—</td><td>~13s/q</td><td>~$0.0008</td><td><span class="pill blue">tie with flash at 4x cost</span></td></tr>
     <tr><td>v4-flash + LLM rerank</td><td>40% / 40%</td><td>—</td><td>~42s/q</td><td>+rerank calls</td><td><span class="pill blue">no gain, 4.5x slower</span></td></tr>
   </table>
-  <p class="small">The 50-question validation was 100% temporal-reasoning questions (the hardest category) — 24% honest abstentions ("not in memory") are correct refusal behavior when context is missing. Dual scoring exists because small local judges are unreliable ('no' to correct answers). Independently recomputed from raw JSONL: matches exactly.</p>
+  <p class="small">The 50-question validation was 100% temporal-reasoning questions (the hardest category), 24% honest abstentions ("not in memory") are correct refusal behavior when context is missing. Dual scoring exists because small local judges are unreliable ('no' to correct answers). Independently recomputed from raw JSONL: matches exactly.</p>
 </section>
 
 <!-- ============ ANALYSIS ============ -->
 <section>
-  <h2>Analysis — What Worked, What Didn't (honest)</h2>
+  <h2>Analysis, What Worked, What Didn't (honest)</h2>
   <div class="grid2">
     <div>
       <h3>Kept (proven winners)</h3>
       <ul>
-        <li><strong>U1 · Fact-augmented key expansion</strong> — FTS5 indexes extracted facts as a weighted column; 31/31 tests</li>
-        <li><strong>U3 · Temporal grounding</strong> — extraction resolves "yesterday/last week" to absolute dates (Mem0/Honcho pattern; verified: GPS issue → "2023-03-22")</li>
-        <li><strong>U5 · Entity extraction</strong> — entities stored in frontmatter for future linking/boost</li>
-        <li><strong>U7 · Chain-of-Note reading</strong> — evidence-then-answer + FINAL ANSWER line; fixed v4-pro 20%→40%</li>
-        <li><strong>U8 · ADD-only + dedup awareness</strong> — recent-facts context in extraction prompt</li>
-        <li><strong>U9 · Derived conclusions</strong> — cross-session synthesis (Honcho dream-time pattern) into DERIVED.md</li>
+        <li><strong>U1 · Fact-augmented key expansion</strong>, FTS5 indexes extracted facts as a weighted column; 31/31 tests</li>
+        <li><strong>U3 · Temporal grounding</strong>, extraction resolves "yesterday/last week" to absolute dates (Mem0/Honcho pattern; verified: GPS issue → "2023-03-22")</li>
+        <li><strong>U5 · Entity extraction</strong>, entities stored in frontmatter for future linking/boost</li>
+        <li><strong>U7 · Chain-of-Note reading</strong>, evidence-then-answer + FINAL ANSWER line; fixed v4-pro 20%→40%</li>
+        <li><strong>U8 · ADD-only + dedup awareness</strong>, recent-facts context in extraction prompt</li>
+        <li><strong>U9 · Derived conclusions</strong>, cross-session synthesis (Honcho dream-time pattern) into DERIVED.md</li>
       </ul>
     </div>
     <div>
       <h3>Rejected with data (documented negative results)</h3>
       <ul>
-        <li><strong>Dense + RRF hybrid</strong> — 57.9% vs FTS5-only (59.9-61.1% across runs) recall@5. BM25 keyword precision wins on transcript-style blocks; dense coverage was 740/948. Kept optional, FTS5 remains default.</li>
-        <li><strong>LLM reranker</strong> — same 40%, 4.5x slower (419s vs 94s). Retrieval isn't the bottleneck.</li>
-        <li><strong>Turn decomposition</strong> — deferred (format change; hybrid result suggests it won't pay off here).</li>
+        <li><strong>Dense + RRF hybrid</strong>, 57.9% vs FTS5-only (59.9-61.1% across runs) recall@5. BM25 keyword precision wins on transcript-style blocks; dense coverage was 740/948. Kept optional, FTS5 remains default.</li>
+        <li><strong>LLM reranker</strong>, same 40%, 4.5x slower (419s vs 94s). Retrieval isn't the bottleneck.</li>
+        <li><strong>Turn decomposition</strong>, deferred (format change; hybrid result suggests it won't pay off here).</li>
       </ul>
     </div>
   </div>
   <h3>Model comparison</h3>
-  <p><strong>v4-pro = v4-flash (tie).</strong> The bigger model adds 4x cost and latency with zero accuracy gain on this pipeline — the bottleneck is retrieval + context, not model reasoning. v4-flash is the cost-effective default. (v4-pro still needed for extraction/synthesis at 4000 max_tokens; it returns empty content at lower budgets because thinking consumes output.)</p>
-  <div class="callout"><p><strong>Cross-cutting research finding (independent, validates our position):</strong> a gpt-4o-mini agent with plain filesystem tools hit 74.0% LoCoMo — above Mem0's graph number, per an independent eval. The memory layer isn't the bottleneck; the answerer model is. Our FTS5-over-files + flash model is in the same winning family.</p></div>
+  <p><strong>v4-pro = v4-flash (tie).</strong> The bigger model adds 4x cost and latency with zero accuracy gain on this pipeline. The bottleneck is retrieval + context, not model reasoning. v4-flash is the cost-effective default. (v4-pro still needed for extraction/synthesis at 4000 max_tokens; it returns empty content at lower budgets because thinking consumes output.)</p>
+  <div class="callout"><p><strong>Cross-cutting research finding (independent, validates our position):</strong> a gpt-4o-mini agent with plain filesystem tools hit 74.0% LoCoMo, above Mem0's graph number, per an independent eval. The memory layer isn't the bottleneck; the answerer model is. Our FTS5-over-files + flash model is in the same winning family.</p></div>
 </section>
 
 <!-- ============ COST ============ -->
 <section>
-  <h2>Cost Proof — "Basically Free Memory"</h2>
+  <h2>Cost Proof, "Basically Free Memory"</h2>
   <div class="cards">
     <div class="card"><div class="num">$0</div><div class="lbl">Memory store core</div><div class="note">FTS5 + chain runs with no LLM, no cloud, no dependencies</div></div>
     <div class="card"><div class="num">$0.00004</div><div class="lbl">per QA answer (v4-flash)</div><div class="note">measured, incl. thinking-model overhead</div></div>
@@ -223,7 +223,7 @@
     <tr><td>5,000 sessions</td><td>$3.08</td><td>$4.34</td><td>$7.42</td></tr>
     <tr><td>50,000 sessions</td><td>$30.80</td><td>$43.40</td><td>$74.20</td></tr>
   </table>
-  <p>A heavy user's entire memory history costs less than a coffee — and the store itself is free. This validates H2.</p>
+  <p>A heavy user's entire memory history costs less than a coffee, and the store itself is free. This validates H2.</p>
 </section>
 
 <!-- ============ LIMITATIONS ============ -->
@@ -232,19 +232,19 @@
   <ul>
     <li><strong>QA sample size:</strong> 10-question pilot + 50-question validation. Directionally clear but not publication-grade significance; a 100+ run costs ~$0.04 and is the next step.</li>
     <li><strong>Vendor benchmark caveats:</strong> Honcho/Mem0 publish ~90%+ on the easier <code>_S</code> slice with frontier answer models. Not apples-to-apples with our flash-model numbers. Cross-vendor comparison is unreliable (Zep vs Mem0 benchmark war; a gpt-4o-mini + filesystem beat Mem0's graph).</li>
-    <li><strong>50-question mix:</strong> 100% temporal-reasoning (the first 50 of the dataset) — the hardest category. A stratified sample across all 5 abilities would be more representative.</li>
+    <li><strong>50-question mix:</strong> 100% temporal-reasoning (the first 50 of the dataset), the hardest category. A stratified sample across all 5 abilities would be more representative.</li>
     <li><strong>Dense index coverage:</strong> 740/948 blocks (78%) embedded; local-model failures on the rest. Doesn't affect FTS5 default.</li>
     <li><strong>Hardware:</strong> single RX 580 machine; embedding/QA timings are hardware-bound. Not a claim about other machines.</li>
-    <li><strong>LangMem/Mem0 numbers:</strong> measured on our harness under identical conditions, but their pipelines include LLM extraction (gpt-4o-mini via a paid gateway) — a different cost class than ML's zero-LLM retrieval. Reported as measured, compared as apples-to-apples only within Lane A.</li>
+    <li><strong>LangMem/Mem0 numbers:</strong> measured on our harness under identical conditions, but their pipelines include LLM extraction (gpt-4o-mini via a paid gateway), a different cost class than Memory Lane's zero-LLM retrieval. Reported as measured, compared as apples-to-apples only within Lane A.</li>
   </ul>
   <div class="callout">
     <p><strong>What we will NOT claim:</strong></p>
-    <p>❌ "Memory Lane beats the top 5" — we only claim measured results on our controlled lane vs Honcho, LangMem, and Mem0, plus code-level capability findings for all.</p>
-    <p>❌ "Memory Lane beats LangMem/Mem0 at retrieval" — the controlled runs show the reverse (72.2% / 68.1% vs 61.1%). We report it as measured.</p>
-    <p>❌ "Memory Lane beats Honcho on QA" — no validated QA comparison exists yet.</p>
-    <p>❌ "Dense embeddings help" — they didn't on this dataset; documented as a negative result.</p>
-    <p>❌ "v4-pro is better" — it's a tie at 4x cost.</p>
-    <p>❌ Any number without a logged run — every figure traces to logs + results with hashes.</p>
+    <p>❌ "Memory Lane beats the top 5." We only claim measured results on our controlled lane vs Honcho, LangMem, and Mem0, plus code-level capability findings for all.</p>
+    <p>❌ "Memory Lane beats LangMem/Mem0 at retrieval." The controlled runs show the reverse (72.2% / 68.1% vs 61.1%). We report it as measured.</p>
+    <p>❌ "Memory Lane beats Honcho on QA", no validated QA comparison exists yet.</p>
+    <p>❌ "Dense embeddings help." They didn't on this dataset. Documented as a negative result.</p>
+    <p>❌ "v4-pro is better", it's a tie at 4x cost.</p>
+    <p>❌ Any number without a logged run, every figure traces to logs + results with hashes.</p>
   </div>
 </section>
 
@@ -253,22 +253,22 @@
   <h2>Conclusions</h2>
   <table>
     <tr><th>Hypothesis</th><th>Verdict</th><th>Evidence</th></tr>
-    <tr><td>H1 · Retrieval competitiveness</td><td><span class="pill green">SUPPORTED</span></td><td>61.1% recall@5 vs Honcho 40.0% — deterministic local store beats the cloud semantic engine on the fair lane; heavier LLM-extraction systems measured higher and are reported as-is</td></tr>
+    <tr><td>H1 · Retrieval competitiveness</td><td><span class="pill green">SUPPORTED</span></td><td>61.1% recall@5 vs Honcho 40.0%, deterministic local store beats the cloud semantic engine on the fair lane; heavier LLM-extraction systems measured higher and are reported as-is</td></tr>
     <tr><td>H2 · Pennies-cost intelligence</td><td><span class="pill green">SUPPORTED</span></td><td>$0.00004/answer, $0.74 per 500-session library; 3-path install (local / main / both) architecturally proven</td></tr>
     <tr><td>H3 · Integrity is durable value</td><td><span class="pill green">SUPPORTED</span></td><td>Lanes B-E all PASS; capabilities the cloud field doesn't offer, with one documented gap (stray-file detection)</td></tr>
-    <tr><td>H4 · QA gap = answerer, not store</td><td><span class="pill green">SUPPORTED</span></td><td>v4-pro = v4-flash tie; independent research shows filesystem+gpt-4o-mini beats graph stacks — swap the answerer, not the store</td></tr>
+    <tr><td>H4 · QA gap = answerer, not store</td><td><span class="pill green">SUPPORTED</span></td><td>v4-pro = v4-flash tie; independent research shows filesystem+gpt-4o-mini beats graph stacks, swap the answerer, not the store</td></tr>
   </table>
-  <p><strong>Position:</strong> Memory Lane is genuinely competitive where it matters — retrieval vs the cloud semantic engine, integrity, ownership, cost. The honest path to higher QA is a stronger answerer model, which the 3-path architecture already supports. The thesis — local-first memory with pluggable, pennies-cost intelligence — is proven.</p>
+  <p><strong>Position:</strong> Memory Lane is genuinely competitive where it matters, retrieval vs the cloud semantic engine, integrity, ownership, cost. The honest path to higher QA is a stronger answerer model, which the 3-path architecture already supports. The thesis, local-first memory with pluggable, pennies-cost intelligence, is proven.</p>
 </section>
 
 <!-- ============ APPENDIX ============ -->
 <section>
-  <h2>Appendix — Reproducibility</h2>
+  <h2>Appendix, Reproducibility</h2>
   <table>
     <tr><th>Artifact</th><th>Location</th></tr>
     <tr><td>Protocol (pre-registered, written before any run)</td><td><code>benchmarks/BENCHMARK_PROTOCOL.md</code> (this repo)</td></tr>
     <tr><td>Latest side-by-side (generated from logs)</td><td><code>benchmarks/SIDE_BY_SIDE_REPORT.md</code> (this repo)</td></tr>
-    <tr><td>Harness (7 runners; kept private — holds service credentials)</td><td>private harness dir, <code>harness/</code> + <code>logs/</code> + <code>results/</code></td></tr>
+    <tr><td>Harness (7 runners; kept private, holds service credentials)</td><td>private harness dir, <code>harness/</code> + <code>logs/</code> + <code>results/</code></td></tr>
     <tr><td>Competitor study (5 repos cloned + read)</td><td>private competitor-study dir (COMPETITOR_STUDY.md, UPGRADES_LIST.md, UPGRADE_RESULTS.md, agent-memory-competitor-research.md)</td></tr>
     <tr><td>LLM backend comparison</td><td><code>results/LLM_BACKEND_COMPARISON.md</code> (private harness)</td></tr>
     <tr><td>Public repo (FTS5 shipped)</td><td><code>github.com/MAYA-Platform/MAYA-Memory-Lane</code> @ <code>6366ba8</code> (FTS5), 45 tests passing</td></tr>
@@ -278,8 +278,8 @@
 </section>
 
 <div class="foot">
-  Memory Lane — Theory to Proof · Official Report v1.1 · 2ndNatureAi / MAYA · 2026-08-09<br>
-  Prepared by the MAYA Memory Lane team, reviewed by the founder. All numbers traceable to logged runs. No shortcuts.
+  Memory Lane, Theory to Proof · Official Report v1.1 · 2ndNatureAi / MAYA · 2026-08-09<br>
+  Prepared by the MAYA Memory Lane team. All numbers traceable to logged runs. No shortcuts.
 </div>
 
 </div>

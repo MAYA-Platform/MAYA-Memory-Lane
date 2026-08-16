@@ -2,7 +2,7 @@
 
 **Feature spec · v1.0 · 2026-08-06**
 **Status:** Specified, not built. Model-gated (see §Model Gate).
-**Owner:** MAYA / Hermes · **Repo:** MAYA-Platform/MAYA-Memory-Lane
+**Repo:** MAYA-Platform/MAYA-Memory-Lane
 
 ---
 
@@ -42,7 +42,7 @@ Observation extraction and fact synthesis need a model that can:
 
 | Model | Size | Verdict for this feature |
 |---|---|---|
-| qwen3:4b | 2.5 GB | Active MAYA model; ignores identity injection; weak structured extraction at 4B |
+| qwen3:4b | 2.5 GB | Local model; weak structured extraction at 4B |
 | qwen2.5:3b | 1.9 GB | Cheap worker; 0–30% QA on hard questions; not enough judgment for synthesis |
 | Fara1.5-4B | 3.1 GB | Vision descriptor; structured tool-call output unreliable at 4B |
 | minicpm-v:8b | 5.5 GB | Vision only |
@@ -154,7 +154,7 @@ Adds to the existing benchmark suite:
 2. **Excerpt bounds** — how long an excerpt to keep (privacy vs usefulness). Lean: 1–2 sentences + reference.
 3. **Injection granularity** — per-user-profile snapshot vs per-session-topic scoring. Lean: both, profile-first.
 4. **Model upgrade path** — exact candidate when hardware allows (qwen3 8B/14B, glm4 variants, K2-class quant, or CPU-friendly 14B Q4).
-5. **Where the pipe plugs in** — ML server endpoints (`POST /api/observe`, `GET /api/inject`) mirroring the existing `/api/ingest` pattern; new optional observer-sweep cron.
+5. **Where the pipe plugs in** — Memory Lane server endpoints (`POST /api/observe`, `GET /api/inject`) mirroring the existing `/api/ingest` pattern; new optional observer-sweep cron.
 
 ## 9. Relationship to existing Memory Lane features
 

@@ -1,7 +1,6 @@
 # Memory Lane — Hosted Embeddings Experiment (Lane A + Lane H)
 
 **Date:** 2026-08-10
-**Author:** Hermes (per Josh's "test every angle" directive)
 **Status:** Pre-registered protocol (see `BENCHMARK_PROTOCOL.md` §Lane H), runs logged in `logs/*.jsonl`
 
 ---
@@ -75,8 +74,8 @@ reproducible and the Lane A delta is the statistically cleaner number.)
 2. **Local-first users** keep zero-dependency FTS5; when a strong local
    embedder lands (14B-class), it slots into the same provider switch.
 3. **Honcho comparison:** Honcho's retrieval is semantic-only (40.0% recall@5
-   in our controlled run). ML + Vertex (66.05%) now leads Honcho by a wider
-   margin than ML-FTS5 alone (61.08%) did — and keeps ML's integrity/resume/
+   in our controlled run). Memory Lane + Vertex (66.05%) now leads Honcho by a wider
+   margin than Memory Lane FTS5 alone (61.08%) did — and keeps Memory Lane's integrity/resume/
    portability lanes Honcho can't claim.
 
 ## Honest caveats

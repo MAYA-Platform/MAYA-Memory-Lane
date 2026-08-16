@@ -1,10 +1,8 @@
 # Memory Lane — Session Seal Closeout Pipeline
 
 **Feature spec · v1.0 · 2026-08-15**
-**Status:** Live in the operator runtime; this document is the public-safe
-description of how a sealed session is closed out *before* it becomes a
-Memory Lane block.
-**Owner:** MAYA / Hermes · **Repo:** MAYA-Platform/MAYA-Memory-Lane
+**Status:** Describes how a sealed session is closed out before it becomes a Memory Lane block.
+**Repo:** MAYA-Platform/MAYA-Memory-Lane
 
 ---
 

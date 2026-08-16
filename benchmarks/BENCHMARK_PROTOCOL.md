@@ -1,9 +1,7 @@
 # Memory Lane vs. Agent-Memory Competitors — Scientific Benchmark Protocol
 
-**Author:** Hermes (with MAYA consultation attempted)
 **Date:** 2026-08-04
 **Status:** Protocol v1.0 — pre-registered before any runs (no results yet, no claims yet)
-**Location of harness (when built):** `E:/MAYA_BULK/memory-lane-benchmark/`
 
 ---
 
@@ -54,7 +52,7 @@ Verified from `lib/memoryLaneCore.js`, `server.mjs`, and tests (45/45 passing):
 - **Resume:** `resolveResume(phrase)` — exact block_id → canonical_name → substring
 - **Search:** `search(query)` — **plain-text case-insensitive substring search over block bodies and frontmatter** (NO embeddings, NO semantic, NO LLM)
 - **Export:** full library bundle to JSON
-- **Verdict:** three-state (`intact` / `unchecked` / `issues`), green/blue/red per MAYA palette doctrine
+- **Verdict:** three-state (`intact` / `unchecked` / `issues`), green/blue/red
 
 **The honest implication:** Memory Lane is a *local-first integrity + exact-retrieval store*.
 It does not claim semantic recall, background reasoning, or natural-language insights.
@@ -144,17 +142,16 @@ shortcut we refuse to take.
 
 ---
 
-## 5. Harness architecture (to be built next, per Josh approval)
+## 5. Harness architecture
 
 ### 5.1 Honcho access — VERIFIED LIVE (2026-08-04)
-- **Account/credits:** 2ndNatureAi Honcho account, credits still on the account. The integration was retired July 31 (Phase 1 eval: 83% recall/search, weak auto-conclusions) but the account was never closed and the API key still works.
-- **API key:** `hch-v3-...` (in `hermes/scripts/honcho_ops.py` line 16, and commented out in `.env`)
-- **Workspace:** `memory-lane-benchmark` — contains existing sessions from the July eval
+- **Account/credits:** a Honcho account with active credits (Phase 1 eval: 83% recall/search, weak auto-conclusions).
+- **API key:** set via the `HONCHO_API_KEY` environment variable.
 - **Verified round-trip (2026-08-04):** wrote a probe message via `session.add_messages([peer.message(content=...)])`, then `peer.search(query=...)` returned it — semantic search confirmed working with live credits.
-- **SDK version note:** the installed `honcho` SDK is v3-era; `peer.message(content=...)` returns `MessageCreateParams` (no session_id kwarg), writes go through `session.add_messages([...])`, searches via `peer.search(query, limit)`. The July-era `honcho_ops.py` still works for stats but its write API is outdated.
+- **SDK version note:** the installed `honcho` SDK is v3-era; `peer.message(content=...)` returns `MessageCreateParams` (no session_id kwarg), writes go through `session.add_messages([...])`, searches via `peer.search(query, limit)`. The July-era helper still works for stats but its write API is outdated.
 
 ```
-E:/MAYA_BULK/memory-lane-benchmark/
+benchmarks/
   datasets/            # LongMemEval-S + LoCoMo, hashes recorded
   harness/
     run_lane_a.mjs     # Memory Lane: ingest sessions as blocks, run queries, log JSONL
@@ -171,7 +168,7 @@ E:/MAYA_BULK/memory-lane-benchmark/
 
 Dependencies to check before building:
 - Memory Lane: none (zero-dep by design) — Node only
-- Honcho: **already installed** (`honcho` SDK in the Hermes venv), key verified live, workspace ready — **zero setup needed for Lane A**
+- Honcho: `pip install honcho-ai`, set `HONCHO_API_KEY`, workspace ready
 - Mem0: `pip install mem0ai` + Qdrant (OSS) or API key
 - LongMemEval: `pip install -r requirements-lite.txt` + OpenAI key for the LLM judge lane only
 
@@ -206,7 +203,7 @@ The benchmark exists to prove MORE than that, under the pre-registered rules abo
 
 ## 7. Next steps (ordered)
 
-1. **Josh approval** of this protocol (it's the scientific contract — after this we can't cherry-pick)
+1. Confirm this protocol (it's the scientific contract — after this we can't cherry-pick)
 2. Build the harness (Lanes A-E first; F gated on budget)
 3. Download LongMemEval-S + LoCoMo, record hashes
 4. Run Lane A (retrieval) — the flagship fair comparison

@@ -22,7 +22,7 @@ Tests: **88 passing** (77 prior + 11 new for observer/injector).
 
 ## Live benchmark (Lane G, LongMemEval, DeepSeek v4-flash via DeepSeek answerer + LLM judge)
 
-Same protocol for all conditions. Baseline = zero-shot (no memory). Ours = full ML pipeline (observer + facts + distiller + injector + hybrid retrieval). Honcho = hosted service ON (same retrieval + Honcho semantic context).
+Same protocol for all conditions. Baseline = zero-shot (no memory). Ours = full Memory Lane pipeline (observer + facts + distiller + injector + hybrid retrieval). Honcho = hosted service ON (same retrieval + Honcho semantic context).
 
 | Run | N | Baseline | Ours | Honcho | Δ ours vs honcho |
 |---|---|---|---|---|---|

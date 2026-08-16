@@ -156,7 +156,7 @@ def fts_retrieve(query, lib_dir, top=3, hybrid=True):
 def honcho_context(query, api_key, limit=5):
     """Honcho search — hosted service ON (v3 SDK)."""
     from honcho import Honcho
-    client = Honcho(api_key=api_key, workspace_id="memory-lane-benchmark")
+    client = Honcho(api_key=api_key)
     try:
         results = client.search(query, limit=limit)
     except Exception as e:
@@ -174,7 +174,7 @@ def main():
     ap.add_argument("--items", type=int, default=30)
     ap.add_argument("--lib", default=str(DEFAULT_LIB))
     ap.add_argument("--honcho", action="store_true", help="run Honcho condition")
-    ap.add_argument("--honcho-key", default="")
+    ap.add_argument("--honcho-key", default="", help="Honcho API key (or set HONCHO_API_KEY)")
     args = ap.parse_args()
 
     dataset = json.loads(DATASET.read_text(encoding="utf-8"))[: args.items]
@@ -202,21 +202,25 @@ def main():
     # Honcho ingest (once) if enabled
     if args.honcho:
         from honcho import Honcho, MessageCreateParams
-        api_key = args.honcho_key or "HONCHO_API_KEY"
-        client = Honcho(api_key=api_key, workspace_id="memory-lane-benchmark")
-        print("[lane-g] ingesting into Honcho...")
-        for inst in dataset[: args.items]:
-            for si, sess in enumerate(inst["haystack_sessions"]):
-                sess_id = f"laneG_{inst['question_id']}_{si}"
-                try:
-                    session = client.session(sess_id)
-                except Exception:
-                    session = client.session(sess_id)
-                for turn in sess:
+        api_key = args.honcho_key or os.environ.get("HONCHO_API_KEY", "")
+        if not api_key:
+            print("[lane-g] Honcho condition requires HONCHO_API_KEY (or --honcho-key). Skipping.")
+            args.honcho = False
+        else:
+            client = Honcho(api_key=api_key)
+            print("[lane-g] ingesting into Honcho...")
+            for inst in dataset[: args.items]:
+                for si, sess in enumerate(inst["haystack_sessions"]):
+                    sess_id = f"laneG_{inst['question_id']}_{si}"
                     try:
-                        session.add_messages([MessageCreateParams(content=turn["content"], peer_id="benchmark")])
-                    except Exception as e:
-                        print(f"  honcho ingest err: {str(e)[:60]}")
+                        session = client.session(sess_id)
+                    except Exception:
+                        session = client.session(sess_id)
+                    for turn in sess:
+                        try:
+                            session.add_messages([MessageCreateParams(content=turn["content"], peer_id="benchmark")])
+                        except Exception as e:
+                            print(f"  honcho ingest err: {str(e)[:60]}")
 
     results = []
     t0 = time.time()

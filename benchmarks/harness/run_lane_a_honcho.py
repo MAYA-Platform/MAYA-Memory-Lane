@@ -28,7 +28,7 @@ API_KEY = os.environ.get("HONCHO_API_KEY")
 if not API_KEY:
     raise SystemExit("HONCHO_API_KEY environment variable is required (e.g. HONCHO_API_KEY=... python run_lane_a_honcho.py --items 500)")
 WORKSPACE = os.environ.get("HONCHO_WORKSPACE", "memory-lane-benchmark")
-PEER = "benchmark"
+PEER = os.environ.get("HONCHO_PEER", "benchmark")
 
 from honcho import Honcho, Session  # noqa: E402
 

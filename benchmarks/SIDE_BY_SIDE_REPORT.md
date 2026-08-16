@@ -13,7 +13,7 @@ This document reports **two different kinds of numbers, kept strictly apart**:
 1. **CONTROLLED RUNS (our protocol)** — Memory Lane vs Honcho, identical dataset (LongMemEval oracle), identical queries, identical scoring (official LongMemEval semantics), run from this harness, traces in `logs/*.jsonl`. These are directly comparable to each other.
 2. **VENDOR SELF-REPORTS / INDEPENDENT EVALS (external)** — numbers the vendors published from *their own* setups, or third-party evaluations of them. Different datasets, models, and scoring. **NOT directly comparable to our controlled runs** or to each other. Always labeled `[VENDOR]` / `[INDEPENDENT]`.
 
-Mem0, Zep/Graphiti, Letta, and LangMem were **code-level studied** (repos cloned at `E:/MAYA_BULK/competitor-study/`). LangMem and Mem0 were additionally **run on our harness** (controlled Lane A below). Letta and Graphiti were **attempted but infra-constrained** on this Windows test box: Letta's server crashes at startup on Windows (`generator didn't stop after athrow()` — a Letta 0.16.8 async-lifecycle bug, config-independent), and Graphiti requires Neo4j which needs the Docker daemon (not viable on this hardware without resource risk). Both adapters are written (`harness/run_lane_a_letta.py`, `harness/run_lane_a_graphiti.py`) and ready to run when infrastructure allows. Their numbers in the report are external/vendor, explicitly not our measurements.
+Mem0, Zep/Graphiti, Letta, and LangMem were **code-level studied** (repos cloned locally). LangMem and Mem0 were additionally **run on our harness** (controlled Lane A below). Letta and Graphiti were **attempted but infra-constrained** on this Windows test box: Letta's server crashes at startup on Windows (`generator didn't stop after athrow()` — a Letta 0.16.8 async-lifecycle bug, config-independent), and Graphiti requires Neo4j which needs the Docker daemon (not viable on this hardware without resource risk). Both adapters are written (`harness/run_lane_a_letta.py`, `harness/run_lane_a_graphiti.py`) and ready to run when infrastructure allows. Their numbers in the report are external/vendor, explicitly not our measurements.
 
 ---
 
@@ -33,13 +33,13 @@ Mem0, Zep/Graphiti, Letta, and LangMem were **code-level studied** (repos cloned
 Run timestamps: Memory Lane 2026-08-06 22:34 UTC · Honcho 2026-08-06 22:25 UTC · LangMem 2026-08-06 23:25 UTC · Mem0 2026-08-07 04:22 UTC
 
 **Setup per system (fair-mirror):** Memory Lane = deterministic FTS5 (no LLM, no embeddings). Honcho = hosted semantic API (`peer.search`, raw messages). LangMem = native extraction (`create_memory_manager`, gpt-4o-mini via DeepSeek) + semantic store search (bge-m3 local). Mem0 = native pipeline (`add` + `search`, gpt-4o-mini via DeepSeek extraction, Chroma local + bge-m3). Letta = native server + archival-memory search (SQLite, embedder server-side). Graphiti = native temporal graph (Neo4j, gpt-4o-mini, bge-m3). Same dataset, same queries, same gold standard, same scoring — each system ran its own real pipeline.
-**Context for reading these numbers honestly:** Memory Lane's retrieval is deterministic FTS5 (BM25, zero embeddings, zero LLM). Honcho's is semantic. LongMemEval questions are paraphrased, so exact-match struggles and semantic shines — but after the FTS5 upgrade (commit 6366ba8), ML's recall@5 moved from a 0.1% baseline to exceed Honcho under identical conditions (baseline history in `BASELINE_REPORT.md`; latest controlled numbers in the table above, regenerated from the freshest logged runs each time this report is generated).
+**Context for reading these numbers honestly:** Memory Lane's retrieval is deterministic FTS5 (BM25, zero embeddings, zero LLM). Honcho's is semantic. LongMemEval questions are paraphrased, so exact-match struggles and semantic shines — but after the FTS5 upgrade (commit 6366ba8), Memory Lane's recall@5 moved from a 0.1% baseline to exceed Honcho under identical conditions (baseline history in `BASELINE_REPORT.md`; latest controlled numbers in the table above, regenerated from the freshest logged runs each time this report is generated).
 
 ---
 
 ## 2. Memory Lane capability proofs (Lanes B–E) — Honcho: N/A, no claim
 
-These lanes test capabilities Honcho does not claim to have; per protocol we report ML's result and Honcho's factual N/A rather than manufacturing a loss.
+These lanes test capabilities Honcho does not claim to have; per protocol we report Memory Lane's result and Honcho's factual N/A rather than manufacturing a loss.
 
 | Lane | Capability | Result | Evidence file |
 |---|---|---|---|
@@ -64,7 +64,7 @@ Caveat (in the source doc): 10 questions is a pilot, not significance. Dual scor
 
 ## 4. External numbers — vendor self-reports & independent evals
 
-**NOT comparable to Section 1.** Different datasets, models, scoring, and setups. Sourced from the competitor research file (`E:/MAYA_BULK/competitor-study/agent-memory-competitor-research.md` — internal notes) whose primary sources are public: vendor blogs, arXiv, and third-party evaluations, including Particula's independent comparison (particula.tech/blog/agent-memory-frameworks-tested-mem0-zep-letta-cognee-2026), agentmarketcap.ai landscape posts (2026-04-08 / 2026-04-10), vectorize.io/articles/mem0-vs-zep, and kanopylabs.com/blog/mem0-vs-zep-vs-langmem-ai-memory. All claims below are traceable to those public sources.
+**NOT comparable to Section 1.** Different datasets, models, scoring, and setups. Sourced from the competitor research file (internal competitor-research notes) whose primary sources are public: vendor blogs, arXiv, and third-party evaluations, including Particula's independent comparison (particula.tech/blog/agent-memory-frameworks-tested-mem0-zep-letta-cognee-2026), agentmarketcap.ai landscape posts (2026-04-08 / 2026-04-10), vectorize.io/articles/mem0-vs-zep, and kanopylabs.com/blog/mem0-vs-zep-vs-langmem-ai-memory. All claims below are traceable to those public sources.
 
 | System | Claim | Label | Notes |
 |---|---|---|---|
@@ -83,9 +83,9 @@ Caveat (in the source doc): 10 questions is a pilot, not significance. Dual scor
 
 ## 5. Capability matrix — code-level findings (all 5 studied)
 
-From `E:/MAYA_BULK/competitor-study/COMPETITOR_STUDY.md` (repos cloned + read, 2026-08-04). ✅ = present, ❌ = absent, ⚠️ = partial/optional.
+From the competitor study (repos cloned + read, 2026-08-04). ✅ = present, ❌ = absent, ⚠️ = partial/optional.
 
-| Capability | ML | Honcho | Mem0 | Graphiti | Letta | LangMem |
+| Capability | Memory Lane | Honcho | Mem0 | Graphiti | Letta | LangMem |
 |---|---|---|---|---|---|---|
 | Semantic retrieval | ❌ (exact FTS5) | ✅ | ✅ | ✅ | ⚠️ | ✅ |
 | Temporal grounding | ⚠️ (facts section) | ✅ | ✅ | ✅ (bi-temporal edges) | ❌ | ❌ |
@@ -99,15 +99,15 @@ From `E:/MAYA_BULK/competitor-study/COMPETITOR_STUDY.md` (repos cloned + read, 2
 | Background derivation | ❌ | ✅ | ✅ | ✅ | ❌ | ⚠️ |
 | Zero recurring cost | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-Read as: ML is the **integrity + locality + zero-cost** store; the others are **semantic + derived** memory. They are different categories sharing one fair lane (retrieval).
+Read as: Memory Lane is the **integrity + locality + zero-cost** store; the others are **semantic + derived** memory. They are different categories sharing one fair lane (retrieval).
 
 ---
 
 ## 6. What we will NOT claim (per protocol §0)
 
 - ❌ "Memory Lane beats the top 5" — we only claim measured results on our controlled lane vs Honcho, LangMem, and Mem0, plus code-level capability findings for all.
-- ❌ "Memory Lane is better than LangMem/Mem0 at retrieval" — the controlled runs show LangMem (72.2%) and Mem0 (68.1%) out-retrieve ML (61.1%) on this protocol. We report it as measured.
-- ❌ Any semantic-recall number for ML — it has none, and the report says so.
+- ❌ "Memory Lane is better than LangMem/Mem0 at retrieval" — the controlled runs show LangMem (72.2%) and Mem0 (68.1%) out-retrieve Memory Lane (61.1%) on this protocol. We report it as measured.
+- ❌ Any semantic-recall number for Memory Lane — it has none, and the report says so.
 - ❌ Any number without a trace — every controlled figure points to a logged file.
 - ❌ "Honcho loses" — Honcho is a different category; we report what we measured, both directions.
 - ❌ Claims about Letta/Graphiti retrieval — not run (infra-constrained); their numbers are external only.
