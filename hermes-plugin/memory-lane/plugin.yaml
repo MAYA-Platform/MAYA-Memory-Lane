@@ -1,0 +1,8 @@
+name: memory-lane
+version: 1.0.0
+description: "Memory Lane — local-first, zero-dependency, chain-verified memory (SQLite FTS5 + SHA-256 blocks). 61% recall@5 on LongMemEval, offline, MIT."
+pip_dependencies: []
+hooks:
+  - on_session_end
+  - on_session_switch
+  - on_memory_write
