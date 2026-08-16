@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "project": "maya-memory-lane",
-  "total_entries": 97,
-  "total_bytes": 2426527,
+  "total_entries": 98,
+  "total_bytes": 2430351,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -285,8 +285,8 @@
       "size": 9235
     },
     "package.json": {
-      "sha256": "cc61daf081e341f64773526f86c2929d7512aebe14df1143239817611970e6fe",
-      "size": 779
+      "sha256": "6365e7435a775b9b18c0b68e7086a3e244485cbcea98c26ae26084f69a6e84e8",
+      "size": 806
     },
     "public/memory-lane.html": {
       "sha256": "b2514629e19ba7fb8d1c3a401e734b0712eaba230b6a6e3c4682b19c77e85736",
@@ -391,6 +391,10 @@
     "tools/memory-lane-mcp.mjs": {
       "sha256": "43f5436af12d4d6129334990413d251f4f12d14ac034e14a561826cf149a8707",
       "size": 8969
+    },
+    "tools/secret_scan.mjs": {
+      "sha256": "cee69e8932b3d27484abd62e494a3735f16b3c2cd4239e5e97c0736bcf20212f",
+      "size": 3797
     }
   }
 }

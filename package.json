@@ -7,7 +7,7 @@
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs",
-    "test": "node --test tests/memory-lane-core.test.mjs tests/memory-lane-server.test.mjs tests/memory-lane-ingest.test.mjs tests/memory-lane-answer.test.mjs tests/memory-lane-excerpt.test.mjs tests/embeddings-provider.test.mjs tests/auto-observation.test.mjs",
+    "test": "node --test tests/memory-lane-core.test.mjs tests/memory-lane-server.test.mjs tests/memory-lane-ingest.test.mjs tests/memory-lane-answer.test.mjs tests/memory-lane-excerpt.test.mjs tests/embeddings-provider.test.mjs tests/auto-observation.test.mjs tests/secret-scan.test.mjs",
     "ingest": "node tools/ingest.mjs",
     "watch": "python tools/inbox-watch.py --loop 60",
     "make-sample": "node tools/make-sample-library.mjs"
