@@ -90,7 +90,7 @@ test('injector topical boost surfaces topic-matching observations', () => {
 
 test('injectForSession matches the hosted-service contract shape', () => {
   const lib = makeLib();
-  observeMessage(lib, { speaker: 'user', content: 'i am the founder of 2ndNatureAi', session_id: 'i1' });
+  observeMessage(lib, { speaker: 'user', content: 'i am the founder of a startup', session_id: 'i1' });
   const injected = injectForSession(lib);
   assert.ok(typeof injected === 'string');
   assert.ok(injected.includes('SESSION SNAPSHOT'));

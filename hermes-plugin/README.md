@@ -58,7 +58,7 @@ Desktop app's Plugins panel (it appears alongside Honcho / Mem0 / Supermemory).
 
 | Var | Default | Purpose |
 |-----|---------|---------|
-| `MEMORY_LANE_LIBRARY` | `E:/MAYA_BULK/memory-lane-live` | Library directory |
+| `MEMORY_LANE_LIBRARY` | `~/.memory-lane` | Library directory |
 | `MEMORY_LANE_CLI` | `<repo>/tools/memory-lane-cli.mjs` | Node bridge script |
 
 ## Requirements

@@ -24,7 +24,7 @@ import { loadLibrary, search, resolveResume, readBlock } from '../lib/memoryLane
 import { answerQuestion } from '../lib/answer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LIBRARY = process.env.MEMORY_LANE_LIBRARY || 'E:/MAYA_BULK/memory-lane-live';
+const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
 const EXCERPT_CHARS = 320;
 
 function excerptBlock(lib, block) {

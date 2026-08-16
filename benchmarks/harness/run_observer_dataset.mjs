@@ -19,8 +19,8 @@ const DATASET = process.env.DATASET || path.join(BENCH, 'datasets', 'longmemeval
 const LIB_DIR = process.env.ML_LIB || path.join(BENCH, 'libraries', 'ml-lane-a');
 const LIMIT = parseInt(process.env.ITEM_LIMIT || '500', 10);
 
-const ML_CORE = process.env.ML_CORE || 'E:/MAYA_BULK/memory-lane-public-repo/lib/memoryLaneCore.js';
-const OBS = 'E:/MAYA_BULK/memory-lane-public-repo/lib/observations.js';
+const ML_CORE = process.env.ML_CORE || path.resolve(__dirname, '../../lib/memoryLaneCore.js');
+const OBS = path.resolve(__dirname, '../../lib/observations.js');
 const { loadLibrary } = await import('file:///' + ML_CORE.replace(/\\/g, '/'));
 const { observeMessage, readObservations, writeObservationLedger } = await import('file:///' + OBS.replace(/\\/g, '/'));
 

@@ -153,7 +153,7 @@ test('blocks sealed via appendBlock are searchable', () => {
   const tmp = makeTempLibrary();
   appendBlock(tmp, {
     title: 'Civic purchase',
-    body: 'Josh leased a 2026 Honda Civic in matte black.',
+    body: 'Alex leased a 2026 Honda Civic in matte black.',
     facts: ['User leased a 2026 Honda Civic in matte black'],
     lineage: 'auto'
   });
@@ -209,7 +209,7 @@ test('POST /api/blocks/write seals a block with explicit facts (no LLM)', async 
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      text: 'Josh decided Memory Lane should be fully automatic.',
+      text: 'Alex decided Memory Lane should be fully automatic.',
       title: 'Automation decision',
       facts: ['User decided Memory Lane should be fully automatic'],
       source: 'test'

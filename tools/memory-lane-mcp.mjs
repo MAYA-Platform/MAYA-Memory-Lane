@@ -18,7 +18,7 @@
  *
  * Register with any MCP-capable agent (example uses the Hermes CLI):
  *   <agent> mcp add memory-lane --command node \
- *     --args "E:/MAYA_BULK/memory-lane-public-repo/tools/memory-lane-mcp.mjs"
+ *     --args "tools/memory-lane-mcp.mjs"
  *
  * Manual smoke test:
  *   echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"t","version":"1"}}}' | node memory-lane-mcp.mjs
@@ -33,7 +33,7 @@ import { loadLibrary, search, resolveResume, readBlock } from '../lib/memoryLane
 import { answerQuestion } from '../lib/answer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const LIBRARY = process.env.MEMORY_LANE_LIBRARY || 'E:/MAYA_BULK/memory-lane-live';
+const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
 
 const TOOLS = [
   {

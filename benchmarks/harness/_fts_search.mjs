@@ -13,7 +13,7 @@ const [, , query, kArg, libArg] = process.argv;
 const k = parseInt(kArg || '5', 10);
 const LIB_DIR = libArg || path.join(__dirname, '..', 'libraries', 'ml-lane-f');
 
-const CORE = 'E:/MAYA_BULK/memory-lane-public-repo/lib/memoryLaneCore.js';
+const CORE = path.resolve(__dirname, '../../lib/memoryLaneCore.js');
 const { loadLibrary, search } = await import('file:///' + CORE.replace(/\\/g, '/'));
 
 const lib = loadLibrary(LIB_DIR);

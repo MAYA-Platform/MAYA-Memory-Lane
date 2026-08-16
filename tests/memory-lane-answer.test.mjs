@@ -18,15 +18,15 @@ function makeTempLibrary() {
 }
 
 test('termsPresent matches content terms, ignores stopwords', () => {
-  assert.equal(termsPresent('Josh leased a 2026 Honda Civic.', 'honda civic'), true);
-  assert.equal(termsPresent('Josh leased a 2026 Honda Civic.', 'what honda did josh lease'), true);
-  assert.equal(termsPresent('Josh likes coffee.', 'quantum physics'), false);
+  assert.equal(termsPresent('Alex leased a 2026 Honda Civic.', 'honda civic'), true);
+  assert.equal(termsPresent('Alex leased a 2026 Honda Civic.', 'what honda did alex lease'), true);
+  assert.equal(termsPresent('Alex likes coffee.', 'quantum physics'), false);
   assert.equal(termsPresent('anything', 'the and or'), true); // all stopwords
 });
 
 test('answerQuestion returns none for empty query', async () => {
   const tmp = makeTempLibrary();
-  appendBlock(tmp, { title: 'T', body: 'Josh likes coffee.', lineage: 'auto' });
+  appendBlock(tmp, { title: 'T', body: 'Alex likes coffee.', lineage: 'auto' });
   const lib = loadLibrary(tmp);
   const r = await answerQuestion(lib, '   ');
   assert.equal(r.mode, 'none');
@@ -35,7 +35,7 @@ test('answerQuestion returns none for empty query', async () => {
 
 test('answerQuestion returns none for a no-match query', async () => {
   const tmp = makeTempLibrary();
-  appendBlock(tmp, { title: 'T', body: 'Josh likes coffee.', lineage: 'auto' });
+  appendBlock(tmp, { title: 'T', body: 'Alex likes coffee.', lineage: 'auto' });
   const lib = loadLibrary(tmp);
   const r = await answerQuestion(lib, 'quantum physics preferences');
   assert.equal(r.mode, 'none');
@@ -47,7 +47,7 @@ test('answerQuestion direct mode when content terms are present (free, determini
   const tmp = makeTempLibrary();
   appendBlock(tmp, {
     title: 'Civic lease',
-    body: 'Josh leased a 2026 Honda Civic in matte black. He prefers dark mode.',
+    body: 'Alex leased a 2026 Honda Civic in matte black. He prefers dark mode.',
     facts: ['User leased a 2026 Honda Civic in matte black'],
     lineage: 'auto'
   });
@@ -95,7 +95,7 @@ let tmpLibrary;
 
 test.before(async () => {
   tmpLibrary = makeTempLibrary();
-  appendBlock(tmpLibrary, { title: 'Civic', body: 'Josh leased a 2026 Honda Civic in matte black.', facts: ['User leased a 2026 Honda Civic'], lineage: 'auto' });
+  appendBlock(tmpLibrary, { title: 'Civic', body: 'Alex leased a 2026 Honda Civic in matte black.', facts: ['User leased a 2026 Honda Civic'], lineage: 'auto' });
   server = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], {
     env: { ...process.env, PORT: String(PORT), MEMORY_LANE_LIBRARY: tmpLibrary },
     stdio: ['ignore', 'pipe', 'pipe']

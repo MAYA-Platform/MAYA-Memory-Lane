@@ -9,11 +9,10 @@ const ROOT = path.resolve(__dirname, '..');
 /**
  * Secret-scan contract test.
  *
- * This is the "never again" guard for the 2026-08-16 incident: a live Honcho
- * API key, founder identity (josh-benchmark), internal workspace name
- * (maya-honcho-shadow-eval), and C:/Users/joshu machine paths leaked into the
- * public repo history across several commits. They were purged; this test makes
- * a reintroduction fail `npm test` immediately.
+ * This is the "never again" guard for a credential-leak incident: a live API
+ * key, founder identity, internal workspace name, and local machine paths were
+ * committed into public repo history. They were purged; this test makes a
+ * reintroduction fail `npm test` immediately.
  */
 
 test('no credentials, machine paths, or internal vocab ship in the repo', () => {

@@ -22,7 +22,7 @@ deliberately read-focused to avoid double-sealing; on_memory_write mirrors the
 built-in memory tool into the library as an observation block.
 
 Config (env or config.yaml under memory_lane:):
-  MEMORY_LANE_LIBRARY — library dir (default E:/MAYA_BULK/memory-lane-live)
+  MEMORY_LANE_LIBRARY — library dir (default ~/.memory-lane)
   MEMORY_LANE_CLI     — node bridge script path
 """
 
@@ -40,8 +40,8 @@ from agent.memory_provider import MemoryProvider
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LIBRARY = "E:/MAYA_BULK/memory-lane-live"
-DEFAULT_CLI = "E:/MAYA_BULK/memory-lane-public-repo/tools/memory-lane-cli.mjs"
+DEFAULT_LIBRARY = os.path.expanduser("~/.memory-lane")
+DEFAULT_CLI = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'tools', 'memory-lane-cli.mjs')
 
 
 def _coerce_path(value: Any) -> str:

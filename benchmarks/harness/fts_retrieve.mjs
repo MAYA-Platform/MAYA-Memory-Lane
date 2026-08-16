@@ -3,8 +3,10 @@
 // Usage: node fts_retrieve.mjs "<query>" <lib_dir> [top]
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ML_CORE = 'E:/MAYA_BULK/memory-lane-public-repo/lib/memoryLaneCore.js';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ML_CORE = path.resolve(__dirname, '../../lib/memoryLaneCore.js');
 const { loadLibrary, search } = await import('file:///' + ML_CORE.replace(/\\/g, '/'));
 
 const query = process.argv[2] || '';

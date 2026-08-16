@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Security reports are accepted for the latest public-beta release published from this repository.
+Security reports are accepted for the latest release published from this repository.
 
 ## Reporting a vulnerability
 
@@ -12,7 +12,7 @@ For non-sensitive bugs, open a normal GitHub issue with reproduction steps, expe
 
 ## Boundaries
 
-- This project is a public beta, not a production service.
+- This project is a local-first tool, not a production service.
 - Keep all tests on data and systems you own or are authorized to inspect.
 - Do not upload live credentials, customer data, or private repositories to public issues.
 - The server binds to `127.0.0.1` by default and is designed to run locally. Do not expose its loopback development server directly to the internet.

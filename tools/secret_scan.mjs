@@ -68,9 +68,18 @@ function trackedFiles() {
   return out.split('\0').filter(Boolean);
 }
 
+// The scanner's own source and its contract test legitimately contain the
+// detection patterns and a description of the incident. Exclude them so the
+// guard doesn't flag its own definition.
+const SKIP_FILES = new Set([
+  'tools/secret_scan.mjs',
+  'tests/secret-scan.test.mjs',
+]);
+
 function scan() {
   const findings = [];
   for (const rel of trackedFiles()) {
+    if (SKIP_FILES.has(rel)) continue;
     const ext = path.extname(rel).toLowerCase();
     if (!TEXT_EXT.has(ext)) continue;
     const abs = path.join(ROOT, rel);

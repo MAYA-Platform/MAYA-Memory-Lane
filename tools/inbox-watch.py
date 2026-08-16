@@ -8,9 +8,9 @@ archive processed files to processed/<YYYY-MM-DD>/, and emit a short report
 only when work happened. Runs as a no_agent cron job — silent when idle.
 
 Config (env vars):
-  ML_INBOX      drop folder (default: E:/MAYA_BULK/memory-lane-inbox)
-  ML_LIBRARY    target Memory Lane library (default: E:/MAYA_BULK/memory-lane-live)
-  ML_REPO       Memory Lane repo root (default: E:/MAYA_BULK/memory-lane-public-repo)
+  ML_INBOX      drop folder (default: ./inbox)
+  ML_LIBRARY    target Memory Lane library (default: ./empty-library)
+  ML_REPO       Memory Lane repo root (default: repo root)
   ML_EXTS       comma-separated extensions to watch (default: .md,.txt,.json,.log)
 
 Behavior:
@@ -31,9 +31,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-DEFAULT_INBOX = Path(os.environ.get("ML_INBOX", "E:/MAYA_BULK/memory-lane-inbox"))
-DEFAULT_LIBRARY = Path(os.environ.get("ML_LIBRARY", "E:/MAYA_BULK/memory-lane-live"))
-DEFAULT_REPO = Path(os.environ.get("ML_REPO", "E:/MAYA_BULK/memory-lane-public-repo"))
+DEFAULT_INBOX = Path(os.environ.get("ML_INBOX", str(Path(__file__).resolve().parent.parent / "inbox")))
+DEFAULT_LIBRARY = Path(os.environ.get("ML_LIBRARY", str(Path(__file__).resolve().parent.parent / "empty-library")))
+DEFAULT_REPO = Path(__file__).resolve().parent.parent
 DEFAULT_EXTS = os.environ.get("ML_EXTS", ".md,.txt,.json,.log")
 
 NODE = shutil.which("node") or "node"

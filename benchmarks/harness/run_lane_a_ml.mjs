@@ -28,7 +28,7 @@ const RESULT_DIR = path.join(BENCH, 'results');
 const LIMIT = parseInt(process.env.ITEM_LIMIT || '500', 10);
 
 // import the Memory Lane core from the public repo
-const ML_CORE = process.env.ML_CORE || 'E:/MAYA_BULK/memory-lane-public-repo/lib/memoryLaneCore.js';
+const ML_CORE = process.env.ML_CORE || path.resolve(__dirname, '../../lib/memoryLaneCore.js');
 const { loadLibrary, search, verifyChain } = await import(pathToFileURL(ML_CORE).href);
 
 function pathToFileURL(p) { return { href: 'file:///' + p.replace(/\\/g, '/') }; }

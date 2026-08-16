@@ -23,7 +23,7 @@ const BENCH = path.resolve(__dirname, '..');
 const LIB_DIR = path.join(BENCH, 'libraries', 'ml-lane-b');
 const LOG_DIR = path.join(BENCH, 'logs');
 const RESULT_DIR = path.join(BENCH, 'results');
-const ML_CORE = process.env.ML_CORE || 'E:/MAYA_BULK/memory-lane-public-repo/lib/memoryLaneCore.js';
+const ML_CORE = process.env.ML_CORE || path.resolve(__dirname, '../../lib/memoryLaneCore.js');
 const { loadLibrary, verifyChain } = await import('file:///' + ML_CORE.replace(/\\/g, '/'));
 
 function sha256Bytes(b) { return crypto.createHash('sha256').update(b).digest('hex'); }
