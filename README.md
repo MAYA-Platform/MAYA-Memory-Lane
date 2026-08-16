@@ -221,14 +221,20 @@ Everything else, search, chain verification, resume, export, the whole library, 
 
 ```text
 lib/memoryLaneCore.js        library core: load, verify, search, resume, export, append
-lib/extract.js               fact extraction: deepseek v4 flash via DeepSeek, Ollama fallback
+lib/extract.js               fact extraction: DeepSeek API (env vars) with Ollama fallback
 lib/answer.js                answer gate: direct / synthesized / none (retrieval confidence)
+lib/embeddings.js            optional hosted embeddings lane (FTS5 + dense hybrid, opt-in)
+lib/observations.js          deterministic auto-observation (zero-LLM signal capture)
+lib/injector.js              session-start snapshot injection
 public/memory-lane.html      the interface (single file, zero deps)
 server.mjs                   zero-dependency HTTP server (read + write + answer endpoints)
 empty-library/               the blank first-run library (0 records, default)
 tools/ingest.mjs             CLI ingestion: file, --text, or stdin
 tools/inbox-watch.py         inbox watcher: auto-seal files in a drop folder
+tools/memory-lane-mcp.mjs    MCP server — any agent reads the library in real time
+tools/memory-lane-cli.mjs    JSON CLI bridge (used by the Hermes MemoryProvider plugin)
 tools/make-sample-library.mjs  deterministic sample library generator
+hermes-plugin/               Memory Lane as a first-class Hermes memory provider
 sample-library/              the bundled demo library (7 blocks, regenerable)
 tests/                       93 tests across core + server + ingest + answer + excerpt
 benchmarks/                  pre-registered protocol, side-by-side report, and harness runners (Memory Lane vs Honcho/LangMem/Mem0 + adapters for Letta/Graphiti)
