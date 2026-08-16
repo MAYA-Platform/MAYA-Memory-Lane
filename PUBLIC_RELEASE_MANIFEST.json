@@ -2,7 +2,7 @@
   "version": "1.0",
   "project": "maya-memory-lane",
   "total_entries": 97,
-  "total_bytes": 2425123,
+  "total_bytes": 2424979,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -45,8 +45,8 @@
       "size": 9805
     },
     "benchmarks/THEORY_TO_PROOF_REPORT.html": {
-      "sha256": "e32a6e41871694fb9b1db168016d6dae089cea67e49d684875f2a075d840c0ad",
-      "size": 28277
+      "sha256": "4164918a2c180e4ed93cdc29704bd8fe4cfeb456e5a6db0923ab85253e8e1b87",
+      "size": 28253
     },
     "benchmarks/harness/__pycache__/auto_extract_facts.cpython-312.pyc": {
       "sha256": "e33d8cec684df33011ff3c4e6894aa659e44e696cd194c3a63ed0510ab678b3e",
@@ -109,8 +109,8 @@
       "size": 1509
     },
     "benchmarks/harness/llm_backend.py": {
-      "sha256": "dbf36d3e9e1d672da2ccff6cbda1d53eab641515e0e53e7d5899e248647dc3d1",
-      "size": 3877
+      "sha256": "25e34ea14f1d7f6e126eb8f2f5af6deace91595fc894191689943aa96166178c",
+      "size": 3677
     },
     "benchmarks/harness/run_all_lanes.py": {
       "sha256": "555e08e583b161a2d88a65030c810f1f683595b8a4bbcef455729e6938ddf901",
@@ -121,16 +121,16 @@
       "size": 7657
     },
     "benchmarks/harness/run_lane_a_honcho.py": {
-      "sha256": "cd1708511e2db985ee86ae63d1cd138513e407b7c7211a1f5c880d0567b1dc6b",
-      "size": 6245
+      "sha256": "96a4e63141fa24278a89e7e953453d30ef67ab933a9db071f8b552bdb962d8d0",
+      "size": 6269
     },
     "benchmarks/harness/run_lane_a_hybrid.mjs": {
       "sha256": "6f03c2c29cc2377f578e5c51e01bf107cbdbdf9b04b9421332f8fe6050fc93c2",
       "size": 7756
     },
     "benchmarks/harness/run_lane_a_langmem.py": {
-      "sha256": "06c1f4049077bdf74a586b8514efc1a4c1e7b93c9549b447476864f4065367aa",
-      "size": 7744
+      "sha256": "dde8ea83a182182654b1823b6f356a1c7ef9dedd395caaa26af2e7cba9ca8a07",
+      "size": 7747
     },
     "benchmarks/harness/run_lane_a_letta.py": {
       "sha256": "80dadf4e99535222326438efa1fb86f2ca339ffe9fdcd160fccf734a4f68ae28",
@@ -157,8 +157,8 @@
       "size": 15376
     },
     "benchmarks/harness/run_lane_g_pipeline.py": {
-      "sha256": "3974236e630dfabab78581a8eda80ec358e63ffdbbbe3b246fbfe0dc9b257e43",
-      "size": 12734
+      "sha256": "c9d77c8761b97eaf60292f56a85c74f5737dbc8a377870f68b786b86af7701b0",
+      "size": 12889
     },
     "benchmarks/harness/run_lane_h_paraphrase.mjs": {
       "sha256": "ab5accaece54f3cbbe8d9e1c8cd7d2669af247cd2fe0938816784af92e39e31f",
@@ -277,12 +277,12 @@
       "size": 4058
     },
     "lib/memoryLaneCore.js": {
-      "sha256": "95e0f4911b0741ec690c1bca18e4de0f8e515983119ec9460dd61cf34570bdde",
-      "size": 27490
+      "sha256": "1d333f0860a7f037356fa19dcb7344054c66e3e67c589ff367b4abd6ee8b4caa",
+      "size": 27464
     },
     "lib/observations.js": {
-      "sha256": "b9dbb221ddd58162f9d09dd955970fa49c6067289ae712b5243142a605c7974b",
-      "size": 9245
+      "sha256": "034fea9b1223f60575afd8120adf84d1abae8e86e7cb9d1b5aad79cf08139e86",
+      "size": 9235
     },
     "package.json": {
       "sha256": "cc61daf081e341f64773526f86c2929d7512aebe14df1143239817611970e6fe",
@@ -369,8 +369,8 @@
       "size": 19704
     },
     "tools/inbox-watch.py": {
-      "sha256": "dad33de64f679c7d71f6eb2633fa009be5b36c37eeb4975cdd5f49b185890881",
-      "size": 5666
+      "sha256": "f48d5fa51bcc5f5843322c27811ee5561f7f4d207bd0f65b536d6534ee6f4d39",
+      "size": 5600
     },
     "tools/ingest.mjs": {
       "sha256": "46c4dba42e78eb574455979f13340f53d59cc718014bdf71266e7d0b35022f82",
