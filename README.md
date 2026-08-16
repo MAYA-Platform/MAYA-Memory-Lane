@@ -10,6 +10,8 @@ Memory Lane is a web interface over a plain-file library. No cloud, no account, 
 
 > **Your memory stays local.** Memory Lane runs entirely on the machine that runs it. Nothing is sent to a cloud service, no account is required, and no data leaves your machine. It is not a hosted service and carries no production SLA.
 
+**Where your data actually lives.** A Memory Lane library is just a folder: a `MANIFEST.json` plus a `shelves/` tree of plain markdown block files. Point the server at any directory (`MEMORY_LANE_LIBRARY=/path/to/library`) and that directory is your memory — no hidden database and nothing written outside that folder. (The optional embeddings lane caches its vectors as a `.embeddings-*.json` dotfile inside the same library directory.) The bundled `empty-library/` is the blank default. Everything is human-readable markdown you can open in any editor.
+
 ![Memory Lane](docs/images/memory-lane-public.png)
 
 *Shown with the bundled sample loaded via the "Load sample library" button. A fresh clone opens blank, your lane is empty until you seal records. The sample is fabricated demo data that never touches your machine.*
@@ -29,18 +31,17 @@ Memory Lane is a web interface over a plain-file library. No cloud, no account, 
 
 ## Quick start
 
-Requirements: Node.js 22 or newer.
+Requirements: Node.js 22 or newer. No API key, no account, no database, no GPU, and nothing to install — the package uses Node's built-in runtime and test runner.
 
 ```bash
-npm test
 npm start
 ```
 
-Open `http://127.0.0.1:8766/`.
-
-No dependency installation is required. The package uses Node's built-in runtime and test runner.
+Open `http://127.0.0.1:8766/`. Time to first memory: **under a minute**, and it never leaves your machine.
 
 **First run is blank on purpose.** A fresh clone shows an empty memory lane, not demo data. Click **Load sample library** in the interface to explore the bundled 7-block demo (fabricated data, clearly labeled), then **Start fresh** to return to empty. Your records never appear in anyone else's clone.
+
+**Free, full stop.** There is no paid tier and nothing gated behind one. Chain integrity, search, resume, compaction, export, the whole library — all free, offline, zero recurring cost. The only optional cost is if you choose to wire in a hosted LLM for fact extraction, and even that falls back to free local Ollama.
 
 ## Pointing at your own library
 
