@@ -12,7 +12,8 @@ This is the "install-time three paths" architecture in miniature:
   - main/provider model only
   - both (local default, provider for heavy jobs)
 
-DeepSeek credentials are read from the environment (DEEPSEEK_API_KEY) or the DEEPSEEK_API_KEY environment variable.
+DeepSeek credentials are read from the environment: DEEPSEEK_API_KEY,
+DEEPSEEK_BASE_URL, and DEEPSEEK_MODEL. Falls back to local Ollama when no key is set.
 """
 import json
 import urllib.request
@@ -21,21 +22,15 @@ import os
 import re
 from pathlib import Path
 
-HERMES_HOME = Path(os.environ.get("HERMES_HOME", r"~/.hermes"))
-
 # Local Ollama endpoint
 OLLAMA = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434/api/generate")
 
 
 def _load_deepseek_config():
-    """Read DeepSeek credentials from environment variables."""
-    import yaml
-    cfg_path = HERMES_HOME / "config.yaml"
-    cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
-    prov = cfg.get("providers", {}).get("deepseek", {})
-    key = prov.get("api_key") or os.environ.get("DEEPSEEK_API_KEY")
-    base = prov.get("base_url", "https://api.deepseek.com/v1")
-    default_model = prov.get("default_model") or "deepseek/deepseek-v4-flash"
+    """Read DeepSeek credentials from environment variables (env-only, no local config)."""
+    key = os.environ.get("DEEPSEEK_API_KEY", "")
+    base = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
+    default_model = os.environ.get("DEEPSEEK_MODEL", "deepseek/deepseek-v4-flash")
     return {"api_key": key, "base_url": base, "default_model": default_model}
 
 

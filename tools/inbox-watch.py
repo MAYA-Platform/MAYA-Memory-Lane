@@ -44,7 +44,6 @@ def find_node():
     candidates = [
         shutil.which("node"),
         r"C:\Program Files\nodejs\node.exe",
-        r"C:\Program Files\nodejs\node.exe",
     ]
     for c in candidates:
         if c and Path(c).exists():
