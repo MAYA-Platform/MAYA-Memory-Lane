@@ -234,6 +234,7 @@ tools/inbox-watch.py         inbox watcher: auto-seal files in a drop folder
 tools/memory-lane-mcp.mjs    MCP server — any agent reads the library in real time
 tools/memory-lane-cli.mjs    JSON CLI bridge (used by the Hermes MemoryProvider plugin)
 tools/make-sample-library.mjs  deterministic sample library generator
+tools/make-release-manifest.mjs  release manifest generator (file SHA-256 index)
 hermes-plugin/               Memory Lane as a first-class Hermes memory provider
 sample-library/              the bundled demo library (7 blocks, regenerable)
 tests/                       93 tests across core + server + ingest + answer + excerpt

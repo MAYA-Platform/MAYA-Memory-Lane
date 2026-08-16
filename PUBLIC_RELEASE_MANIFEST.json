@@ -2,7 +2,7 @@
   "version": "1.0",
   "project": "maya-memory-lane",
   "total_entries": 97,
-  "total_bytes": 2425469,
+  "total_bytes": 2425550,
   "files": {
     ".gitattributes": {
       "sha256": "e6dafe4623caf7ecfab4de3e31dd1cd4ef4917f72cd1b8ae52966f43dfb94955",
@@ -17,8 +17,8 @@
       "size": 1068
     },
     "README.md": {
-      "sha256": "bd1796994bda3990fdc80e0d3a42e15355911c0e3449c6a62e76faa857627833",
-      "size": 19644
+      "sha256": "05421d4cc871f24c4d064d4e6a398259ff2c5d727a9dc75fe5566caa48cd948b",
+      "size": 19725
     },
     "SECURITY.md": {
       "sha256": "7e55395f863bb791087ac7b8c985d392515a8805d3c90979612f00b3f64621d0",
