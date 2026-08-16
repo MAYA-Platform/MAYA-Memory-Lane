@@ -29,7 +29,7 @@ import path from 'node:path';
 import os from 'node:os';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { loadLibrary, search, resolveResume } from '../lib/memoryLaneCore.js';
+import { loadLibrary, search, resolveResume, readBlock } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -91,6 +91,30 @@ function esc(s) {
   return String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
+const EXCERPT_CHARS = 320;
+
+/**
+ * Extract a short, high-signal content digest from a block so callers get the
+ * meaning of a block, not just its title. Prefers a Current State / Established
+ * Claims / Decisions section when present, else falls back to leading body text.
+ * Bounded to EXCERPT_CHARS so ml_recent stays cheap.
+ */
+function excerptBlock(lib, block) {
+  try {
+    const full = readBlock(lib, block.lib_id);
+    if (!full || !full.present || !full.body) return '';
+    const body = full.body;
+    const section = /## (Current State|Established Claims|Decisions)\s*\n([\s\S]*?)(?=\n## |\n# |$)/i.exec(body);
+    const text = section ? section[2].trim() : body.replace(/^#.*$/gm, '').trim();
+    if (!text) return '';
+    if (text.length <= EXCERPT_CHARS) return text;
+    const cut = text.slice(0, EXCERPT_CHARS);
+    return cut.slice(0, cut.lastIndexOf(' ')) + '…';
+  } catch {
+    return '';
+  }
+}
+
 async function handleToolCall(name, args) {
   const lib = getLibrary();
   if (!lib) return { isError: true, content: [{ type: 'text', text: `Memory Lane library not found at ${LIBRARY}` }] };
@@ -117,7 +141,11 @@ async function handleToolCall(name, args) {
       const limit = Number((args && args.limit) || 5);
       const recent = lib.blocks.slice(-limit).reverse();
       if (!recent.length) return { content: [{ type: 'text', text: 'Library is empty.' }] };
-      const lines = recent.map((b) => `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || b.block_id)}`);
+      const lines = recent.map((b) => {
+        const excerpt = excerptBlock(lib, b);
+        const title = `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || b.block_id)}`;
+        return excerpt ? `${title}\n  ${esc(excerpt)}` : title;
+      });
       return { content: [{ type: 'text', text: `Most recent memory blocks:\n${lines.join('\n')}` }] };
     }
     case 'ml_resume': {
@@ -125,7 +153,11 @@ async function handleToolCall(name, args) {
       if (!p) return { isError: true, content: [{ type: 'text', text: 'phrase is required' }] };
       const r = resolveResume(lib, p);
       if (!r.found) return { content: [{ type: 'text', text: `No block matches resume phrase "${p}".` }] };
-      const lines = r.blocks.map((b) => `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || '')}`);
+      const lines = r.blocks.map((b) => {
+        const excerpt = excerptBlock(lib, b);
+        const title = `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || '')}`;
+        return excerpt ? `${title}\n  ${esc(excerpt)}` : title;
+      });
       return { content: [{ type: 'text', text: `Resume phrase found:\n${lines.join('\n')}` }] };
     }
     default:
