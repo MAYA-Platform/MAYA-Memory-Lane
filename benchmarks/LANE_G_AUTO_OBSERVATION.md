@@ -18,7 +18,7 @@ The Auto-Observation pipeline from `AUTO_OBSERVATION_SPEC.md` is now **implement
 | **Server wiring** | `POST /api/observe` + `GET /api/inject` | `server.mjs` | ✅ |
 | **Fact extraction** | LLM fact extraction into blocks (the "answers become findable" stage) | `harness/auto_extract_facts.py` | ✅ existing, reused |
 
-Tests: **88 passing** (77 prior + 11 new for observer/injector).
+Tests: **94 passing** (77 prior + 11 new for observer/injector).
 
 ## Live benchmark (Lane G, LongMemEval, DeepSeek v4-flash via DeepSeek answerer + LLM judge)
 
