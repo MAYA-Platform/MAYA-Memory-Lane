@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAYA Memory Lane - Tamper-Evident Agent Memory Library</title>
+    
+    <!-- Open Graph Meta Tags (for social sharing) -->
+    <meta property="og:title" content="MAYA Memory Lane">
+    <meta property="og:description" content="Local-first, tamper-evident memory library. Linked records with SHA-256 fingerprints, zero dependencies, and full reproducible benchmarks vs top competitors.">
+    <meta property="og:image" content="https://github.com/MAYA-Platform/MAYA-Memory-Lane/raw/main/docs/images/memory-lane-public.png">
+    <meta property="og:url" content="https://github.com/MAYA-Platform/MAYA-Memory-Lane">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="MAYA Platform">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="MAYA Memory Lane">
+    <meta name="twitter:description" content="Your memory, on a chain, in your pocket. Tamper-evident agent memory with zero cloud dependencies.">
+    <meta name="twitter:image" content="https://github.com/MAYA-Platform/MAYA-Memory-Lane/raw/main/docs/images/memory-lane-public.png">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+        }
+        
+        .card-header {
+            position: relative;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 30px;
+            color: white;
+            text-align: center;
+        }
+        
+        .card-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #f5f5f5;
+        }
+        
+        .card-content {
+            padding: 40px 30px;
+        }
+        
+        .card-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+        
+        .card-subtitle {
+            font-size: 16px;
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .card-description {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #555;
+            margin-bottom: 24px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 28px;
+        }
+        
+        .feature {
+            background: #f9f9f9;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .feature-icon {
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        
+        .feature-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+        }
+        
+        .feature-text {
+            font-size: 12px;
+            color: #888;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 28px;
+            border-top: 1px solid #eee;
+            border-bottom: 1px solid #eee;
+            padding: 20px 0;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+        
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+        }
+        
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #999;
+            margin-top: 16px;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #e8eaf6;
+            color: #667eea;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <h1 style="font-size: 32px; margin-bottom: 8px;">🔗 MAYA Memory Lane</h1>
+            <p style="font-size: 16px; opacity: 0.9; font-style: italic;">Your memory, on a chain, in your pocket</p>
+        </div>
+        
+        <img src="https://github.com/MAYA-Platform/MAYA-Memory-Lane/raw/main/docs/images/memory-lane-public.png" alt="Memory Lane Interface" class="card-image">
+        
+        <div class="card-content">
+            <h2 class="card-title">Tamper-Evident Memory for AI Agents</h2>
+            <p class="card-subtitle">Local-First • Zero Dependencies • Fully Benchmarked</p>
+            
+            <p class="card-description">
+                A production-grade memory library that runs entirely offline. Every session becomes a sealed, chain-linked block with SHA-256 fingerprints. No cloud, no account, no telemetry—just cryptographic integrity and full reproducibility.
+            </p>
+            
+            <div class="features">
+                <div class="feature">
+                    <div class="feature-icon">🔐</div>
+                    <div class="feature-title">Tamper-Evident</div>
+                    <div class="feature-text">SHA-256 chain verification</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">⚡</div>
+                    <div class="feature-title">FTS5 Retrieval</div>
+                    <div class="feature-text">61% recall@5 on LongMemEval</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">💾</div>
+                    <div class="feature-title">Zero Cost</div>
+                    <div class="feature-text">Runs entirely offline</div>
+                </div>
+                <div class="feature">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">6→1 Compaction</div>
+                    <div class="feature-text">Efficient memory consolidation</div>
+                </div>
+            </div>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number">61%</div>
+                    <div class="stat-label">Recall@5</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">0</div>
+                    <div class="stat-label">Dependencies</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">93</div>
+                    <div class="stat-label">Tests</div>
+                </div>
+            </div>
+            
+            <div>
+                <span class="badge">📈 Benchmarked vs Competitors</span>
+                <span class="badge">🔬 Pre-Registered Protocol</span>
+                <span class="badge">📝 MIT Licensed</span>
+            </div>
+            
+            <div class="buttons">
+                <a href="https://github.com/MAYA-Platform/MAYA-Memory-Lane" class="btn btn-primary">
+                    <span>★</span> View on GitHub
+                </a>
+                <a href="https://github.com/MAYA-Platform/MAYA-Memory-Lane/blob/main/benchmarks/SIDE_BY_SIDE_REPORT.md" class="btn btn-secondary">
+                    <span>📊</span> Benchmarks
+                </a>
+            </div>
+            
+            <div class="footer">
+                <p>Built with ❤️ by <strong>2ndNatureAI</strong> • MAYA Platform</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
