@@ -10,7 +10,7 @@ Memory Lane is a web interface over a plain-file library. No cloud, no account, 
 
 > **Your memory stays local.** Memory Lane runs entirely on the machine that runs it. Nothing is sent to a cloud service, no account is required, and no data leaves your machine. It is not a hosted service and carries no production SLA.
 
-**Where your data actually lives.** A Memory Lane library is just a folder: a `MANIFEST.json` plus a `shelves/` tree of plain markdown block files. Point the server at any directory (`MEMORY_LANE_LIBRARY=/path/to/library`) and that directory is your memory — no hidden database and nothing written outside that folder. (The optional embeddings lane caches its vectors as a `.embeddings-*.json` dotfile inside the same library directory.) The bundled `empty-library/` is the blank default. Everything is human-readable markdown you can open in any editor.
+**Where your data actually lives.** A Memory Lane library is just a folder, a `MANIFEST.json` plus a `shelves/` tree of plain markdown block files. Point the server at any directory (`MEMORY_LANE_LIBRARY=/path/to/library`) and that directory is your memory, with no hidden database and nothing written outside that folder. (The optional embeddings lane caches its vectors as a `.embeddings-*.json` dotfile inside the same library directory.) The bundled `empty-library/` is the blank default. Everything is human-readable markdown you can open in any editor.
 
 ![Memory Lane](docs/images/memory-lane-public.png)
 
@@ -31,7 +31,7 @@ Memory Lane is a web interface over a plain-file library. No cloud, no account, 
 
 ## Quick start
 
-Requirements: Node.js 22 or newer. No API key, no account, no database, no GPU, and nothing to install — the package uses Node's built-in runtime and test runner.
+Requirements: Node.js 22 or newer. No API key, no account, no database, no GPU, and nothing to install, the package uses Node's built-in runtime and test runner.
 
 ```bash
 npm start
@@ -41,7 +41,7 @@ Open `http://127.0.0.1:8766/`. Time to first memory: **under a minute**, and it 
 
 **First run is blank on purpose.** A fresh clone shows an empty memory lane, not demo data. Click **Load sample library** in the interface to explore the bundled 7-block demo (fabricated data, clearly labeled), then **Start fresh** to return to empty. Your records never appear in anyone else's clone.
 
-**Free, full stop.** There is no paid tier and nothing gated behind one. Chain integrity, search, resume, compaction, export, the whole library — all free, offline, zero recurring cost. The only optional cost is if you choose to wire in a hosted LLM for fact extraction, and even that falls back to free local Ollama.
+**Free, full stop.** There is no paid tier and nothing gated behind one. Chain integrity, search, resume, compaction, export, the whole library, all free, offline, zero recurring cost. The only optional cost is if you choose to wire in a hosted LLM for fact extraction, and even that falls back to free local Ollama.
 
 ## Pointing at your own library
 
@@ -52,6 +52,16 @@ MEMORY_LANE_LIBRARY=/path/to/your/library node server.mjs
 ```
 
 A library is a directory containing a `MANIFEST.json` and a `shelves/` tree of block files. The bundled `empty-library/` is the blank default, and `sample-library/` shows the exact format (regenerate it any time with `npm run make-sample`). Any library following that format, with shelves, manifests, fingerprints, and previous-block links, loads straight into the interface.
+
+### Bringing an existing notes folder in (Obsidian vault, docs tree)
+
+An existing vault is its own format, so Memory Lane imports it rather than opening it in place. One command walks the folder and seals every markdown note as a searchable, chain-linked block in a fresh (or existing) library:
+
+```bash
+node tools/import-vault.mjs /path/to/your/vault --library /path/to/library
+```
+
+Every `.md` and `.txt` file becomes one block, titled from its first heading or filename. Re-running skips what is already imported, so it is safe to run again as the vault grows. The full text is always indexed for search, and fact extraction stays off by default here (add `--extract` to turn it on). Dot-folders like `.obsidian` and `.git` are skipped.
 
 ## How the chain works
 
@@ -94,7 +104,7 @@ node tools/ingest.mjs transcript.md --source cli
 cat notes.txt | node tools/ingest.mjs --title "Evening notes"
 ```
 
-**How extraction works.** The recommended model is **deepseek v4 flash** through the DeepSeek API (`MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`), falling back to local Ollama when no key is set. The model turns a raw transcript into a `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. Extraction is best-effort by design: if the model is unreachable, the raw text is still sealed and searchable, a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
+**How extraction works.** The recommended model is **deepseek v4 flash** through the DeepSeek API (`MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`), falling back to local Ollama when no key is set. The model turns a raw transcript into a `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. Extraction is best-effort by design. If the model is unreachable, the raw text is still sealed and searchable, a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
 
 ## Agents can read it (MCP bridge)
 
@@ -120,7 +130,7 @@ Once registered, the agent can pull your memory in real time: "what did we decid
 
 Memory Lane is benchmarked against the closest agent-memory systems, same dataset, same queries, same scoring, each system running its real pipeline. The full writeup lives in [`benchmarks/SIDE_BY_SIDE_REPORT.md`](benchmarks/SIDE_BY_SIDE_REPORT.md), the method in [`benchmarks/BENCHMARK_PROTOCOL.md`](benchmarks/BENCHMARK_PROTOCOL.md), the exact runners in [`benchmarks/harness/`](benchmarks/harness/), the run traces in [`benchmarks/logs/`](benchmarks/logs/), and the aggregated results in [`benchmarks/results/`](benchmarks/results/). Every controlled figure below traces to a committed run log. Nothing is hand-typed into this report, and anyone can rerun the lanes from the committed harness.
 
-**One honest framing note up front:** the controlled table below uses the **oracle** LongMemEval variant, which is the exact-match-friendly lane, FTS5's natural strength and semantic search's weak spot. We publish it because it is the protocol we pre-registered, and we publish the **paraphrase probe** (same questions, different wording) as the companion table below, where FTS5 drops and the semantic lane shows its value. Both tables together are the honest picture; either alone is not.
+**One honest framing note up front:** the controlled table below uses the **oracle** LongMemEval variant, which is the exact-match-friendly lane, FTS5's natural strength and semantic search's weak spot. We publish it because it is the protocol we pre-registered, and we publish the **paraphrase probe** (same questions, different wording) as the companion table below, where FTS5 drops and the semantic lane shows its value. Both tables together are the honest picture. Either alone is not.
 
 ### Controlled runs, LongMemEval oracle, 500 instances, identical conditions
 
@@ -133,29 +143,29 @@ Memory Lane is benchmarked against the closest agent-memory systems, same datase
 
 What each system ran (fair-mirror, their real product pipelines, not strawmen):
 
-- **Memory Lane**, deterministic FTS5 (BM25). No LLM, no embeddings, zero cost. This is the honest headline: an exact-match store with no model in the loop out-retrieves a hosted semantic API on the same protocol.
+- **Memory Lane**, deterministic FTS5 (BM25). No LLM, no embeddings, zero cost. This is the honest headline, an exact-match store with no model in the loop out-retrieves a hosted semantic API on the same protocol.
 - **Honcho**, hosted semantic API (`peer.search`, raw messages).
 - **LangMem**, native extraction (`create_memory_manager`, gpt-4o-mini via DeepSeek) + semantic store search (bge-m3, local Ollama).
 - **Mem0**, native pipeline (`add` + `search`, gpt-4o-mini extraction, Chroma local + bge-m3). Note: Chroma disables Mem0's hybrid BM25 lane (semantic-only), a documented product constraint of this configuration.
 
-The honest reading, stated plainly: **LangMem and Mem0 out-retrieve Memory Lane on this protocol** (72.2% and 68.1% vs 61.1% recall@5). Memory Lane beats Honcho outright, holds mid-pack behind the LLM-extraction systems on raw recall, and **leads on rank-aware ndcg@5**, while owning capabilities none of them claim (SHA-256 chain integrity, resume phrases, 6→1 compaction, portability, offline operation, zero recurring cost). We publish our own losses alongside our wins; that is the point of a pre-registered protocol.
+The honest reading, stated plainly: **LangMem and Mem0 out-retrieve Memory Lane on this protocol** (72.2% and 68.1% vs 61.1% recall@5). Memory Lane beats Honcho outright, holds mid-pack behind the LLM-extraction systems on raw recall, and **leads on rank-aware ndcg@5**, while owning capabilities none of them claim (SHA-256 chain integrity, resume phrases, 6→1 compaction, portability, offline operation, zero recurring cost). We publish our own losses alongside our wins, and that is the point of a pre-registered protocol.
 
-**Pipeline asymmetry, stated honestly.** The three pipelines are not identical and we don't pretend they are: LangMem and Mem0 ran their native extraction stage (gpt-4o-mini summarizing transcripts into memory before search), Memory Lane ran raw transcripts with no extraction stage in this lane, and Honcho ran `peer.search` on raw messages without its memory-generation stage. That is "each system's real pipeline" only in the sense that each ran its own product code end to end; it is not a controlled comparison of equivalent preprocessing. We also record that the protocol's own §5.1 notes Honcho's Phase 1 evaluation reported 83% recall/search on its own internal eval, versus 40.0% here on the shared protocol, a spread worth reading carefully before trusting either number in isolation.
+**Pipeline asymmetry, stated honestly.** The three pipelines are not identical and we don't pretend they are: LangMem and Mem0 ran their native extraction stage (gpt-4o-mini summarizing transcripts into memory before search), Memory Lane ran raw transcripts with no extraction stage in this lane, and Honcho ran `peer.search` on raw messages without its memory-generation stage. That is "each system's real pipeline" only in the sense that each ran its own product code end to end. It is not a controlled comparison of equivalent preprocessing. We also record that the protocol's own §5.1 notes Honcho's Phase 1 evaluation reported 83% recall/search on its own internal eval, versus 40.0% here on the shared protocol, a spread worth reading carefully before trusting either number in isolation.
 
 ### Paraphrase probe, where semantic recall shows its value (companion table)
 
-The oracle lane is FTS5's home turf: the LongMemEval questions contain exact keywords the transcript already holds. Real-world memory questions don't, "the thing about my car GPS in March" rarely matches the stored text verbatim. This probe paraphrases each question (same meaning, different words) and measures whether retrieval still finds the gold session. N=16, Memory Lane only (FTS5 vs FTS5+Vertex embeddings), trace: `benchmarks/logs/paraphrase-probe-*.jsonl`:
+The oracle lane is FTS5's home turf, because the LongMemEval questions contain exact keywords the transcript already holds. Real-world memory questions don't, "the thing about my car GPS in March" rarely matches the stored text verbatim. This probe paraphrases each question (same meaning, different words) and measures whether retrieval still finds the gold session. N=16, Memory Lane only (FTS5 vs FTS5+Vertex embeddings), trace: `benchmarks/logs/paraphrase-probe-*.jsonl`:
 
 | Retrieval lane | recall@5 | Δ |
 |---|---|---|
 | FTS5 only (zero-dep, offline) | 21.3% |, |
 | FTS5 + Vertex embeddings (RRF hybrid) | 31.5% | +10.2 pts |
 
-The honest reading: paraphrase breaks exact-match retrieval hard (21.3%), and the semantic lane recovers a third of what FTS5 missed, on the same hardware, at pennies per query instead of a subscription. This is a small-N single-system probe, not a head-to-head, and we label it as such. The controlled head-to-head on paraphrased queries is on the roadmap; if retrieval quality on natural-language recall matters to you, this is the table to watch.
+The honest reading: paraphrase breaks exact-match retrieval hard (21.3%), and the semantic lane recovers a third of what FTS5 missed, on the same hardware, at pennies per query instead of a subscription. This is a small-N single-system probe, not a head-to-head, and we label it as such. The controlled head-to-head on paraphrased queries is on the roadmap. If retrieval quality on natural-language recall matters to you, this is the table to watch.
 
 ### Infra-constrained lanes (documented, not hidden)
 
-- **Letta / MemGPT**, adapter written (`harness/run_lane_a_letta.py`), server crashes at startup on Windows (Letta 0.16.8 async-lifecycle bug, config-independent; verified twice with clean homes). Runs when the Windows story or a Linux/Docker lane exists.
+- **Letta / MemGPT**, adapter written (`harness/run_lane_a_letta.py`), server crashes at startup on Windows (Letta 0.16.8 async-lifecycle bug, config-independent, verified twice with clean homes). Runs when the Windows story or a Linux/Docker lane exists.
 - **Zep / Graphiti**, adapter written (`harness/run_lane_a_graphiti.py`), requires Neo4j via Docker (not viable on the test box without resource risk). Runs when Docker/Neo4j is available.
 
 ### What we will NOT claim
@@ -164,7 +174,7 @@ The honest reading: paraphrase breaks exact-match retrieval hard (21.3%), and th
 - ❌ "Memory Lane is better than LangMem/Mem0 at retrieval." The controlled runs show otherwise. We report it as measured.
 - ❌ Any semantic-recall number for Memory Lane, it has none, and we say so.
 - ❌ Any number without a trace, every controlled figure points to a logged run file.
-- ❌ Retrieval claims about Letta/Graphiti, not run (infra-constrained); their external numbers are labeled as such.
+- ❌ Retrieval claims about Letta/Graphiti, not run (infra-constrained), their external numbers are labeled as such.
 
 ### Why vendor numbers aren't in the controlled table
 
@@ -183,7 +193,7 @@ python harness/run_lane_a_mem0.py --clean         # Mem0 lane (then --query-only
 python harness/generate_sbs_report.py             # regenerates the report from fresh logs
 ```
 
-Every figure regenerates from the latest run JSONs, and the committed `benchmarks/logs/` + `benchmarks/results/` show the exact runs behind the published tables. On pre-registration, stated honestly: the protocol and the first report entered git in the same commit, so the evidence trail shows the intent and the method but not a timestamped lock before the first run. The protocol is written to constrain scoring and reporting choices regardless; treat it as a method document, not a witnessed preregistration.
+Every figure regenerates from the latest run JSONs, and the committed `benchmarks/logs/` + `benchmarks/results/` show the exact runs behind the published tables. On pre-registration, stated honestly: the protocol and the first report entered git in the same commit, so the evidence trail shows the intent and the method but not a timestamped lock before the first run. The protocol is written to constrain scoring and reporting choices regardless, so treat it as a method document, not a witnessed preregistration.
 
 ## API
 
@@ -231,6 +241,7 @@ public/memory-lane.html      the interface (single file, zero deps)
 server.mjs                   zero-dependency HTTP server (read + write + answer endpoints)
 empty-library/               the blank first-run library (0 records, default)
 tools/ingest.mjs             CLI ingestion: file, --text, or stdin
+tools/import-vault.mjs       one-command import of an existing notes folder (Obsidian vault, docs tree)
 tools/inbox-watch.py         inbox watcher: auto-seal files in a drop folder
 tools/memory-lane-mcp.mjs    MCP server — any agent reads the library in real time
 tools/memory-lane-cli.mjs    JSON CLI bridge (used by the Hermes MemoryProvider plugin)
