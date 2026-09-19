@@ -158,26 +158,64 @@ function currentMode() {
   return 'empty';
 }
 
-// 10-minute cache for the expensive synchronous chain verification used by
-// /api/status (see route comment — per-request verifyChain wedged the server).
+// Background chain re-verifier: /api/status NEVER runs verifyChain in the
+// request path (see route comment). This timer re-verifies every 30 minutes
+// while the event loop is otherwise idle; until its first pass completes the
+// status endpoint reports chain.status 'unverified' (honest, not a lie).
 const chainCache = { at: 0, result: null };
+const CHAIN_VERIFY_INTERVAL_MS = 30 * 60 * 1000;
+function backgroundVerifyChain() {
+  try {
+    const lib = loadLibrary(activeLibraryPath);
+    if (lib.ok) {
+      chainCache.result = verifyChain(lib);
+      chainCache.at = Date.now();
+    }
+  } catch { /* keep last known result */ }
+}
+// Verify the ACTIVE library right now, synchronously. Only the API-switchable
+// libraries (sample: 7 blocks, empty: 0) ever call this — both tiny, so the
+// switch stays instant while still honoring the verified-chain contract. The
+// big external library NEVER gets verified in a request path (see /api/status
+// comment): it's verified once at boot and refreshed by the interval timer.
+function verifyActiveLibraryNow() {
+  const lib = loadLibrary(activeLibraryPath);
+  if (lib.ok) {
+    chainCache.result = verifyChain(lib);
+    chainCache.at = Date.now();
+  } else {
+    chainCache.result = null;
+  }
+}
+// First pass runs SYNCHRONOUSLY at startup, before listen(): fresh/sample
+// libraries are tiny so boot cost is trivial, and the big external library
+// pays it exactly once instead of on every request. The interval refreshes
+// after that; a mid-life re-verify that's still running serves the previous
+// result (chain status is at most 30 minutes stale, and never blocks requests).
+backgroundVerifyChain();
+setInterval(backgroundVerifyChain, CHAIN_VERIFY_INTERVAL_MS);
 
 const routes = {
   '/api/status': (req, res) => {
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    const stats = libraryStats(lib);
-    // Chain verify is expensive (re-reads every block file; ~22s at 1800+
-    // blocks) and fully SYNCHRONOUS — running it per request blocks the whole
-    // event loop and wedges every other endpoint behind it. Cache it: serve
-    // the last verified result and re-verify at most every 10 minutes.
-    const now = Date.now();
-    if (!chainCache.result || chainCache.lib !== activeLibraryPath || now - chainCache.at > 10 * 60 * 1000) {
-      chainCache.result = verifyChain(lib);
-      chainCache.at = now;
-      chainCache.lib = activeLibraryPath;
-    }
-    const chain = chainCache.result;
+    // Chain verify re-reads EVERY block file synchronously (~22s at 1800+
+    // blocks on HDD, growing) — running it in the request path blocks the whole
+    // event loop and wedges every other endpoint behind it (2026-09-18 wave-30
+    // incident). NEVER verify in a request: stats come from the manifest, the
+    // chain comes from the background re-verifier (setInterval below), which
+    // runs when the loop is idle and reports whatever it last completed.
+    const stats = {
+      totalBlocks: lib.blocks.length,
+      totalShelves: lib.totalShelves || new Set(lib.blocks.map((b) => b.shelf)).size,
+      lineageCount: new Set(lib.blocks.map((b) => b.lineage).filter(Boolean)).size,
+      firstBlock: lib.blocks.length ? Math.min(...lib.blocks.map((b) => b.lib_id)) : null,
+      lastBlock: lib.blocks.length ? Math.max(...lib.blocks.map((b) => b.lib_id)) : null,
+      chainIntact: chainCache.result ? chainCache.result.intact : null,
+      issues: chainCache.result ? chainCache.result.issues : [],
+      okCount: chainCache.result ? chainCache.result.okCount : 0
+    };
+    const chain = chainCache.result || { intact: null, status: 'unverified', total: lib.blocks.length, okCount: 0, issues: [], hardIssues: [], unchecked: [] };
     sendJson(res, 200, {
       ok: true,
       library: libraryLabel(),
@@ -322,6 +360,7 @@ const routes = {
       return sendJson(res, 400, { ok: false, error: 'an external library is configured; sample switching is disabled' });
     }
     activeLibraryPath = SAMPLE_LIBRARY_PATH;
+    verifyActiveLibraryNow(); // switch is synchronous + cheap (7 blocks): status stays verified
     sendJson(res, 200, { ok: true, mode: 'sample', library: libraryLabel() });
   },
 
@@ -334,6 +373,7 @@ const routes = {
       return sendJson(res, 400, { ok: false, error: 'an external library is configured; sample switching is disabled' });
     }
     activeLibraryPath = DEFAULT_LIBRARY_PATH;
+    verifyActiveLibraryNow(); // switch is synchronous + cheap (0 blocks): status stays verified
     sendJson(res, 200, { ok: true, mode: 'empty', library: libraryLabel() });
   },
 
