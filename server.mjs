@@ -158,12 +158,26 @@ function currentMode() {
   return 'empty';
 }
 
+// 10-minute cache for the expensive synchronous chain verification used by
+// /api/status (see route comment — per-request verifyChain wedged the server).
+const chainCache = { at: 0, result: null };
+
 const routes = {
   '/api/status': (req, res) => {
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const stats = libraryStats(lib);
-    const chain = verifyChain(lib);
+    // Chain verify is expensive (re-reads every block file; ~22s at 1800+
+    // blocks) and fully SYNCHRONOUS — running it per request blocks the whole
+    // event loop and wedges every other endpoint behind it. Cache it: serve
+    // the last verified result and re-verify at most every 10 minutes.
+    const now = Date.now();
+    if (!chainCache.result || chainCache.lib !== activeLibraryPath || now - chainCache.at > 10 * 60 * 1000) {
+      chainCache.result = verifyChain(lib);
+      chainCache.at = now;
+      chainCache.lib = activeLibraryPath;
+    }
+    const chain = chainCache.result;
     sendJson(res, 200, {
       ok: true,
       library: libraryLabel(),
