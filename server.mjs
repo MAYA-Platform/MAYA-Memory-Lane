@@ -12,6 +12,9 @@
  *   GET /api/blocks/:libId         -> one block (frontmatter + body)
  *   GET /api/chain                 -> full SHA-256 chain verification walk
  *   GET /api/search?q=             -> plain-text search across block bodies
+ *                                     (?rerank=jev adds JevRank re-scoring)
+ *   GET /api/health                -> capability probe (jev: true|false)
+ *   GET /api/jevstats              -> JevRank cost receipt (calls + $)
  *   GET /api/resume?phrase=        -> resolve a resume phrase
  *   GET /api/export                -> deterministic JSON export of the library
  *   POST /api/ingest               -> seal a new memory (auto fact extraction)
@@ -62,6 +65,7 @@ import {
 } from './lib/memoryLaneCore.js';
 import { ingestTranscript } from './lib/extract.js';
 import { answerQuestion } from './lib/answer.js';
+import { jevRank, jevAvailable, jevStats, resolveJevKey } from './lib/jevrank.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = __dirname;
@@ -322,13 +326,39 @@ const routes = {
     });
   },
 
-  '/api/search': (req, res) => {
+  '/api/search': async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const q = url.searchParams.get('q') || '';
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const result = search(lib, q);
+    // JevRank (opt-in): ?rerank=jev re-scores the top candidates with ONE
+    // batched Jev call. Defensive: any Jev problem returns plain full-text
+    // results unchanged — the shim can never break search.
+    if (url.searchParams.get('rerank') === 'jev') {
+      const t0 = Date.now();
+      const ranked = await jevRank(lib, q, result.matches, { topN: 10 });
+      if (ranked.jev && ranked.jev.applied) ranked.jev.latency_ms = Date.now() - t0;
+      sendJson(res, 200, { ok: true, query: q, count: ranked.matches.length, matches: ranked.matches, jev: ranked.jev });
+      return;
+    }
     sendJson(res, 200, { ok: true, ...result });
+  },
+
+  '/api/health': (req, res) => {
+    // Capability probe for MCP tools: rerank=jev is offered only when a key
+    // resolves. No key material is ever echoed.
+    sendJson(res, 200, {
+      ok: true,
+      jev: jevAvailable(),
+      jev_model: 'typesafe/jev-1.13',
+      key_source: process.env.MERGE_API_KEY ? 'env' : (resolveJevKey() ? 'config' : 'none')
+    });
+  },
+
+  '/api/jevstats': (req, res) => {
+    // Cost receipt: lifetime Jev call counter since server start. Proves pennies.
+    sendJson(res, 200, { ok: true, ...jevStats() });
   },
 
   '/api/resume': (req, res) => {

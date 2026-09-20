@@ -31,6 +31,7 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { loadLibrary, search, resolveResume, readBlock } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
+import { jevRank, jevAvailable } from '../lib/jevrank.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
@@ -124,18 +125,34 @@ async function handleToolCall(name, args) {
       const q = String((args && args.query) || '');
       const limit = Number((args && args.limit) || 5);
       if (!q) return { isError: true, content: [{ type: 'text', text: 'query is required' }] };
-      const r = search(lib, q, { limit });
+      // Fetch a wider candidate set so the Jev re-rank has room to work, then
+      // trim to the caller's limit. rerank=jev by default when a key resolves;
+      // opt out with rerank:'none'. Defensive: Jev problems keep plain order.
+      const fetchLimit = Math.max(limit * 2, 10);
+      let r = search(lib, q, { limit: fetchLimit });
       if (!r.count) return { content: [{ type: 'text', text: `No matches for "${q}".` }] };
-      const lines = r.matches.map((m) => `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))}`);
-      return { content: [{ type: 'text', text: `${r.count} match(es) for "${q}":\n${lines.join('\n')}` }] };
+      let jevNote = '';
+      if ((args && args.rerank !== 'none' && jevAvailable() && r.count >= 2)) {
+        try {
+          const ranked = await jevRank(lib, q, r.matches, { topN: 10 });
+          if (ranked.jev && ranked.jev.applied) {
+            r = { ...r, matches: ranked.matches };
+            jevNote = ` [jev-reranked: top ${ranked.matches[0].block_id} score ${ranked.matches[0].jev_score}]`;
+          }
+        } catch { /* plain order */ }
+      }
+      const matches = r.matches.slice(0, limit);
+      const lines = matches.map((m) => `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))}${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}`);
+      return { content: [{ type: 'text', text: `${matches.length} match(es) for "${q}":\n${lines.join('\n')}${jevNote}` }] };
     }
     case 'ml_answer': {
       const q = String((args && args.question) || '');
       if (!q) return { isError: true, content: [{ type: 'text', text: 'question is required' }] };
       const r = await answerQuestion(lib, q);
       const modeTag = r.mode === 'direct' ? '[exact match]' : r.mode === 'synthesized' ? '[synthesized from memory]' : '[no memory]';
+      const jevTag = r.jev && r.jev.scored ? ` [jev-ranked ${r.jev.scored}]` : '';
       const source = r.source ? `\nSource: ${r.source}` : (r.evidence && r.evidence.length ? `\nEvidence: ${r.evidence.slice(0, 2).map((e) => e.block_id).join(', ')}` : '');
-      return { content: [{ type: 'text', text: `${modeTag} ${esc(r.answer)}${source}` }] };
+      return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}` }] };
     }
     case 'ml_recent': {
       const limit = Number((args && args.limit) || 5);
