@@ -14,6 +14,7 @@
  *   GET /api/search?q=             -> plain-text search across block bodies
  *                                     (?rerank=jev adds JevRank re-scoring)
  *   GET /api/health                -> capability probe (jev: true|false)
+ *                                     + cached chain verdict (intact/status)
  *   GET /api/jevstats              -> JevRank cost receipt (calls + $)
  *   GET /api/resume?phrase=        -> resolve a resume phrase
  *   GET /api/export                -> deterministic JSON export of the library
@@ -347,12 +348,27 @@ const routes = {
 
   '/api/health': (req, res) => {
     // Capability probe for MCP tools: rerank=jev is offered only when a key
-    // resolves. No key material is ever echoed.
+    // resolves. No key material is ever echoed. The chain field surfaces the
+    // background verifier's cached verdict (computed at boot, refreshed every
+    // 30 min — NEVER in the request path, see /api/status comment) so a
+    // broken/missing chain is visible to any caller, not silent. It always
+    // describes the currently active library.
+    const chain = chainCache.result
+      || { intact: null, status: 'unverified', total: null, okCount: 0, issues: 0, hardIssues: 0, unchecked: 0 };
     sendJson(res, 200, {
       ok: true,
       jev: jevAvailable(),
       jev_model: 'typesafe/jev-1.13',
-      key_source: process.env.MERGE_API_KEY ? 'env' : (resolveJevKey() ? 'config' : 'none')
+      key_source: process.env.MERGE_API_KEY ? 'env' : (resolveJevKey() ? 'config' : 'none'),
+      chain: {
+        intact: chain.intact,
+        status: chain.status,
+        total: chain.total,
+        okCount: chain.okCount,
+        issues: chain.issues,
+        hardIssues: chain.hardIssues,
+        unchecked: chain.unchecked
+      }
     });
   },
 

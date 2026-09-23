@@ -57,6 +57,20 @@ test('fresh boot is BLANK: 0 blocks, mode empty', async () => {
   assert.equal(d.chain.intact, true);
 });
 
+test('GET /api/health reports the cached chain verdict on fresh boot', async () => {
+  const r = await fetch(`${BASE}/api/health`);
+  assert.equal(r.status, 200);
+  const d = await r.json();
+  assert.equal(d.ok, true);
+  // empty library is vacuously intact; boot verify ran before listen()
+  assert.equal(d.chain.intact, true);
+  assert.equal(d.chain.status, 'intact');
+  assert.equal(d.chain.total, 0);
+  assert.equal(d.chain.okCount, 0);
+  assert.equal(d.chain.issues, 0);
+  assert.equal(d.chain.hardIssues, 0);
+});
+
 test('blank boot library label is machine-agnostic (no drive path)', async () => {
   const r = await fetch(`${BASE}/api/status`);
   const d = await r.json();
@@ -101,6 +115,16 @@ test('after load-sample: status reports 7 blocks intact', async () => {
   assert.equal(d.stats.totalBlocks, 7);
   assert.equal(d.chain.intact, true);
   assert.equal(d.chain.okCount, 7);
+});
+
+test('after load-sample: /api/health chain reflects the active library', async () => {
+  const r = await fetch(`${BASE}/api/health`);
+  const d = await r.json();
+  assert.equal(d.ok, true);
+  assert.equal(d.chain.intact, true);
+  assert.equal(d.chain.total, 7);
+  assert.equal(d.chain.okCount, 7);
+  assert.equal(d.chain.hardIssues, 0);
 });
 
 test('after load-sample: blocks list returns all 7 sorted', async () => {
@@ -216,6 +240,61 @@ test('unknown API route returns 404 JSON', async () => {
   assert.equal(r.status, 404);
   const d = await r.json();
   assert.equal(d.ok, false);
+});
+
+test('corrupted SANDBOX library: /api/health surfaces the broken chain', async () => {
+  // Copy the sample library into a temp dir and tamper with one block file
+  // so its on-disk hash no longer matches the manifest. The server's boot
+  // verifyChain must flag it and /api/health must surface it — never silent.
+  const fs = await import('node:fs');
+  const tmp = fs.mkdtempSync(path.join(process.env.TEMP || '/tmp', 'ml-health-corrupt-'));
+  fs.cpSync(path.join(ROOT, 'sample-library'), tmp, { recursive: true });
+  // tamper the first block file found under shelves/ (no shelf-layout assumptions)
+  const shelvesDir = path.join(tmp, 'shelves');
+  const stack = [shelvesDir];
+  let tampered = false;
+  while (stack.length && !tampered) {
+    const dir = stack.pop();
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) stack.push(p);
+      else if (e.name.endsWith('.md')) {
+        fs.writeFileSync(p, fs.readFileSync(p, 'utf8') + '\n// tampered\n');
+        tampered = true;
+        break;
+      }
+    }
+  }
+  assert.ok(tampered, 'no block file found to tamper in sample copy');
+  const p3 = 8796;
+  const srv = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], {
+    env: { ...process.env, PORT: String(p3), MEMORY_LANE_LIBRARY: tmp },
+    stdio: 'ignore'
+  });
+  const base3 = `http://127.0.0.1:${p3}`;
+  const deadline = Date.now() + 8000;
+  let up = false;
+  while (Date.now() < deadline) {
+    try {
+      const r = await fetch(`${base3}/api/status`);
+      if (r.ok) { up = true; break; }
+    } catch { /* not up yet */ }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  try {
+    assert.ok(up, 'corrupted-library test server did not come up');
+    const r = await fetch(`${base3}/api/health`);
+    assert.equal(r.status, 200);
+    const d = await r.json();
+    assert.equal(d.ok, true);
+    assert.equal(d.chain.intact, false);
+    assert.equal(d.chain.status, 'issues');
+    assert.ok(d.chain.hardIssues >= 1);
+    assert.ok(d.chain.issues >= 1);
+  } finally {
+    srv.kill();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });
 
 test('static image route serves from public/images', async () => {
