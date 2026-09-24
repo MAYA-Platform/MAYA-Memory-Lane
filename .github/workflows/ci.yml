@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'audit/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Zero runtime dependencies by design (package.json has none).
+      # npm test runs the real deterministic suite: 9 node --test files.
+      - name: Run test suite
+        run: npm test
