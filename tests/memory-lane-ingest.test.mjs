@@ -251,6 +251,39 @@ test('POST /api/ingest rejects empty text', async () => {
   assert.equal(d.ok, false);
 });
 
+test('library cache invalidates on write: new block is visible after sealing', async () => {
+  // t_1768d604: getLibrary() caches the loaded library keyed by manifest
+  // mtime. appendBlock() rewrites MANIFEST.json on every seal, so the next
+  // read must serve the NEW block, not the cached pre-write snapshot.
+  const r = await fetch(`${BASE}/api/blocks/write`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      text: 'Cache invalidation probe: the next search must see this block.',
+      title: 'Cache invalidation probe',
+      facts: ['Cache invalidation probe marker xyzzy_plugh'],
+      source: 'test'
+    })
+  });
+  assert.equal(r.status, 201);
+  const sealed = await r.json();
+  assert.equal(sealed.ok, true);
+  // Read endpoints must reflect the write immediately (fresh manifest mtime).
+  const list = await (await fetch(`${BASE}/api/blocks`)).json();
+  assert.ok(list.count >= sealed.lib_id, 'cached library must include the newly sealed block');
+  const search = await (await fetch(
+    `${BASE}/api/search?q=xyzzy_plugh`
+  )).json();
+  assert.ok(
+    search.matches.some((m) => m.lib_id === sealed.lib_id),
+    'search must find the newly sealed block after cache invalidation'
+  );
+  // /api/ready reports the new total too.
+  const ready = await (await fetch(`${BASE}/api/ready`)).json();
+  assert.equal(ready.ready, true);
+  assert.ok(ready.totalBlocks >= sealed.lib_id);
+});
+
 test('POST /api/ingest rejects invalid JSON body', async () => {
   const r = await fetch(`${BASE}/api/ingest`, {
     method: 'POST',

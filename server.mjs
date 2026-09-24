@@ -53,6 +53,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {
   loadLibrary,
@@ -82,6 +83,90 @@ let activeLibraryPath = process.env.MEMORY_LANE_LIBRARY
 const EXTERNAL_LIBRARY = Boolean(process.env.MEMORY_LANE_LIBRARY);
 const UI_PATH = path.join(ROOT, 'public', 'memory-lane.html');
 const IMAGES_DIR = path.join(ROOT, 'public', 'images');
+
+// ── Write authentication (C2, Packet 10) ─────────────────────────────
+// LOCAL write-auth for the write endpoints (/api/write-memory family).
+// Token source: MEMORY_LANE_WRITE_TOKEN env first, then <library>/.write_token
+// file (mode 0600). No hardcoded secret anywhere. READ endpoints are
+// unaffected. Feature-flagged: MEMORY_LANE_WRITE_AUTH=off (default) = log-only
+// shadow mode; =on = enforce. Every rejected attempt lands in a shadow log.
+const WRITE_AUTH_ENABLED = String(process.env.MEMORY_LANE_WRITE_AUTH || 'off').toLowerCase() === 'on';
+const WRITE_AUTH_SHADOW_LOG = path.join(
+  process.env.MEMORY_LANE_LIBRARY ? path.resolve(process.env.MEMORY_LANE_LIBRARY) : DEFAULT_LIBRARY_PATH,
+  'health', 'write_auth_shadow.log.jsonl'
+);
+const WRITE_AUTH_REASON = {
+  ok: 'ok',
+  disabled: 'auth_disabled',           // flag off — shadow-log only
+  missing: 'token_missing',            // no token presented
+  mismatch: 'token_mismatch',          // wrong token
+  unconfigured: 'token_unconfigured',  // no token on server side
+  error: 'auth_internal_error'
+};
+function sha256b(buf) {
+  return createHash('sha256').update(buf).digest('hex');
+}
+function timingSafeEqualHex(aHex, bHex) {
+  const a = Buffer.from(aHex, 'utf8');
+  const b = Buffer.from(bHex, 'utf8');
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+function resolveWriteToken() {
+  const env = process.env.MEMORY_LANE_WRITE_TOKEN;
+  if (env && String(env).trim()) return { token: String(env).trim(), from: 'env' };
+  const tokPath = path.join(activeLibraryPath, '.write_token');
+  try {
+    if (fs.existsSync(tokPath)) {
+      const tok = fs.readFileSync(tokPath, 'utf8').trim();
+      if (tok) return { token: tok, from: 'file' };
+    }
+  } catch { /* unreadable token file = unconfigured */ }
+  return { token: null, from: 'none' };
+}
+function extractPresentedToken(req) {
+  const h = req.headers || {};
+  const auth = String(h.authorization || '');
+  if (/^bearer\s+/i.test(auth)) return auth.replace(/^bearer\s+/i, '').trim();
+  if (h['x-write-token']) return String(h['x-write-token']).trim();
+  return null;
+}
+/**
+ * Write-auth gate for the write endpoints.
+ * Returns { allow, reason, from, presented } — never throws.
+ * Shadow mode (flag off): always allow, but log what WOULD have been rejected.
+ */
+function checkWriteAuth(req) {
+  const presented = extractPresentedToken(req);
+  const { token, from } = resolveWriteToken();
+  let reason;
+  if (!WRITE_AUTH_ENABLED) {
+    reason = presented ? WRITE_AUTH_REASON.ok : WRITE_AUTH_REASON.disabled;
+  } else if (!token) {
+    reason = WRITE_AUTH_REASON.unconfigured; // fail-closed: no token configured = reject all
+  } else if (!presented) {
+    reason = WRITE_AUTH_REASON.missing;
+  } else if (!timingSafeEqualHex(sha256b(presented), sha256b(token))) {
+    reason = WRITE_AUTH_REASON.mismatch;
+  } else {
+    reason = WRITE_AUTH_REASON.ok;
+  }
+  const allow = reason === WRITE_AUTH_REASON.ok || reason === WRITE_AUTH_REASON.disabled;
+  return { allow, reason, from, presented: Boolean(presented) };
+}
+/** Shadow-log one write-auth decision. Never throws; path redacted. */
+function shadowLogWriteAuth({ req, verdict, note }) {
+  try {
+    fs.mkdirSync(path.dirname(WRITE_AUTH_SHADOW_LOG), { recursive: true });
+    fs.appendFileSync(WRITE_AUTH_SHADOW_LOG, JSON.stringify({
+      at: new Date().toISOString(),
+      remote: req.socket?.remoteAddress || null,
+      path: String(req.url || '').split('?')[0],
+      method: req.method,
+      verdict,
+      note: note || null
+    }) + '\n', 'utf8');
+  } catch { /* logging must never break serving */ }
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -138,9 +223,37 @@ function deriveTitle(text, max = 72) {
   return clean.slice(0, max) || 'Memory block';
 }
 
+// ── Library cache (t_1768d604) ─────────────────────────────────────────
+// getLibrary() used to call loadLibrary() on EVERY request. On a 2137-block
+// external library that cost (a) a MANIFEST.json re-read + re-parse per
+// request and (b) — the bigger hit — a fresh library object per request,
+// which defeated the FTS_CACHE WeakMap in memoryLaneCore.js, so every search
+// rebuilt the whole FTS5 index from disk (every block file re-read).
+// Measured 2026-09-24: healthy-window search 9.3s; under disk contention
+// searches exceeded 60s while /api/health stayed 0.003s (it never touches
+// the library).
+//
+// Fix: cache the loaded library object keyed by path + MANIFEST.json mtime.
+// A cache hit costs one stat() instead of a manifest parse + full index
+// rebuild. appendBlock() rewrites the manifest on every seal, so any write
+// invalidates the cache on the next request — no TTL guessing, no stale
+// reads. Mode switches reassign activeLibraryPath, so each path keeps its
+// own entry and re-resolves correctly.
+const LIB_TTL_MS = 5 * 60 * 1000; // belt-and-suspenders: full reload at most every 5 min
+let libraryCache = { key: null, at: 0, lib: null };
+
 function getLibrary() {
+  let mtimeMs = 0;
+  try {
+    mtimeMs = fs.statSync(path.join(activeLibraryPath, 'MANIFEST.json')).mtimeMs;
+  } catch { /* fall through: loadLibrary reports the precise reason */ }
+  const key = `${activeLibraryPath}|${mtimeMs}`;
+  const now = Date.now();
+  if (libraryCache.lib && libraryCache.key === key && now - libraryCache.at < LIB_TTL_MS) {
+    return libraryCache.lib;
+  }
   const lib = loadLibrary(activeLibraryPath);
-  if (!lib.ok) return lib;
+  libraryCache = lib.ok ? { key, at: now, lib } : { key: null, at: 0, lib: null };
   return lib;
 }
 
@@ -372,6 +485,30 @@ const routes = {
     });
   },
 
+  '/api/ready': (req, res) => {
+    // Readiness probe that actually EXERCISES the library read path.
+    // /api/health answers 0.003s without touching disk (capability probe +
+    // cached chain verdict), so it stayed green while searches wedged under
+    // disk contention (t_1768d604). This endpoint loads the library and
+    // reads one block file — the same path every search/answer runs — so a
+    // 200 here means search CAN serve, not just that the process is alive.
+    const t0 = Date.now();
+    const lib = getLibrary();
+    if (!lib.ok) return sendJson(res, 503, { ok: false, ready: false, reason: lib.reason });
+    const probeId = lib.blocks.length ? lib.blocks[lib.blocks.length - 1].lib_id : null;
+    const probe = probeId !== null ? readBlock(lib, probeId) : { present: true };
+    const ready = Boolean(probe && probe.present);
+    sendJson(res, ready ? 200 : 503, {
+      ok: ready,
+      ready,
+      mode: currentMode(),
+      library: libraryLabel(),
+      totalBlocks: lib.blocks.length,
+      probe_block: probeId,
+      latency_ms: Date.now() - t0
+    });
+  },
+
   '/api/jevstats': (req, res) => {
     // Cost receipt: lifetime Jev call counter since server start. Proves pennies.
     sendJson(res, 200, { ok: true, ...jevStats() });
@@ -431,6 +568,24 @@ const routes = {
   '/api/write-memory': async (req, res, { autoExtract = true } = {}) => {
     if (req.method !== 'POST') {
       return sendJson(res, 405, { ok: false, error: 'method not allowed' });
+    }
+    // C2 write-auth gate (Packet 10): every write POST passes the gate first.
+    // Shadow mode (flag off) allows but logs; enforce mode rejects with 401/403.
+    const auth = checkWriteAuth(req);
+    if (auth.reason !== WRITE_AUTH_REASON.ok || !WRITE_AUTH_ENABLED) {
+      shadowLogWriteAuth({ req, verdict: auth.reason, note: `enforced=${WRITE_AUTH_ENABLED}` });
+    }
+    if (!auth.allow) {
+      if (auth.reason === WRITE_AUTH_REASON.missing) {
+        res.setHeader('WWW-Authenticate', 'Bearer realm="memory-lane-write"');
+      }
+      return sendJson(res, auth.reason === WRITE_AUTH_REASON.missing ? 401 : 403, {
+        ok: false,
+        error: auth.reason === WRITE_AUTH_REASON.missing
+          ? 'write authentication required'
+          : 'write authentication failed',
+        reason: auth.reason
+      });
     }
     const body = await readJsonBody(req);
     if (body && body.error) {

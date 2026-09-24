@@ -71,6 +71,19 @@ test('GET /api/health reports the cached chain verdict on fresh boot', async () 
   assert.equal(d.chain.hardIssues, 0);
 });
 
+test('GET /api/ready exercises the library read path (beyond /api/health)', async () => {
+  // /api/health never touches the library; /api/ready loads it and reads a
+  // block file, so a 200 means the read path itself is serving.
+  const r = await fetch(`${BASE}/api/ready`);
+  assert.equal(r.status, 200);
+  const d = await r.json();
+  assert.equal(d.ok, true);
+  assert.equal(d.ready, true);
+  assert.equal(d.mode, 'empty');
+  assert.equal(d.totalBlocks, 0);
+  assert.equal(d.probe_block, null);
+});
+
 test('blank boot library label is machine-agnostic (no drive path)', async () => {
   const r = await fetch(`${BASE}/api/status`);
   const d = await r.json();
@@ -134,6 +147,16 @@ test('after load-sample: blocks list returns all 7 sorted', async () => {
   assert.equal(d.count, 7);
   const ids = d.blocks.map((b) => b.lib_id);
   assert.deepEqual(ids, [1, 2, 3, 4, 5, 6, 7]);
+});
+
+test('GET /api/ready reports sample mode with a probe block after load-sample', async () => {
+  const r = await fetch(`${BASE}/api/ready`);
+  assert.equal(r.status, 200);
+  const d = await r.json();
+  assert.equal(d.ready, true);
+  assert.equal(d.mode, 'sample');
+  assert.equal(d.totalBlocks, 7);
+  assert.equal(d.probe_block, 7);
 });
 
 test('GET /api/blocks/:id returns a parsed block', async () => {
