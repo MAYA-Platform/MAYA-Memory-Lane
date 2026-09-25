@@ -54,6 +54,8 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import {
   loadLibrary,
@@ -280,22 +282,147 @@ function currentMode() {
 // request path (see route comment). This timer re-verifies every 30 minutes
 // while the event loop is otherwise idle; until its first pass completes the
 // status endpoint reports chain.status 'unverified' (honest, not a lie).
-const chainCache = { at: 0, result: null };
+//
+// C1 (Packet 11): the interval tick itself used to call verifyChain
+// SYNCHRONOUSLY on the main event loop — a periodic wedge on 2k+ block
+// libraries (Packet 10 measured 30.4s cold; live 2138-block library measured
+// 141.5s per shadow-health cycle). The tick now schedules a full verify in a
+// DEDICATED WORKER PROCESS (tools/shadow_health.mjs --once) and only applies
+// its atomic state file when it completes. The event loop never blocks.
+const chainCache = { at: 0, result: null, refreshing: false };
 const CHAIN_VERIFY_INTERVAL_MS = 30 * 60 * 1000;
-function backgroundVerifyChain() {
-  try {
-    const lib = loadLibrary(activeLibraryPath);
-    if (lib.ok) {
-      chainCache.result = verifyChain(lib);
-      chainCache.at = Date.now();
-    }
-  } catch { /* keep last known result */ }
+const SHADOW_HEALTH_TOOL = path.join(ROOT, 'tools', 'shadow_health.mjs');
+// Freshness contract: a cached verdict older than this is served as STALE,
+// never silently HEALTHY (Packet 11 C1 acceptance). 2x interval + slack,
+// mirroring shadow_health.mjs's own staleness math.
+const CHAIN_STALE_AFTER_MS = CHAIN_VERIFY_INTERVAL_MS * 2 + 60 * 1000;
+
+function chainFreshness() {
+  if (!chainCache.result) return 'UNVERIFIED';
+  if (!chainCache.at || Date.now() - chainCache.at > CHAIN_STALE_AFTER_MS) return 'STALE';
+  return 'CURRENT';
 }
+
+function applyShadowState(state) {
+  if (!state || typeof state !== 'object') return false;
+  const chain = state.chain || {};
+  chainCache.result = {
+    intact: Boolean(chain.intact),
+    status: chain.status || (chain.intact ? 'intact' : 'issues'),
+    total: chain.total ?? null,
+    okCount: chain.okCount ?? 0,
+    issues: chain.issues ?? [],
+    hardIssues: chain.hardIssues ?? 0,
+    unchecked: chain.unchecked ?? 0,
+    // Classify the library-level verdict from the worker's classification.
+    // Kept distinct from per-block status so /api/status semantics are
+    // unchanged for callers that only read intact/okCount.
+    worker_classification: state.classification || null
+  };
+  chainCache.at = Number(state.at) || Date.now();
+  return true;
+}
+
+// Seed the cache from the last shadow-health state file if one exists and is
+// fresher than what we have (fast boot: no sync verify needed at startup).
+function seedChainCacheFromShadowState() {
+  try {
+    const statePath = process.env.MEMORY_LANE_SHADOW_STATE;
+    if (!statePath || !fs.existsSync(statePath)) return;
+    const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+    if (state && state.chain && Number(state.at) > chainCache.at) applyShadowState(state);
+  } catch { /* no seed available; boot stays 'unverified' honestly */ }
+}
+
+// Spawn tools/shadow_health.mjs --once as a detached worker. Never blocks the
+// event loop; results land in the state file and are applied on completion.
+function scheduleBackgroundVerify(reason) {
+  if (chainCache.refreshing) return;
+  if (!fs.existsSync(SHADOW_HEALTH_TOOL)) return; // tool missing: keep cache, stay honest
+  chainCache.refreshing = true;
+  const statePath = process.env.MEMORY_LANE_SHADOW_STATE
+    || path.join(os.tmpdir(), `memory-lane-chain-state-${process.pid}.json`);
+  const libPath = activeLibraryPath;
+  const child = spawn(process.execPath, [
+    SHADOW_HEALTH_TOOL, '--library', libPath, '--state', statePath, '--once'
+  ], { stdio: 'ignore', windowsHide: true });
+  child.on('exit', (code) => {
+    chainCache.refreshing = false;
+    try {
+      if (code === 0 && fs.existsSync(statePath)) {
+        const state = JSON.parse(fs.readFileSync(statePath, 'utf8'));
+        // Only apply results for the library that was active when scheduled.
+        if (state && path.resolve(state.library || '') === path.resolve(libPath)) {
+          applyShadowState(state);
+        }
+      }
+    } catch { /* keep last known result */ }
+  });
+  child.on('error', () => { chainCache.refreshing = false; });
+}
+
+function backgroundVerifyChain() {
+  scheduleBackgroundVerify('interval');
+}
+
+/**
+ * C1 (Packet 11): O(1) post-write integrity check. Verifies ONLY the block
+ * that was just appended, using the same per-block logic verifyChain applies:
+ * recompute the file hash vs manifest, confirm the manifest's prev_block_id
+ * matches what ingest reported, and confirm the previous block's recorded
+ * hash matches the manifest's prev_sha256. One file read + two manifest
+ * lookups — constant time regardless of library size. NOT a full-library
+ * verify; the background worker owns that.
+ */
+function checkAppendedBlock(lib, ingestResult) {
+  try {
+    const entry = lib.blocks.find((b) => b.lib_id === Number(ingestResult.lib_id));
+    if (!entry) {
+      return { ok: true, verdict: { status: 'missing_from_manifest', lib_id: ingestResult.lib_id } };
+    }
+    const block = readBlock(lib, entry.lib_id);
+    if (!block || !block.present) {
+      return { ok: true, verdict: { status: 'missing', lib_id: entry.lib_id, block_id: entry.block_id } };
+    }
+    const hashOk = block.sha256 === entry.sha256 && entry.sha256 === ingestResult.sha256;
+    const prevIdOk = (entry.prev_block_id || null) === (ingestResult.prev_block_id || null);
+    let prevHashOk = true;
+    if (entry.prev_block_id && entry.prev_sha256) {
+      const prevEntry = lib.blocks.find((b) => b.block_id === entry.prev_block_id);
+      prevHashOk = !prevEntry || prevEntry.sha256 === entry.prev_sha256;
+    }
+    const status = hashOk && prevIdOk && prevHashOk ? 'ok'
+      : !hashOk ? 'hash_mismatch' : 'link_issue';
+    return {
+      ok: true,
+      verdict: {
+        status,
+        lib_id: entry.lib_id,
+        block_id: entry.block_id,
+        hash_ok: hashOk,
+        prev_ok: prevIdOk && prevHashOk,
+        checked_at: new Date().toISOString()
+      }
+    };
+  } catch (e) {
+    return { ok: false, reason: String(e && e.message ? e.message : e) };
+  }
+}
+
+// C1 (Packet 11): single scheduler — seed from prior shadow state (honest
+// restart), kick one worker pass after boot (never blocking listen()), then
+// refresh every CHAIN_VERIFY_INTERVAL_MS via the dedicated worker process.
+// The old synchronous boot verify is gone: it blocked startup for the full
+// verify duration on big libraries.
+seedChainCacheFromShadowState();
+setTimeout(() => scheduleBackgroundVerify('boot'), 1500);
+setInterval(backgroundVerifyChain, CHAIN_VERIFY_INTERVAL_MS);
+
 // Verify the ACTIVE library right now, synchronously. Only the API-switchable
 // libraries (sample: 7 blocks, empty: 0) ever call this — both tiny, so the
 // switch stays instant while still honoring the verified-chain contract. The
-// big external library NEVER gets verified in a request path (see /api/status
-// comment): it's verified once at boot and refreshed by the interval timer.
+// big external library NEVER gets verified in a request path: it's served
+// from the background worker's cached verdict.
 function verifyActiveLibraryNow() {
   const lib = loadLibrary(activeLibraryPath);
   if (lib.ok) {
@@ -305,13 +432,6 @@ function verifyActiveLibraryNow() {
     chainCache.result = null;
   }
 }
-// First pass runs SYNCHRONOUSLY at startup, before listen(): fresh/sample
-// libraries are tiny so boot cost is trivial, and the big external library
-// pays it exactly once instead of on every request. The interval refreshes
-// after that; a mid-life re-verify that's still running serves the previous
-// result (chain status is at most 30 minutes stale, and never blocks requests).
-backgroundVerifyChain();
-setInterval(backgroundVerifyChain, CHAIN_VERIFY_INTERVAL_MS);
 
 const routes = {
   '/api/status': (req, res) => {
@@ -346,7 +466,9 @@ const routes = {
         okCount: chain.okCount,
         issues: chain.issues,
         hardIssues: chain.hardIssues,
-        unchecked: chain.unchecked
+        unchecked: chain.unchecked,
+        freshness: chainFreshness(),
+        verifiedAt: chainCache.at ? new Date(chainCache.at).toISOString() : null
       }
     });
   },
@@ -397,7 +519,26 @@ const routes = {
   '/api/chain': (req, res) => {
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    const chain = verifyChain(lib);
+    // C1 (Packet 11): /api/chain no longer runs verifyChain synchronously per
+    // request — on a 2k+ block library that wedged the event loop for the
+    // whole verify (0.45s per call on the SSD fixture; 141.5s on the live
+    // HDD library). It now serves the background verifier's cached verdict
+    // with an explicit freshness field, and `?deep=1` schedules an on-demand
+    // worker pass (async, never in-request) for callers that need the latest
+    // truth. Per-block details only come from the cached verdict.
+    const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    if (requestUrl.searchParams.get('deep') === '1') scheduleBackgroundVerify('deep-request');
+    const chain = chainCache.result;
+    if (!chain) {
+      // No verdict yet: report honestly and schedule, never block.
+      scheduleBackgroundVerify('no-cache');
+      return sendJson(res, 202, {
+        ok: true,
+        pending: true,
+        freshness: 'UNVERIFIED',
+        detail: 'chain verification running in background worker; retry shortly or read /api/health'
+      });
+    }
     sendJson(res, 200, {
       ok: true,
       intact: chain.intact,
@@ -405,17 +546,14 @@ const routes = {
       total: chain.total,
       okCount: chain.okCount,
       issues: chain.issues,
-      verifiedRun: chain.verifiedRun,
-      blocks: chain.blocks.map((b) => ({
-        lib_id: b.lib_id,
-        block_id: b.block_id,
-        status: b.status,
-        present: b.present,
-        recordedSha: b.recordedSha ? b.recordedSha.slice(0, 16) : null,
-        computedSha: b.computedSha ? b.computedSha.slice(0, 16) : null,
-        prevBlockId: b.prevBlockId,
-        prevCheck: b.prevCheck
-      }))
+      verifiedRun: chain.verifiedRun ?? null,
+      freshness: chainFreshness(),
+      verifiedAt: chainCache.at ? new Date(chainCache.at).toISOString() : null,
+      // Per-block details come from the worker's classification lists (missing
+      // / hash_issues), not a full blocks array — a 2k-entry per-request
+      // payload was part of the original wedge cost. Deep per-block truth is
+      // one `?deep=1` away via the worker's state file.
+      problem_blocks: chain.worker_classification || null
     });
   },
 
@@ -480,7 +618,9 @@ const routes = {
         okCount: chain.okCount,
         issues: chain.issues,
         hardIssues: chain.hardIssues,
-        unchecked: chain.unchecked
+        unchecked: chain.unchecked,
+        freshness: chainFreshness(),
+        verifiedAt: chainCache.at ? new Date(chainCache.at).toISOString() : null
       }
     });
   },
@@ -617,7 +757,19 @@ const routes = {
     if (!result.ok) {
       return sendJson(res, 500, { ok: false, reason: result.reason });
     }
-    const chain = verifyChain(loadLibrary(activeLibraryPath));
+    // C1 (Packet 11): the post-write full verifyChain was the second request
+    // path wedge — every write paid a full-library verify (0.6s at 2.2k blocks
+    // on SSD; minutes on the live HDD library). Replaced with an O(1)
+    // incremental check of JUST the newly appended block against the manifest
+    // (hash + prev-link), the same per-block logic verifyChain applies. Full
+    // verification remains the background worker's job; the write response
+    // reports the incremental verdict plus the cached library verdict with
+    // freshness so callers can see both.
+    const libAfter = loadLibrary(activeLibraryPath);
+    const linkCheck = libAfter.ok
+      ? checkAppendedBlock(libAfter, result)
+      : { ok: false, reason: libAfter.reason };
+    const cachedChain = chainCache.result;
     sendJson(res, result.skipped ? 200 : 201, {
       ok: true,
       skipped: result.skipped || false,
@@ -629,13 +781,25 @@ const routes = {
       prev_block_id: result.prev_block_id,
       extraction: result.extraction || null,
       chain: {
-        intact: chain.intact,
-        status: chain.status,
-        total: chain.total,
-        okCount: chain.okCount,
-        issues: chain.issues
+        // Incremental verdict for the appended block (O(1), honest about what
+        // it covers — it is NOT a full-library verify).
+        appended_block: linkCheck.ok ? linkCheck.verdict : { status: 'error', reason: linkCheck.reason },
+        library: cachedChain
+          ? {
+              intact: cachedChain.intact,
+              status: cachedChain.status,
+              total: cachedChain.total,
+              okCount: cachedChain.okCount,
+              issues: cachedChain.issues,
+              freshness: chainFreshness(),
+              note: 'cached from background verify; full re-verify scheduled'
+            }
+          : null
       }
     });
+    // A write changed the library: schedule a fresh background verify so the
+    // cached verdict converges to the new truth without blocking anyone.
+    scheduleBackgroundVerify('post-write');
   },
 
   '/api/ingest': (req, res) => routes['/api/write-memory'](req, res, { autoExtract: true }),

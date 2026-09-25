@@ -54,21 +54,24 @@ test('fresh boot is BLANK: 0 blocks, mode empty', async () => {
   assert.equal(d.mode, 'empty');
   assert.equal(d.stats.totalBlocks, 0);
   assert.equal(d.chain.total, 0);
-  assert.equal(d.chain.intact, true);
+  // C1 (Packet 11): boot verify is async — before the first worker pass the
+  // chain is honestly UNVERIFIED (intact null), never a fake 'intact'.
+  assert.equal(d.chain.intact, null);
+  assert.equal(d.chain.status, 'unverified');
+  assert.equal(d.chain.freshness, 'UNVERIFIED');
 });
 
-test('GET /api/health reports the cached chain verdict on fresh boot', async () => {
+test('GET /api/health reports honest UNVERIFIED before the first background pass', async () => {
   const r = await fetch(`${BASE}/api/health`);
   assert.equal(r.status, 200);
   const d = await r.json();
   assert.equal(d.ok, true);
-  // empty library is vacuously intact; boot verify ran before listen()
-  assert.equal(d.chain.intact, true);
-  assert.equal(d.chain.status, 'intact');
-  assert.equal(d.chain.total, 0);
-  assert.equal(d.chain.okCount, 0);
-  assert.equal(d.chain.issues, 0);
-  assert.equal(d.chain.hardIssues, 0);
+  // C1: no synchronous boot verify anymore — the verdict arrives from the
+  // background worker shortly after boot (see the async-landing test below).
+  assert.equal(d.chain.intact, null);
+  assert.equal(d.chain.status, 'unverified');
+  assert.equal(d.chain.freshness, 'UNVERIFIED');
+  assert.equal(d.chain.verifiedAt, null);
 });
 
 test('GET /api/ready exercises the library read path (beyond /api/health)', async () => {
@@ -176,13 +179,37 @@ test('GET /api/blocks/999 returns 404', async () => {
   assert.equal(d.ok, false);
 });
 
-test('GET /api/chain returns the full verification walk', async () => {
-  const r = await fetch(`${BASE}/api/chain`);
+test('GET /api/chain serves the cached verdict with freshness (async C1 contract)', async () => {
+  // C1: /api/chain no longer verifies in-request. Right after boot there is
+  // no cached verdict yet: the endpoint answers 202 PENDING and schedules a
+  // background pass. Once the worker lands (a second or two on the 7-block
+  // sample) the same endpoint serves the full verdict with a freshness tag.
+  let r = await fetch(`${BASE}/api/chain`);
+  if (r.status === 202) {
+    const p = await r.json();
+    assert.equal(p.pending, true);
+    assert.equal(p.freshness, 'UNVERIFIED');
+    // wait for the background worker to land its verdict
+    const deadline = Date.now() + 10000;
+    let landed = null;
+    while (Date.now() < deadline && !landed) {
+      await new Promise((res) => setTimeout(res, 250));
+      const rr = await fetch(`${BASE}/api/chain`);
+      if (rr.status === 200) landed = await rr.json();
+    }
+    assert.ok(landed, 'background verify did not land within 10s');
+    r = { status: 200 };
+    var d = landed;
+  } else {
+    var d = await r.json();
+  }
   assert.equal(r.status, 200);
-  const d = await r.json();
+  assert.equal(d.ok, true);
   assert.equal(d.intact, true);
-  assert.equal(d.blocks.length, 7);
-  assert.ok(d.blocks.every((b) => b.status === 'ok'));
+  assert.equal(d.total, 7);
+  assert.equal(d.okCount, 7);
+  assert.equal(d.freshness, 'CURRENT');
+  assert.ok(d.verifiedAt, 'verifiedAt timestamp missing');
 });
 
 test('GET /api/search finds matches', async () => {
@@ -265,10 +292,11 @@ test('unknown API route returns 404 JSON', async () => {
   assert.equal(d.ok, false);
 });
 
-test('corrupted SANDBOX library: /api/health surfaces the broken chain', async () => {
+test('corrupted SANDBOX library: background verify surfaces the broken chain', async () => {
   // Copy the sample library into a temp dir and tamper with one block file
-  // so its on-disk hash no longer matches the manifest. The server's boot
-  // verifyChain must flag it and /api/health must surface it — never silent.
+  // so its on-disk hash no longer matches the manifest. C1: the boot verdict
+  // is honestly UNVERIFIED, then the background worker pass lands and
+  // /api/health must surface the breakage — never silent, never fake-intact.
   const fs = await import('node:fs');
   const tmp = fs.mkdtempSync(path.join(process.env.TEMP || '/tmp', 'ml-health-corrupt-'));
   fs.cpSync(path.join(ROOT, 'sample-library'), tmp, { recursive: true });
@@ -306,10 +334,23 @@ test('corrupted SANDBOX library: /api/health surfaces the broken chain', async (
   }
   try {
     assert.ok(up, 'corrupted-library test server did not come up');
-    const r = await fetch(`${base3}/api/health`);
-    assert.equal(r.status, 200);
-    const d = await r.json();
-    assert.equal(d.ok, true);
+    // Phase 1: before the worker lands, the verdict is honestly UNVERIFIED.
+    const early = await (await fetch(`${base3}/api/health`)).json();
+    assert.equal(early.ok, true);
+    if (!early.chain.verifiedAt) {
+      assert.equal(early.chain.status, 'unverified');
+    }
+    // Phase 2: poll until the background worker lands its verdict (10s cap —
+    // a 7-block pass takes ~1s even on slow disks).
+    const landDeadline = Date.now() + 10000;
+    let d = null;
+    while (Date.now() < landDeadline && !d) {
+      await new Promise((res) => setTimeout(res, 250));
+      const r = await fetch(`${base3}/api/health`);
+      const j = await r.json();
+      if (j.chain.verifiedAt) d = j;
+    }
+    assert.ok(d, 'background verify did not land within 10s');
     assert.equal(d.chain.intact, false);
     assert.equal(d.chain.status, 'issues');
     assert.ok(d.chain.hardIssues >= 1);
@@ -330,4 +371,54 @@ test('static image route serves from public/images', async () => {
   assert.equal(r.status, 200);
   assert.match(r.headers.get('content-type'), /image\/png/);
   fs.rmSync(png, { force: true });
+});
+
+test('boot seeds the chain verdict from a prior shadow state file (C1 restart contract)', async () => {
+  // Fresh boot with MEMORY_LANE_SHADOW_STATE pointing at a valid state file:
+  // /api/health serves the seeded verdict IMMEDIATELY (no 10s worker wait)
+  // and reports it as CURRENT. This is the restart-fast-path from C1.
+  const fs = await import('node:fs');
+  const tmp = fs.mkdtempSync(path.join(process.env.TEMP || '/tmp', 'ml-seed-'));
+  const statePath = path.join(tmp, 'shadow_state.json');
+  const state = {
+    schema: 'ml.shadow_health/1',
+    library: path.resolve(ROOT, 'sample-library'),
+    at: Date.now() - 60 * 1000,
+    at_iso: new Date(Date.now() - 60 * 1000).toISOString(),
+    duration_ms: 12,
+    manifest_blocks: 7,
+    readable_blocks: 7,
+    chain: { intact: true, status: 'intact', total: 7, okCount: 7, issues: 0, hardIssues: 0, unchecked: 0, verifiedRun: 7 },
+    classification: { status: 'ok', missing: [], hash_issues: [], link_issues: [], divergence: null },
+    error: null,
+    stale_after_ms: 660000
+  };
+  fs.writeFileSync(statePath, JSON.stringify(state));
+  const p4 = 8797;
+  const srv = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], {
+    env: { ...process.env, PORT: String(p4), MEMORY_LANE_LIBRARY: path.join(ROOT, 'sample-library'), MEMORY_LANE_SHADOW_STATE: statePath },
+    stdio: 'ignore'
+  });
+  const base4 = `http://127.0.0.1:${p4}`;
+  try {
+    const deadline = Date.now() + 8000;
+    let up = false;
+    while (Date.now() < deadline && !up) {
+      try { if ((await fetch(`${base4}/api/status`)).ok) up = true; } catch { /* not up yet */ }
+      if (!up) await new Promise((res) => setTimeout(res, 150));
+    }
+    assert.ok(up, 'seeded-boot test server did not come up');
+    const d = await (await fetch(`${base4}/api/health`)).json();
+    assert.equal(d.ok, true);
+    // Seeded on boot: verified BEFORE any background pass could land.
+    assert.equal(d.chain.intact, true);
+    assert.equal(d.chain.status, 'intact');
+    assert.equal(d.chain.total, 7);
+    assert.equal(d.chain.okCount, 7);
+    assert.equal(d.chain.freshness, 'CURRENT');
+    assert.ok(d.chain.verifiedAt, 'seeded verdict missing verifiedAt');
+  } finally {
+    srv.kill();
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });

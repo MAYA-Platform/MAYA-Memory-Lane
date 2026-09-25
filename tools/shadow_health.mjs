@@ -13,8 +13,9 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { loadLibrary, verifyChain } from 'file:///E:/MAYA_BULK/memory-lane-public-repo/lib/memoryLaneCore.js';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+const coreUrl = pathToFileURL(path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'lib', 'memoryLaneCore.js')).href;
+const { loadLibrary, verifyChain } = await import(coreUrl);
 
 const args = process.argv.slice(2);
 function arg(name, dflt) {
@@ -28,7 +29,7 @@ const ONCE = args.includes('--once');
 const STALE_AFTER = Number(arg('stale-after-ms', String(INTERVAL * 2 + 60000)));
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
-const CORE = 'file:///E:/MAYA_BULK/memory-lane-public-repo/lib/memoryLaneCore.js';
+const CORE = pathToFileURL(path.join(ROOT, '..', 'lib', 'memoryLaneCore.js')).href;
 if (!fs.existsSync(fileURLToPath(CORE))) {
   console.error(`shadow_health: memoryLaneCore.js not found at ${CORE}`);
   process.exit(2);
