@@ -26,7 +26,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadLibrary, verifyChain } from '../lib/memoryLaneCore.js';
+import { loadLibrary, verifyChain, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { ingestTranscript } from '../lib/extract.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
