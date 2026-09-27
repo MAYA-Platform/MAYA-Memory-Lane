@@ -8,3 +8,4 @@ Thumbs.db
 !.env.example
 .hermes/
 __pycache__/
+health/
