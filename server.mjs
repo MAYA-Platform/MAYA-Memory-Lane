@@ -65,7 +65,8 @@ import {
   resolveResume,
   exportLibrary,
   libraryStats,
-  appendBlock
+  appendBlock,
+  validateLibraryPathOrExit
 } from './lib/memoryLaneCore.js';
 import { ingestTranscript } from './lib/extract.js';
 import { answerQuestion } from './lib/answer.js';
@@ -79,6 +80,10 @@ const SAMPLE_LIBRARY_PATH = path.join(ROOT, 'sample-library');
 // A fresh boot is BLANK by default. The bundled sample is only loaded when
 // the user explicitly clicks "Load sample" (or MEMORY_LANE_LIBRARY points
 // at a real library). A user's clone never sees anyone else's data.
+// D9 (Packet 14 gap closure): MEMORY_LANE_LIBRARY is a tenant mount point.
+// Refuse traversal paths at boot, before any library is loaded — the server
+// never starts with a `..` in the env value (exit 78, watchdog-visible).
+validateLibraryPathOrExit(process.env.MEMORY_LANE_LIBRARY || null, { source: 'server.mjs' });
 let activeLibraryPath = process.env.MEMORY_LANE_LIBRARY
   ? path.resolve(process.env.MEMORY_LANE_LIBRARY)
   : DEFAULT_LIBRARY_PATH;

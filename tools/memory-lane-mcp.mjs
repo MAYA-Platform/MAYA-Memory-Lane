@@ -29,11 +29,13 @@ import path from 'node:path';
 import os from 'node:os';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { loadLibrary, search, resolveResume, readBlock } from '../lib/memoryLaneCore.js';
+import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { jevRank, jevAvailable } from '../lib/jevrank.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+// D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
+validateLibraryPathOrExit(process.env.MEMORY_LANE_LIBRARY || null, { source: 'memory-lane-mcp.mjs' });
 const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
 
 const TOOLS = [

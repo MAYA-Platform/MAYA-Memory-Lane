@@ -33,11 +33,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { appendBlock } from '../lib/memoryLaneCore.js';
+import { appendBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..');
 
+// D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY default (exit 78).
+// An explicit --library flag bypasses this check on purpose: it is an operator
+// argument, not an ambient environment value.
+validateLibraryPathOrExit(process.env.MEMORY_LANE_LIBRARY || null, { source: 'import-vault.mjs' });
 const DEFAULT_LIBRARY = process.env.MEMORY_LANE_LIBRARY
   || path.join(REPO_ROOT, 'empty-library');
 

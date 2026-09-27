@@ -53,6 +53,8 @@ MEMORY_LANE_LIBRARY=/path/to/your/library node server.mjs
 
 A library is a directory containing a `MANIFEST.json` and a `shelves/` tree of block files. The bundled `empty-library/` is the blank default, and `sample-library/` shows the exact format (regenerate it any time with `npm run make-sample`). Any library following that format, with shelves, manifests, fingerprints, and previous-block links, loads straight into the interface.
 
+**Path validation (D9).** The library path is a tenant mount point, so the server and every tool refuse to start when `MEMORY_LANE_LIBRARY` contains a `..` traversal segment (exit code 78, `EX_CONFIG`). Optionally set `MEMORY_LANE_LIBRARY_ALLOWLIST` (a path list, `;` on Windows / `:` elsewhere) and any library path outside those roots is refused the same way — a hard guarantee that this process can only ever mount the library you intended. Leave it unset for the default allow-anywhere behavior.
+
 ### Bringing an existing notes folder in (Obsidian vault, docs tree)
 
 An existing vault is its own format, so Memory Lane imports it rather than opening it in place. One command walks the folder and seals every markdown note as a searchable, chain-linked block in a fresh (or existing) library:
