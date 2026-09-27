@@ -219,8 +219,10 @@ test('POST /api/blocks/write seals a block with explicit facts (no LLM)', async 
   const d = await r.json();
   assert.equal(d.ok, true);
   assert.equal(d.lib_id, 1);
-  assert.equal(d.chain.intact, true);
-  assert.equal(d.chain.total, 1);
+  // C1: the write response reports the O(1) appended-block verdict plus the
+  // cached library verdict (null until the background verify lands).
+  assert.equal(d.chain.appended_block.status, 'ok');
+  assert.ok(d.chain.library === null || d.chain.library.intact === true);
 });
 
 test('POST /api/ingest seals a block with auto extraction when facts absent', async () => {
@@ -235,8 +237,10 @@ test('POST /api/ingest seals a block with auto extraction when facts absent', as
   const d = await r.json();
   assert.equal(d.ok, true);
   assert.equal(d.lib_id, 2);
-  assert.equal(d.chain.intact, true);
-  assert.equal(d.chain.total, 2);
+  // C1 shape: appended-block verdict + cached library verdict, no full-chain
+  // guarantee in-request (background worker owns that).
+  assert.equal(d.chain.appended_block.status, 'ok');
+  assert.ok(d.chain.library === null || d.chain.library.intact === true);
   assert.ok(d.extraction !== undefined);
 });
 
