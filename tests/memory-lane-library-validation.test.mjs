@@ -132,7 +132,7 @@ test('MCP bridge refuses traversal MEMORY_LANE_LIBRARY the same way (exit 78)', 
 });
 
 test('server.mjs boots normally with an allowlisted legitimate library', async () => {
-  const PORT = 8797;
+  const PORT = 8795; // dedicated; keep unique across test files (node --test runs files concurrently)
   const BASE = `http://127.0.0.1:${PORT}`;
   const server = spawn(process.execPath, [path.join(ROOT, 'server.mjs')], {
     env: {
