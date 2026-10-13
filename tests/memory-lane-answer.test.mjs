@@ -61,7 +61,7 @@ test('answerQuestion direct mode when content terms are present (free, determini
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-test('answerQuestion degrades to best excerpt when no LLM key configured', async () => {
+test('answerQuestion abstains honestly when Jev key is unavailable (no prose lane)', async () => {
   const tmp = makeTempLibrary();
   appendBlock(tmp, {
     title: 'Positioning',
@@ -70,20 +70,15 @@ test('answerQuestion degrades to best excerpt when no LLM key configured', async
     lineage: 'auto'
   });
   const lib = loadLibrary(tmp);
-  const prevKey = process.env.MEMORY_LANE_API_KEY;
-  // No key set -> resolveExtractConfig falls back to Ollama (no apiKey),
-  // so synthesis must degrade to the best excerpt, never throw.
-  delete process.env.MEMORY_LANE_API_KEY;
-  try {
-    // Vague phrasing with a partial hit: no exact term presence -> would
-    // synthesize, but no key -> must degrade to direct excerpt, never throw.
-    const r = await answerQuestion(lib, 'why is this different from other memory tools');
-    assert.equal(r.mode, 'direct');
-    assert.ok(r.note || r.answer.length > 0);
-  } finally {
-    if (prevKey === undefined) delete process.env.MEMORY_LANE_API_KEY;
-    else process.env.MEMORY_LANE_API_KEY = prevKey;
-  }
+  // Why is this different from other memory tools: no exact term presence,
+  // and in test env there is no Jev key (hermetic env), so there is no prose
+  // lane to fall back to. v2 contract: mode none + an honest abstain answer,
+  // never a guessed excerpt or a chat-model paraphrase.
+  const r = await answerQuestion(lib, 'why is this different from other memory tools');
+  assert.equal(r.mode, 'none');
+  assert.ok(!r.source, 'abstain must not cite a hit');
+  assert.match(r.answer, /No memory found/i);
+  assert.ok(r.answer.length > 0);
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 

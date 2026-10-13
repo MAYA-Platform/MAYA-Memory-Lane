@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-// embeddings.js reads provider config from env at import time, so each test
-// spawns a fresh import with the env it needs. We only test the parts that
-// don't hit the network: provider selection, availability gating, and the
-// graceful-degradation contract (returns null / empty when unavailable).
+// embeddings.js v4 (2026-10-13): the dense-embedding lane is OFF by company
+// rule (no local models on the PC, Vertex/Gemini retired). The contract the
+// rest of the codebase relies on is the no-provider degradation path:
+// available=false, null vectors, lexical-only search. freshImport is kept
+// so the cache-busting import trick the rest of the suite knows still works.
 
 function freshImport(env) {
   Object.entries(env).forEach(([k, v]) => { process.env[k] = v; });
@@ -14,30 +15,33 @@ function freshImport(env) {
   return import('../lib/embeddings.js?t=' + nonce);
 }
 
-test('default provider is local (Ollama)', async () => {
+test('provider is "none" by company rule (no local models, no vertex)', async () => {
   const mod = await freshImport({ EMBED_PROVIDER: '' });
-  // No Ollama guaranteed in CI; the contract is graceful null, not throw.
-  const v = await mod.embedText('hello world');
-  // Either a vector (Ollama up) or null (Ollama down) — never a throw.
-  assert.ok(v === null || v instanceof Float32Array);
+  assert.equal(mod.EMBED_PROVIDER, 'none');
 });
 
-test('vertex provider without token returns null (graceful degradation)', async () => {
-  const mod = await freshImport({ EMBED_PROVIDER: 'vertex', VERTEX_ACCESS_TOKEN: '' });
-  const avail = await mod.embeddingsAvailable();
-  assert.equal(avail, false);
+test('embedText returns null (no provider, graceful degradation)', async () => {
+  const mod = await freshImport({ EMBED_PROVIDER: '' });
   const v = await mod.embedText('hello world');
   assert.equal(v, null);
 });
 
-test('vertex provider with token reports available', async () => {
+test('embeddingsAvailable is false (dense lane retired)', async () => {
   const mod = await freshImport({ EMBED_PROVIDER: 'vertex', VERTEX_ACCESS_TOKEN: 'dummy-token' });
+  // Even with a token present, the lane is off by company rule.
   const avail = await mod.embeddingsAvailable();
-  assert.equal(avail, true);
+  assert.equal(avail, false);
 });
 
-test('rrf fuses lists by reciprocal rank', async () => {
+test('buildDenseIndex returns null and denseSearch passes lexical order through', async () => {
   const mod = await freshImport({ EMBED_PROVIDER: '' });
-  const fused = mod.rrf([[1, 2, 3], [3, 4, 5]], { k: 60 });
-  assert.equal(fused[0].lib_id, 3); // rank 2 in list A, rank 1 in list B
+  assert.equal(await mod.buildDenseIndex({ blocks: [] }, { verbose: false }), null);
+  const matches = [{ lib_id: 1 }, { lib_id: 2 }];
+  assert.deepEqual(mod.denseSearch({}, 'q', matches), matches);
+});
+
+test('rrf fuses lists by reciprocal rank (pure math helper kept for harnesses)', async () => {
+  const mod = await freshImport({ EMBED_PROVIDER: '' });
+  const fused = mod.rrf([[1, 2, 3], [3, 4, 5]], 60);
+  assert.equal(fused[0], 3); // rank 2 in list A, rank 1 in list B
 });

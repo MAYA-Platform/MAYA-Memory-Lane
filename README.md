@@ -41,7 +41,7 @@ Open `http://127.0.0.1:8766/`. Time to first memory: **under a minute**, and it 
 
 **First run is blank on purpose.** A fresh clone shows an empty memory lane, not demo data. Click **Load sample library** in the interface to explore the bundled 7-block demo (fabricated data, clearly labeled), then **Start fresh** to return to empty. Your records never appear in anyone else's clone.
 
-**Free, full stop.** There is no paid tier and nothing gated behind one. Chain integrity, search, resume, compaction, export, the whole library, all free, offline, zero recurring cost. The only optional cost is if you choose to wire in a hosted LLM for fact extraction, and even that falls back to free local Ollama.
+**Free, full stop.** There is no paid tier and nothing gated behind one. Chain integrity, search, resume, compaction, export, the whole library, all free, offline, zero recurring cost. Extraction and answer ranking ride one batched decisions call when a key is present, and degrade to fully deterministic local code when it isn't.
 
 ## Pointing at your own library
 
@@ -106,7 +106,7 @@ node tools/ingest.mjs transcript.md --source cli
 cat notes.txt | node tools/ingest.mjs --title "Evening notes"
 ```
 
-**How extraction works.** The recommended model is **deepseek v4 flash** through the DeepSeek API (`MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`), falling back to local Ollama when no key is set. The model turns a raw transcript into a `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. Extraction is best-effort by design. If the model is unreachable, the raw text is still sealed and searchable, a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
+**How extraction works (Jev-pure, 2026-10-13).** A transcript is split deterministically into candidate facts, then ONE batched Jev decisions call (`jev-1.13` via the configured Merge key) scores every candidate: chatter / usable / durable. Survivors become the `## Extracted facts` section inside the block, and full-text search indexes those facts so natural-language queries land. No prose model is ever in the loop - Jev does the math and moves on. Extraction is best-effort by design: with no key configured (or a Jev hiccup) the deterministic candidates are kept, the raw text is still sealed and searchable, a memory is never lost to a model hiccup. Re-ingesting identical content is detected and skipped, so watchers and retries never duplicate a block.
 
 ## Agents can read it (MCP bridge)
 
@@ -164,7 +164,7 @@ What each system ran (fair-mirror, their real product pipelines, not strawmen):
 
 - **Memory Lane**, deterministic FTS5 (BM25). No LLM, no embeddings, zero cost. This is the honest headline, an exact-match store with no model in the loop out-retrieves a hosted semantic API on the same protocol.
 - **Honcho**, hosted semantic API (`peer.search`, raw messages).
-- **LangMem**, native extraction (`create_memory_manager`, gpt-4o-mini via DeepSeek) + semantic store search (bge-m3, local Ollama).
+- **LangMem**, native extraction (`create_memory_manager`, hosted chat-model extraction) + hosted semantic store search (bge-m3 via its provider).
 - **Mem0**, native pipeline (`add` + `search`, gpt-4o-mini extraction, Chroma local + bge-m3). Note: Chroma disables Mem0's hybrid BM25 lane (semantic-only), a documented product constraint of this configuration.
 
 The honest reading, stated plainly: **LangMem and Mem0 out-retrieve Memory Lane on this protocol** (72.2% and 68.1% vs 61.1% recall@5). Memory Lane beats Honcho outright, holds mid-pack behind the LLM-extraction systems on raw recall, and **leads on rank-aware ndcg@5**, while owning capabilities none of them claim (SHA-256 chain integrity, resume phrases, 6→1 compaction, portability, offline operation, zero recurring cost). We publish our own losses alongside our wins, and that is the point of a pre-registered protocol.
@@ -243,8 +243,8 @@ Memory Lane is deliberately light. The floor and the recommendation are the same
 
 **Recommended (optional, only for the LLM features):**
 
-- **Auto fact extraction** (`/api/ingest` without explicit facts, or the inbox watcher) runs best with a DeepSeek API key via `MEMORY_LANE_API_KEY` / `MEMORY_LANE_BASE_URL` / `MEMORY_LANE_MODEL`. No key? It falls back to local Ollama, and if neither is reachable the raw text is still sealed and searchable, a memory is never lost to a model hiccup.
-- **Ask-your-memory synthesis** (`/api/answer` on paraphrased questions) uses the same model path. Exact-match answers are free and need no model at all.
+- **Auto fact extraction** (`/api/ingest` without explicit facts, or the inbox watcher) uses one batched Jev decisions call via the configured Merge key. No key? The deterministic candidates stand in, and the raw text is still sealed and searchable - a memory is never lost to a model hiccup.
+- **Ask-your-memory answers** (`/api/answer`) have NO prose lane: Jev ranks which block actually answers the question and Memory Lane returns that block's own text verbatim. Exact-match answers are free and need no model at all.
 
 Everything else, search, chain verification, resume, export, the whole library, is deterministic local code with zero recurring cost. A memory layer that beats a hosted service, running on the competitor floor, offline.
 
@@ -252,9 +252,9 @@ Everything else, search, chain verification, resume, export, the whole library, 
 
 ```text
 lib/memoryLaneCore.js        library core: load, verify, search, resume, export, append
-lib/extract.js               fact extraction: DeepSeek API (env vars) with Ollama fallback
-lib/answer.js                answer gate: direct / synthesized / none (retrieval confidence)
-lib/embeddings.js            optional hosted embeddings lane (FTS5 + dense hybrid, opt-in)
+lib/extract.js               fact extraction: deterministic split + one batched Jev decisions call
+lib/answer.js                answer gate: direct / jev-ranked / honest abstain (no prose lane)
+lib/embeddings.js            dense lane placeholder (OFF by company rule; FTS5 is the search surface)
 lib/observations.js          deterministic auto-observation (zero-LLM signal capture)
 lib/injector.js              session-start snapshot injection
 public/memory-lane.html      the interface (single file, zero deps)

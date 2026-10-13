@@ -578,7 +578,9 @@ async function doAsk() {
     }
     const modeLabel = d.mode === 'direct'
       ? '<span class="ask-mode direct">exact match</span>'
-      : '<span class="ask-mode synth">synthesized from memory</span>';
+      : d.mode === 'jev'
+      ? '<span class="ask-mode synth">jev-ranked from memory</span>'
+      : '<span class="ask-mode synth">metadata pass - no prose model</span>';
     const source = d.source
       ? `<div class="excerpt" style="margin-top:6px;">from <b>${esc(d.source)}</b></div>`
       : (d.evidence && d.evidence.length

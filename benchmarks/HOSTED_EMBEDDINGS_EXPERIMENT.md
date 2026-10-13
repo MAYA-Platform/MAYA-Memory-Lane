@@ -1,3 +1,5 @@
+> NOTE (2026-10-13): lanes referencing a hosted chat model (direct DeepSeek / local Ollama) are RETIRED. The live product is Jev-only (decisions endpoint); this document is kept as historical research context.
+
 # Memory Lane — Hosted Embeddings Experiment (Lane A + Lane H)
 
 **Date:** 2026-08-10
