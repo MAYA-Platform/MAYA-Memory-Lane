@@ -25,3 +25,8 @@ delete process.env.MEMORY_LANE_API_KEY;
 delete process.env.MEMORY_LANE_BASE_URL;
 delete process.env.MEMORY_LANE_MODEL;
 delete process.env.VERTEX_ACCESS_TOKEN;
+
+// Block the config-file credential fallback as well as environment keys.
+delete process.env.MERGE_API_KEY;
+process.env.MEMORY_LANE_MERGE_CONFIG = new URL('./no-test-provider.yaml', import.meta.url).pathname;
+process.env.MEMORY_LANE_DECISIONS_URL = 'http://127.0.0.1:1';
