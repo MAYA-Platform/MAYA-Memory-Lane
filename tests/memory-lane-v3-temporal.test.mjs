@@ -86,7 +86,7 @@ test('hash mismatch rejects temporal events rather than laundering claims', t =>
 });
 
 test('empty or corrupted projections yield unknown', t => {
-  for (const projection of [null, {}, { version: 99, events: [] }, { version: 1, events: [] }]) {
+  for (const projection of [null, {}, { version: 99, events: [] }, { version: 1, events: [] }, { version: 1, events: [null] }, { version: 1, events: [{}] }]) {
     assert.equal(temporalState(projection, { entity: 'missing' }).current, null);
   }
   const lib = makeLibrary(t, [{ body: '@temporal {broken-json}' }]);
