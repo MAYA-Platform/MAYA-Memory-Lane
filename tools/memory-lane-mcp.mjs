@@ -8,7 +8,7 @@
  * a write-only vault:
  *
  *   ml_search(query)     — full-text search across all blocks
- *   ml_answer(question)  — ask your memory (direct / synthesized / none)
+ *   ml_answer(question)  — ask your memory (direct / jev / none)
  *   ml_recent(limit)     — digest of the most recent blocks (session start)
  *   ml_resume(phrase)    — resolve a resume phrase
  *
@@ -32,6 +32,7 @@ import { fileURLToPath } from 'node:url';
 import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { jevRank, jevAvailable } from '../lib/jevrank.js';
+import { authorizeLocalLibrary, checkCurrentAccess } from '../lib/access.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
@@ -53,7 +54,7 @@ const TOOLS = [
   },
   {
     name: 'ml_answer',
-    description: 'Ask your memory a natural-language question. Returns an answer (exact match, or synthesized from retrieved evidence by a model). Use when the user asks something that your memory might answer better than guessing: "what did we decide about X", "when is Y", "who is Z".',
+    description: 'Ask your memory a natural-language question. Returns an answer (verbatim source passages selected deterministically or by Jev decisions). Use when the user asks something that your memory might answer better than guessing: "what did we decide about X", "when is Y", "who is Z".',
     inputSchema: {
       type: 'object',
       properties: {
@@ -87,7 +88,7 @@ const TOOLS = [
 
 function getLibrary() {
   const lib = loadLibrary(LIBRARY);
-  return lib.ok ? lib : null;
+  return lib.ok ? authorizeLocalLibrary(lib) : null;
 }
 
 function esc(s) {
@@ -137,6 +138,7 @@ async function handleToolCall(name, args) {
       if ((args && args.rerank !== 'none' && jevAvailable() && r.count >= 2)) {
         try {
           const ranked = await jevRank(lib, q, r.matches, { topN: 10 });
+          checkCurrentAccess(lib);
           if (ranked.jev && ranked.jev.applied) {
             r = { ...r, matches: ranked.matches };
             jevNote = ` [jev-reranked: top ${ranked.matches[0].block_id} score ${ranked.matches[0].jev_score}]`;
@@ -151,6 +153,7 @@ async function handleToolCall(name, args) {
       const q = String((args && args.question) || '');
       if (!q) return { isError: true, content: [{ type: 'text', text: 'question is required' }] };
       const r = await answerQuestion(lib, q);
+      checkCurrentAccess(lib);
       const modeTag = r.mode === 'direct' ? '[exact match]' : r.mode === 'jev' ? '[jev-ranked from memory]' : '[no memory]';
       const jevTag = r.jev && r.jev.scored ? ` [jev-ranked ${r.jev.scored}]` : '';
       const source = r.source ? `\nSource: ${r.source}` : (r.evidence && r.evidence.length ? `\nEvidence: ${r.evidence.slice(0, 2).map((e) => e.block_id).join(', ')}` : '');

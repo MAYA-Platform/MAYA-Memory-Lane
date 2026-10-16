@@ -46,13 +46,24 @@ test('term overlap alone never answers a natural-language completion question', 
   assert.equal(r.mode, 'none');
 });
 
-for (const score of [0, 1, 1.5, 1.99, NaN, 3]) {
+for (const score of [0, 1, 1.5, 1.93, NaN, 3]) {
   test(`support calibration: non-category score ${score} abstains`, async t => {
     const lib = fixture(t, ['Memory Lane migration might be interesting.']);
     const r = await answerQuestion(lib, 'Is the Memory Lane upgrade complete?', { available: () => true, rank: rankScores([score]) });
     assert.equal(r.mode, 'none');
   });
 }
+
+test('provisional labeled calibration accepts fractional support and rejects overlapping labels', async t => {
+  const { SUPPORT_CALIBRATION, calibrateSupport } = await import('../lib/retrieval-policy.js');
+  const floor = calibrateSupport(SUPPORT_CALIBRATION);
+  assert.ok(SUPPORT_CALIBRATION.negative.every(score => score < floor));
+  assert.ok(SUPPORT_CALIBRATION.positive.every(score => score >= floor));
+  assert.throws(() => calibrateSupport({ positive: [1.8], negative: [1.9] }), /overlap/);
+  const lib = fixture(t, ['Orchid migration shipped and verified.']);
+  const result = await answerQuestion(lib, 'Did Orchid finish?', { available: () => true, rank: rankScores([1.94]) });
+  assert.equal(result.mode, 'jev');
+});
 
 test('buried answer has exact hash and reproducible offsets', async t => {
   const lib = fixture(t, ['Unrelated opening sentence. '.repeat(150) + '\nOrchid ticket ZX-582 was approved by the release owner.']);
@@ -111,3 +122,33 @@ for (const reason of ['unavailable', 'timeout']) {
     assert.ok(search(lib, 'Orchid').count);
   });
 }
+
+test('transport timeout covers a stalled response body and never generates prose', async t => {
+  const { jevScoreBatch } = await import('../lib/jevrank.js');
+  const key = process.env.MERGE_API_KEY;
+  process.env.MERGE_API_KEY = 'offline-test';
+  t.after(() => { if (key === undefined) delete process.env.MERGE_API_KEY; else process.env.MERGE_API_KEY = key; });
+  let payload;
+  t.mock.method(globalThis, 'fetch', async (_url, opts) => {
+    payload = JSON.parse(opts.body);
+    return { ok: true, json: () => new Promise((_resolve, reject) => opts.signal.addEventListener('abort', () => {
+      const err = Error('fixture timeout'); err.name = 'AbortError'; reject(err);
+    })) };
+  });
+  const result = await jevScoreBatch('contact person@example.test', [{ block_id: 'synthetic', excerpt: 'password=synthetic 111-22-3333' }], { timeoutMs: 5 });
+  assert.equal(result.ok, false);
+  assert.match(result.reason, /timeout/);
+  assert.ok(!payload.state.includes('person@'));
+  assert.ok(!payload.state.includes('password='));
+  assert.ok(!payload.state.includes('111-22'));
+  assert.ok(!Object.hasOwn(payload, 'messages'));
+  assert.ok(Object.values(payload.questions).every(q => q.type === 'score'));
+});
+
+test('stale deleted candidates cannot be ranked or promoted', async t => {
+  const lib = fixture(t, ['Orchid first source.', 'Orchid second source.']);
+  const matches = search(lib, 'Orchid').matches;
+  fs.unlinkSync(lib.blocks[0].filePath);
+  const result = await jevRank(lib, 'Orchid', matches);
+  assert.ok(result.matches.every(m => m.lib_id !== 1));
+});

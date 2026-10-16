@@ -22,6 +22,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
+import { authorizeLocalLibrary, checkCurrentAccess } from '../lib/access.js';
+import { retrieve } from '../lib/retrieval.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
@@ -51,10 +53,20 @@ function out(obj) {
 
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
-  const lib = loadLibrary(LIBRARY);
+  let lib = loadLibrary(LIBRARY);
   if (!lib.ok) {
     out({ ok: false, error: `library not found at ${LIBRARY}` });
     process.exit(1);
+  }
+
+  lib = authorizeLocalLibrary(lib);
+
+  if (cmd === 'query') {
+    if (!lib.access) throw Error('Access policy required');
+    const result = await retrieve(lib, JSON.parse(rest.join(' ')), lib.access);
+    checkCurrentAccess(lib);
+    out({ ok: true, ...result });
+    return;
   }
 
   if (cmd === 'recent') {
@@ -109,6 +121,7 @@ async function main() {
     const question = rest.join(' ');
     if (!question) { out({ ok: false, error: 'question required' }); process.exit(1); }
     const r = await answerQuestion(lib, question);
+    checkCurrentAccess(lib);
     out({
       ok: true,
       mode: r.mode,

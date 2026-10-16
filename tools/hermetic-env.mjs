@@ -30,3 +30,5 @@ delete process.env.VERTEX_ACCESS_TOKEN;
 delete process.env.MERGE_API_KEY;
 process.env.MEMORY_LANE_MERGE_CONFIG = new URL('./no-test-provider.yaml', import.meta.url).pathname;
 process.env.MEMORY_LANE_DECISIONS_URL = 'http://127.0.0.1:1';
+// Legacy ingest fixtures intentionally exercise explicitly disabled write auth.
+process.env.MEMORY_LANE_WRITE_AUTH = 'off';
