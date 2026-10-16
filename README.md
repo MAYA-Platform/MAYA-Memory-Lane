@@ -296,3 +296,7 @@ MIT, see [LICENSE.txt](LICENSE.txt).
 ---
 
 *Powered by 2ndNatureAi*
+
+## V3 development foundation
+
+The isolated V3 branch adds source-span answers, temporal projections, governed retrieval, session anchors and dry-run enrichment. See [the implementation report](MEMORY_LANE_V3_IMPLEMENTATION_REPORT.md), [API/architecture](docs/MEMORY_LANE_V3.md), [security review](docs/V3_SECURITY_AND_OUTBOUND.md), and [migration/rollback](docs/V3_MIGRATION_AND_ROLLBACK.md). Offline fixture measurements are not production or live-provider accuracy claims.

@@ -69,6 +69,9 @@ import {
   validateLibraryPathOrExit
 } from './lib/memoryLaneCore.js';
 import { ingestTranscript } from './lib/extract.js';
+import { loadAccessPolicy, authenticate, permitted, scopeLibrary, auditReceipt } from './lib/access.js';
+import { retrieve, RetrievalCache } from './lib/retrieval.js';
+import { FreshnessAnchors } from './lib/freshness.js';
 import { answerQuestion } from './lib/answer.js';
 import { jevRank, jevAvailable, jevStats, resolveJevKey } from './lib/jevrank.js';
 
@@ -97,7 +100,7 @@ const IMAGES_DIR = path.join(ROOT, 'public', 'images');
 // file (mode 0600). No hardcoded secret anywhere. READ endpoints are
 // unaffected. Feature-flagged: MEMORY_LANE_WRITE_AUTH=off (default) = log-only
 // shadow mode; =on = enforce. Every rejected attempt lands in a shadow log.
-const WRITE_AUTH_ENABLED = String(process.env.MEMORY_LANE_WRITE_AUTH || 'off').toLowerCase() === 'on';
+const WRITE_AUTH_ENABLED = String(process.env.MEMORY_LANE_WRITE_AUTH || 'on').toLowerCase() === 'on';
 const WRITE_AUTH_SHADOW_LOG = path.join(
   process.env.MEMORY_LANE_LIBRARY ? path.resolve(process.env.MEMORY_LANE_LIBRARY) : DEFAULT_LIBRARY_PATH,
   'health', 'write_auth_shadow.log.jsonl'
@@ -143,6 +146,7 @@ function extractPresentedToken(req) {
  * Shadow mode (flag off): always allow, but log what WOULD have been rejected.
  */
 function checkWriteAuth(req) {
+  if (req.memoryAccess) return { allow: true, reason: WRITE_AUTH_REASON.ok, from: 'access_policy', presented: true };
   const presented = extractPresentedToken(req);
   const { token, from } = resolveWriteToken();
   let reason;
@@ -186,6 +190,13 @@ const MIME = {
 };
 
 function sendJson(res, status, payload) {
+  if (res.memoryAccess) {
+    try {
+      if (JSON.stringify(loadAccessPolicy(activeLibraryPath)) !== JSON.stringify(res.memoryAccess.policy)) {
+        status = 403; payload = { ok: false, error: 'Access policy changed; retry' };
+      }
+    } catch { status = 403; payload = { ok: false, error: 'Access policy unavailable' }; }
+  }
   const body = JSON.stringify(payload, null, 2);
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
   res.end(body);
@@ -249,7 +260,9 @@ function deriveTitle(text, max = 72) {
 const LIB_TTL_MS = 5 * 60 * 1000; // belt-and-suspenders: full reload at most every 5 min
 let libraryCache = { key: null, at: 0, lib: null };
 
-function getLibrary() {
+function getLibrary(req = null) {
+  const scope = lib => req?.memoryAccess && lib.ok
+    ? scopeLibrary(lib, req.memoryAccess.policy, req.memoryAccess.principal) : lib;
   let mtimeMs = 0;
   try {
     mtimeMs = fs.statSync(path.join(activeLibraryPath, 'MANIFEST.json')).mtimeMs;
@@ -257,11 +270,11 @@ function getLibrary() {
   const key = `${activeLibraryPath}|${mtimeMs}`;
   const now = Date.now();
   if (libraryCache.lib && libraryCache.key === key && now - libraryCache.at < LIB_TTL_MS) {
-    return libraryCache.lib;
+    return scope(libraryCache.lib);
   }
   const lib = loadLibrary(activeLibraryPath);
   libraryCache = lib.ok ? { key, at: now, lib } : { key: null, at: 0, lib: null };
-  return lib;
+  return scope(lib);
 }
 
 /**
@@ -439,8 +452,44 @@ function verifyActiveLibraryNow() {
 }
 
 const routes = {
-  '/api/status': (req, res) => {
+  '/api/v3/session': async (req, res) => {
+    if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST required' });
+    const access = req.memoryAccess;
+    if (!access) return sendJson(res, 403, { ok: false, error: 'Access policy required' });
+    const body = await readJsonBody(req);
+    if (!body || body.error || typeof body.sessionId !== 'string' || body.sessionId.length > 256 ||
+        !Number.isFinite(Date.parse(body.timestamp))) return sendJson(res, 400, { ok: false, error: 'Valid session and UTC timestamp required' });
+    const namespace = String(body.namespace || '');
+    if (!permitted(access.policy, access.principal, namespace, 'write')) return sendJson(res, 403, { ok: false, error: 'Namespace write denied' });
+    const key = JSON.stringify([activeLibraryPath, access.principal, namespace]);
+    if (!freshnessTrackers.has(key)) {
+      if (freshnessTrackers.size >= 32) {
+        const oldest = freshnessTrackers.keys().next().value;
+        freshnessTrackers.get(oldest).close(); freshnessTrackers.delete(oldest);
+      }
+      freshnessTrackers.set(key, new FreshnessAnchors({ root: activeLibraryPath, principal: access.principal,
+        namespace, getPolicy: () => loadAccessPolicy(activeLibraryPath) }));
+    }
+    const result = freshnessTrackers.get(key).observe({ sessionId: body.sessionId, timestamp: body.timestamp,
+      runtime: body.runtime, sketch: body.sketch, closeBlockId: body.closeBlockId });
+    sendJson(res, result.queued ? 202 : 503, { ok: result.queued, ...result });
+  },
+  '/api/v3/query': async (req, res) => {
+    if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST required' });
+    if (!req.memoryAccess) return sendJson(res, 403, { ok: false, error: 'Access policy required' });
+    const request = await readJsonBody(req);
+    if (!request || typeof request !== 'object' || request.error) return sendJson(res, 400, { ok: false, error: 'Invalid request' });
     const lib = getLibrary();
+    if (!lib.ok) return sendJson(res, 500, { ok: false, error: 'Library unavailable' });
+    const result = await retrieve(lib, request, { ...req.memoryAccess, cache: v3Cache });
+    // Revocation during a provider await must also prevent disclosure.
+    const current = loadAccessPolicy(activeLibraryPath);
+    if (JSON.stringify(current) !== JSON.stringify(req.memoryAccess.policy)) return sendJson(res, 403, { ok: false, error: 'Access policy changed; retry' });
+    auditReceipt(activeLibraryPath, { type: 'retrieval', principal: req.memoryAccess.principal, tier: result.tier ?? null });
+    sendJson(res, 200, { ok: true, ...result });
+  },
+  '/api/status': (req, res) => {
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     // Chain verify re-reads EVERY block file synchronously (~22s at 1800+
     // blocks on HDD, growing) — running it in the request path blocks the whole
@@ -479,7 +528,7 @@ const routes = {
   },
 
   '/api/blocks': (req, res) => {
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const blocks = lib.blocks
       .slice()
@@ -498,7 +547,7 @@ const routes = {
   },
 
   '/api/recent': (req, res) => {
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const url = new URL(req.url, `http://${req.headers.host}`);
     const n = Math.min(Math.max(Number(url.searchParams.get('n') || 5) || 5, 1), 20);
@@ -522,7 +571,7 @@ const routes = {
   },
 
   '/api/chain': (req, res) => {
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     // C1 (Packet 11): /api/chain no longer runs verifyChain synchronously per
     // request — on a 2k+ block library that wedged the event loop for the
@@ -567,7 +616,7 @@ const routes = {
     const m = /^\/api\/blocks\/(\d+)$/.exec(url.pathname);
     if (!m) return sendJson(res, 404, { ok: false, error: 'not found' });
     const libId = Number(m[1]);
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const block = readBlock(lib, libId);
     if (!block) return sendJson(res, 404, { ok: false, error: `block ${libId} not in library` });
@@ -586,7 +635,7 @@ const routes = {
   '/api/search': async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const q = url.searchParams.get('q') || '';
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const result = search(lib, q);
     // JevRank (opt-in): ?rerank=jev re-scores the top candidates with ONE
@@ -638,7 +687,7 @@ const routes = {
     // reads one block file — the same path every search/answer runs — so a
     // 200 here means search CAN serve, not just that the process is alive.
     const t0 = Date.now();
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 503, { ok: false, ready: false, reason: lib.reason });
     const probeId = lib.blocks.length ? lib.blocks[lib.blocks.length - 1].lib_id : null;
     const probe = probeId !== null ? readBlock(lib, probeId) : { present: true };
@@ -662,14 +711,14 @@ const routes = {
   '/api/resume': (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const phrase = url.searchParams.get('phrase') || '';
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const result = resolveResume(lib, phrase);
     sendJson(res, 200, { ok: true, ...result });
   },
 
   '/api/export': (req, res) => {
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const bundle = exportLibrary(lib);
     sendJson(res, 200, bundle);
@@ -748,16 +797,23 @@ const routes = {
         error: 'writes are disabled on the bundled demo libraries; mount a library via MEMORY_LANE_LIBRARY'
       });
     }
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
 
+    const access = req.memoryAccess;
+    const namespace = access ? String(body.namespace || '') : null;
+    if (access && !permitted(access.policy, access.principal, namespace, 'write')) return sendJson(res, 403, { ok: false, error: 'Namespace write denied' });
+    if (access) auditReceipt(activeLibraryPath, { type: 'ingest', principal: access.principal, namespace });
     const result = await ingestTranscript(activeLibraryPath, {
       title: (body && body.title) || deriveTitle(text),
       body: text,
       source: (body && body.source) || null,
       lineage: (body && body.lineage) || 'auto',
       extract: autoExtract && !(body && Array.isArray(body.facts)),
-      facts: (body && body.facts) || null
+      facts: (body && body.facts) || null,
+      namespace,
+      allowExternal: access ? access.policy.namespaces[namespace].externalJev === true : true,
+      authorizeWrite: access ? () => permitted(loadAccessPolicy(activeLibraryPath), access.principal, namespace, 'write') : null
     });
     if (!result.ok) {
       return sendJson(res, 500, { ok: false, reason: result.reason });
@@ -817,7 +873,7 @@ const routes = {
     if (req.method !== 'POST') {
       return sendJson(res, 405, { ok: false, error: 'method not allowed' });
     }
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     if (!activeLibraryPath) {
       return sendJson(res, 400, { ok: false, error: 'a library must be mounted to observe' });
@@ -848,7 +904,7 @@ const routes = {
     // GET — return the session-start snapshot (Injector output).
     // Query: ?topics=a,b&pins=x,y&budget=3500
     const url = new URL(req.url, `http://${req.headers.host}`);
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const { buildSnapshot } = await import('./lib/injector.js');
     const topics = (url.searchParams.get('topics') || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -864,18 +920,35 @@ const routes = {
     if (!q.trim()) {
       return sendJson(res, 400, { ok: false, error: 'q is required' });
     }
-    const lib = getLibrary();
+    const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const result = await answerQuestion(lib, q);
     sendJson(res, 200, { ok: true, ...result });
   }
 };
 
+const v3Cache = new RetrievalCache();
+const freshnessTrackers = new Map();
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname;
 
   if (pathname.startsWith('/api/')) {
+    try {
+      const policy = loadAccessPolicy(activeLibraryPath);
+      if (policy) {
+        const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+        const principal = authenticate(policy, token);
+        if (!principal) return sendJson(res, 401, { ok: false, error: 'Authentication required' });
+        req.memoryAccess = { policy, principal };
+        res.memoryAccess = req.memoryAccess;
+        const scopedRoutes = ['/api/v3/query', '/api/v3/session', '/api/search', '/api/answer', '/api/write-memory', '/api/ingest', '/api/blocks/write'];
+        if (!scopedRoutes.includes(pathname) && !(policy.principals[principal].admin === true &&
+          Object.keys(policy.namespaces).every(ns => permitted(policy, principal, ns)))) {
+          return sendJson(res, 403, { ok: false, error: 'Administrative route denied' });
+        }
+      }
+    } catch { return sendJson(res, 403, { ok: false, error: 'Access policy unavailable' }); }
     const handler = routes[pathname];
     if (handler) {
       // Async route handlers (write endpoints) return a promise.

@@ -3,7 +3,7 @@
 Memory Lane is a zero-dependency, MIT, local-first memory library (SQLite FTS5
 + SHA-256 chain-verified blocks) that benchmarks 61% recall@5 on LongMemEval —
 above hosted Honcho (40%) and Mem0 (68% on dense+hosted, 61% local FTS5) — while
-running entirely offline on consumer hardware. This provider wires it into
+using deterministic local retrieval on consumer hardware; optional Jev decisions send minimized context externally. This provider wires it into
 Hermes as a first-class MemoryProvider so it appears in the same settings menu
 as Honcho/Mem0/Supermemory.
 
@@ -108,7 +108,7 @@ ANSWER_SCHEMA = {
     "name": "ml_answer",
     "description": (
         "Ask Memory Lane a natural-language question about persistent memory. "
-        "Returns an exact match, or a synthesized answer from retrieved evidence. "
+        "Returns verbatim source passages selected deterministically or by Jev decisions. "
         "Use when the user asks something memory might answer better than "
         "guessing: 'what did we decide about X', 'when is Y', 'who is Z'."
     ),
