@@ -44,7 +44,7 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
   const env = { ...process.env, MEMORY_LANE_LIBRARY: lib.rootDir, MEMORY_LANE_ACCESS_TOKEN: 'test-alice' };
 
   const recent = JSON.parse(execFileSync(process.execPath, ['tools/memory-lane-cli.mjs', 'recent', '5', 'Orchid'], { cwd, env, encoding: 'utf8' }));
-  assert.equal(recent.selection, 'freshness');
+  assert.equal(recent.selection, 'newest_first');
   assert.equal(recent.blocks.length, 1);
   assert.match(recent.blocks[0].excerpt, /A-491/);
   assert.ok(!JSON.stringify(recent).includes('B-492'));

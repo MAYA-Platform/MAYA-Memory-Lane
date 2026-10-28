@@ -33,7 +33,7 @@ test('session-start selection uses Jev when enabled and falls back to fresh evid
   assert.equal(selected.selection, 'jev');
   assert.equal(selected.blocks[0].block_id, lib.blocks[1].block_id);
   const fallback = await recentSelection(lib, { limit: 1 });
-  assert.equal(fallback.selection, 'freshness');
+  assert.equal(fallback.selection, 'newest_first');
   assert.equal(fallback.blocks[0].block_id, lib.blocks[2].block_id);
 });
 
