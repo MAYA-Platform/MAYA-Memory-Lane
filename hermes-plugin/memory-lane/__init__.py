@@ -261,13 +261,14 @@ class MemoryLaneMemoryProvider(MemoryProvider):
             self._report_activity()
 
     def on_user_message(self, message: str, **kwargs) -> None:
-        """Report scoped activity so the service can distinguish a wake from an active session."""
-        self._report_activity(sketch=message)
+        """Report activity without exporting transcript text; sketch export is not enabled yet."""
+        self._report_activity()
 
-    def on_session_end(self, close_block_id: str = "", **kwargs) -> None:
-        close_block_id = close_block_id or kwargs.get("closeBlockId", "")
-        if close_block_id:
-            self._report_activity(close_block_id=close_block_id)
+    def on_session_end(self, messages: List[Dict[str, Any]], **kwargs) -> None:
+        """Hermes passes the ended transcript here. Never treat it as a closeout id."""
+        # Session-closeout linkage requires a separately verified sealed block id;
+        # none is provided by MemoryProvider.on_session_end in this Hermes runtime.
+        return
 
     def _report_activity(self, sketch: str = "", close_block_id: str = "") -> None:
         if not self._session_url or not self._namespace or not self._session_id:

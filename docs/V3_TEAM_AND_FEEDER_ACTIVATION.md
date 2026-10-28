@@ -5,6 +5,18 @@ and the Hermes MemoryProvider. Session activity is posted to authenticated
 `POST /api/v3/session`; session-start selection uses the bounded V3 recent
 planner. This document describes how a team deployment adopts those paths.
 
+## Scope and privacy boundary
+
+This provider build exports session identifiers, timestamps, runtime name, namespace, and an optional verified sealed closeout id. It does **not** export first messages, user-message text, or end-of-session transcripts. The V3 endpoint supports a minimized `sketch`, but this Hermes integration deliberately leaves it empty until a separately reviewed, explicit per-namespace export-consent design exists. `MemoryProvider.on_session_end(messages)` receives the transcript; this callback ignores it rather than treating it as an ID.
+
+Each feeder must use its own principal and approved namespace. A single shared legacy library without `access-policy.json` is not ready for multi-principal V3 activation. Do not flip the team's existing provider route to V3 against the 3,130-record unscoped library. First inventory the owned feeder/profile consumers, choose owner-approved namespace mapping, classify/migrate legacy blocks without guessing ownership, stage an operator-owned policy and unique principal tokens, then test in an isolated profile/service. In policy-enabled mode every read surface must be authenticated and scoped; never rely on legacy compatibility routes as tenant isolation.
+
+## Scope and privacy boundary
+
+The provider now exports session identifiers, timestamps, and runtime name only. It does not export first messages, user-message text, or end-of-session transcripts. The V3 endpoint supports a minimized `sketch`, but this Hermes integration deliberately leaves it empty until an explicit per-namespace export-consent design exists. Hermes calls `MemoryProvider.on_session_end(messages)` with the transcript; this callback ignores it rather than treating it as a closeout ID. Closeout linkage is deferred until Hermes can provide a separately verified sealed block ID.
+
+Each feeder must use its own principal and approved namespace. A shared legacy library without `access-policy.json` is not ready for multi-principal V3 activation. Do not flip the team's provider route to V3 against the 3,130-record unscoped library. First inventory the owned feeder/profile consumers, choose owner-approved namespace mapping, classify/migrate legacy blocks without guessing ownership, stage an operator-owned policy and unique principal tokens, then test in an isolated profile/service. In policy-enabled mode every read surface must be authenticated and scoped; do not rely on legacy compatibility routes for tenant isolation.
+
 ## Required service configuration
 
 The service library must have an operator-owned `access-policy.json`. Give each

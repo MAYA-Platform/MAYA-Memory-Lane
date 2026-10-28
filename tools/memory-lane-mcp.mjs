@@ -155,9 +155,14 @@ async function handleToolCall(name, args) {
     }
     case 'ml_search': {
       const q = String((args && args.query) || '');
-      const limit = Number((args && args.limit) || 5);
+      const limit = Math.max(1, Math.min(Number((args && args.limit) || 5), 25));
       if (!q) return { isError: true, content: [{ type: 'text', text: 'query is required' }] };
-      // Fetch a wider candidate set so the Jev re-rank has room to work, then
+      if (lib.access) {
+        const result = await retrieve(lib, { query: q }, lib.access);
+        checkCurrentAccess(lib);
+        return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
+      }
+      // Legacy single-owner mode remains for backwards compatibility only.
       // trim to the caller's limit. rerank=jev by default when a key resolves;
       // opt out with rerank:'none'. Defensive: Jev problems keep plain order.
       const fetchLimit = Math.max(limit * 2, 10);
@@ -181,6 +186,11 @@ async function handleToolCall(name, args) {
     case 'ml_answer': {
       const q = String((args && args.question) || '');
       if (!q) return { isError: true, content: [{ type: 'text', text: 'question is required' }] };
+      if (lib.access) {
+        const result = await retrieve(lib, { query: q }, lib.access);
+        checkCurrentAccess(lib);
+        return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
+      }
       const r = await answerQuestion(lib, q);
       checkCurrentAccess(lib);
       const modeTag = r.mode === 'direct' ? '[exact match]' : r.mode === 'jev' ? '[jev-ranked from memory]' : '[no memory]';
@@ -191,15 +201,15 @@ async function handleToolCall(name, args) {
     case 'ml_recent': {
       const limit = Math.max(1, Math.min(Number((args && args.limit) || 5), 20));
       const query = String((args && args.query) || '').slice(0, 500);
-      const result = lib.access
-        ? await retrieve(lib, { recent: true, limit, query }, lib.access)
-        : await recentSelection(lib, { limit, query });
-      if (lib.access) checkCurrentAccess(lib);
+      if (!lib.access) return { isError: true, content: [{ type: 'text', text: 'Access policy required for V3-scoped ml_recent.' }] };
+      const result = await retrieve(lib, { recent: true, limit, query }, lib.access);
+      checkCurrentAccess(lib);
       return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
     }
     case 'ml_resume': {
       const p = String((args && args.phrase) || '');
       if (!p) return { isError: true, content: [{ type: 'text', text: 'phrase is required' }] };
+      if (lib.access) return { isError: true, content: [{ type: 'text', text: 'ml_resume is not available under V3 namespace policy; use ml_query.' }] };
       const r = resolveResume(lib, p);
       if (!r.found) return { content: [{ type: 'text', text: `No block matches resume phrase "${p}".` }] };
       const lines = r.blocks.map((b) => {

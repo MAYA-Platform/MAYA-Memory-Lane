@@ -84,7 +84,9 @@ Recall@5 and Recall@10 were 1.0 for both builds on all four answerable synthetic
 
 Section sampling covered 3/8 input sections on the baseline and 8/8 with V3, with the ingest batch held at 30 candidates. Full paginated coverage is tested separately. V3 temporal fixtures returned the expected state on 3/3 labeled historical queries; the baseline has no temporal projection API, so its temporal accuracy is unmeasured rather than reported as zero.
 
-The stronger hash validation adds work to semantic/bundle requests. Their measured local latency increased. That tradeoff is explicit: the old requests abstained rather than returning supported evidence. No claim is made that every query is faster. The bounded cache remains policy-scoped and does not bypass source checks.
+## Current candidate benchmark
+
+The original V3 comparison above is historical, from the Oct 16 implementation report. The Oct 28 PR follow-on re-ran the synthetic-only benchmark; its actual same-run metrics are preserved in `benchmarks/v3-current.json` (SHA-256 recorded in the release manifest). Do not compare the old table's V3 column to a later benchmark run; neither run measures live Jev quality.
 
 Observed real provider cost during development: **$0**. Actual paid provider calls: **0**. Stub usage costs are zero by construction. Backfill estimates use the historical per-question estimate and are labeled estimates; no live cost/query was measured. Unknown attempted-call costs stay unknown in new failure receipts. Reported source probabilities/distributions are retained when available, without pretending that missing distributions exist.
 

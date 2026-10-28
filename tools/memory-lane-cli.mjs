@@ -72,10 +72,9 @@ async function main() {
   if (cmd === 'recent') {
     const limit = Math.max(1, Math.min(Number(rest[0]) || 5, 25));
     const query = rest.slice(1).join(' ').trim();
-    const result = lib.access
-      ? await retrieve(lib, { recent: true, limit: Math.min(limit, 20), query }, lib.access)
-      : await recentSelection(lib, { limit, query });
-    if (lib.access) checkCurrentAccess(lib);
+    if (!lib.access) throw Error('Access policy required for V3 scoped recent retrieval');
+    const result = await retrieve(lib, { recent: true, limit: Math.min(limit, 20), query }, lib.access);
+    checkCurrentAccess(lib);
     out({ ok: true, ...result, blocks: result.blocks.map((b) => ({
         block_id: b.block_id,
         lib_id: b.lib_id,
@@ -91,6 +90,12 @@ async function main() {
     const query = rest[0] || '';
     const limit = Math.max(1, Math.min(Number(rest[1]) || 5, 25));
     if (!query) { out({ ok: false, error: 'query required' }); process.exit(1); }
+    if (lib.access) {
+      const result = await retrieve(lib, { query }, lib.access);
+      checkCurrentAccess(lib);
+      out({ ok: true, ...result });
+      return;
+    }
     const r = search(lib, query, { limit });
     out({
       ok: true,
@@ -106,6 +111,7 @@ async function main() {
   if (cmd === 'resume') {
     const phrase = rest[0] || '';
     if (!phrase) { out({ ok: false, error: 'phrase required' }); process.exit(1); }
+    if (lib.access) throw Error('ml_resume is disabled for policy-scoped V3 principals; use query with an authorized namespace');
     const r = resolveResume(lib, phrase);
     out({
       ok: true,
@@ -123,6 +129,12 @@ async function main() {
   if (cmd === 'answer') {
     const question = rest.join(' ');
     if (!question) { out({ ok: false, error: 'question required' }); process.exit(1); }
+    if (lib.access) {
+      const result = await retrieve(lib, { query: question }, lib.access);
+      checkCurrentAccess(lib);
+      out({ ok: true, ...result });
+      return;
+    }
     const r = await answerQuestion(lib, question);
     checkCurrentAccess(lib);
     out({
