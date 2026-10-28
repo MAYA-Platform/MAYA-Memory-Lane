@@ -9,3 +9,8 @@ Thumbs.db
 .hermes/
 __pycache__/
 health/
+projections/
+access-policy.json
+.write_token
+.append.lock
+.v3-local/

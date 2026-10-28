@@ -22,6 +22,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
+import { authorizeLocalLibrary, checkCurrentAccess } from '../lib/access.js';
+import { retrieve } from '../lib/retrieval.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
@@ -51,24 +53,36 @@ function out(obj) {
 
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
-  const lib = loadLibrary(LIBRARY);
+  let lib = loadLibrary(LIBRARY);
   if (!lib.ok) {
     out({ ok: false, error: `library not found at ${LIBRARY}` });
     process.exit(1);
   }
 
+  lib = authorizeLocalLibrary(lib);
+
+  if (cmd === 'query') {
+    if (!lib.access) throw Error('Access policy required');
+    const result = await retrieve(lib, JSON.parse(rest.join(' ')), lib.access);
+    checkCurrentAccess(lib);
+    out({ ok: true, ...result });
+    return;
+  }
+
   if (cmd === 'recent') {
     const limit = Math.max(1, Math.min(Number(rest[0]) || 5, 25));
-    const recent = lib.blocks.slice(-limit).reverse();
-    out({
-      ok: true,
-      blocks: recent.map((b) => ({
+    const query = rest.slice(1).join(' ').trim();
+    if (!lib.access) throw Error('Access policy required for V3 scoped recent retrieval');
+    const result = await retrieve(lib, { recent: true, limit: Math.min(limit, 20), query }, lib.access);
+    checkCurrentAccess(lib);
+    out({ ok: true, ...result, blocks: result.blocks.map((b) => ({
         block_id: b.block_id,
         lib_id: b.lib_id,
         title: b.canonical_name || b.block_id,
-        excerpt: excerptBlock(lib, b),
-      })),
-    });
+        excerpt: b.excerpt || excerptBlock(lib, b),
+        timestamp: b.timestamp || null,
+        sha256: b.sha256 || null,
+      })) });
     return;
   }
 
@@ -76,6 +90,12 @@ async function main() {
     const query = rest[0] || '';
     const limit = Math.max(1, Math.min(Number(rest[1]) || 5, 25));
     if (!query) { out({ ok: false, error: 'query required' }); process.exit(1); }
+    if (lib.access) {
+      const result = await retrieve(lib, { query }, lib.access);
+      checkCurrentAccess(lib);
+      out({ ok: true, ...result });
+      return;
+    }
     const r = search(lib, query, { limit });
     out({
       ok: true,
@@ -91,6 +111,10 @@ async function main() {
   if (cmd === 'resume') {
     const phrase = rest[0] || '';
     if (!phrase) { out({ ok: false, error: 'phrase required' }); process.exit(1); }
+    if (lib.access) {
+      out({ ok: false, error: 'ml_resume is disabled for policy-scoped V3 principals; use query with an authorized namespace' });
+      return;
+    }
     const r = resolveResume(lib, phrase);
     out({
       ok: true,
@@ -108,7 +132,14 @@ async function main() {
   if (cmd === 'answer') {
     const question = rest.join(' ');
     if (!question) { out({ ok: false, error: 'question required' }); process.exit(1); }
+    if (lib.access) {
+      const result = await retrieve(lib, { query: question }, lib.access);
+      checkCurrentAccess(lib);
+      out({ ok: true, ...result });
+      return;
+    }
     const r = await answerQuestion(lib, question);
+    checkCurrentAccess(lib);
     out({
       ok: true,
       mode: r.mode,

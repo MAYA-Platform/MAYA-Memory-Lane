@@ -8,7 +8,7 @@
  * a write-only vault:
  *
  *   ml_search(query)     — full-text search across all blocks
- *   ml_answer(question)  — ask your memory (direct / synthesized / none)
+ *   ml_answer(question)  — ask your memory (direct / jev / none)
  *   ml_recent(limit)     — digest of the most recent blocks (session start)
  *   ml_resume(phrase)    — resolve a resume phrase
  *
@@ -32,6 +32,8 @@ import { fileURLToPath } from 'node:url';
 import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { jevRank, jevAvailable } from '../lib/jevrank.js';
+import { authorizeLocalLibrary, checkCurrentAccess } from '../lib/access.js';
+import { retrieve, recentSelection } from '../lib/retrieval.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
@@ -39,6 +41,25 @@ validateLibraryPathOrExit(process.env.MEMORY_LANE_LIBRARY || null, { source: 'me
 const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
 
 const TOOLS = [
+  {
+    name: 'ml_query',
+    description: 'Run a Memory Lane V3 scoped query. Returns source-backed evidence, bounded cross-session candidates, or temporal state. Jev is used only when the namespace permits external decisions; failure abstains.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Question or evidence lookup.' },
+        entity: { type: 'string', description: 'Optional explicit temporal entity id.' },
+        predicate: { type: 'string', description: 'Optional temporal predicate.' },
+        asOf: { type: 'string', description: 'Optional absolute effective-time boundary.' },
+        knownAt: { type: 'string', description: 'Optional absolute observation-time boundary.' },
+        bundle: { type: 'boolean', description: 'Return a bounded candidate evidence bundle.' },
+        limit: { type: 'number', description: 'Maximum sources, bounded by the V3 planner.' },
+        requiredEntities: { type: 'array', items: { type: 'string' } },
+        before: { type: 'string', description: 'Optional absolute timestamp boundary for bundles.' }
+      },
+      required: []
+    }
+  },
   {
     name: 'ml_search',
     description: 'Search the Memory Lane library (your persistent memory). Returns matching blocks with excerpts. Use when the user references past decisions, people, projects, or asks about something that may have been discussed before.',
@@ -53,7 +74,7 @@ const TOOLS = [
   },
   {
     name: 'ml_answer',
-    description: 'Ask your memory a natural-language question. Returns an answer (exact match, or synthesized from retrieved evidence by a model). Use when the user asks something that your memory might answer better than guessing: "what did we decide about X", "when is Y", "who is Z".',
+    description: 'Ask your memory a natural-language question. Returns an answer (verbatim source passages selected deterministically or by Jev decisions). Use when the user asks something that your memory might answer better than guessing: "what did we decide about X", "when is Y", "who is Z".',
     inputSchema: {
       type: 'object',
       properties: {
@@ -68,7 +89,8 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        limit: { type: 'number', description: 'Number of recent blocks (default 5)' }
+        limit: { type: 'number', description: 'Number of recent blocks (default 5)' },
+        query: { type: 'string', description: 'Optional first-message or topic hint for Jev selection.' }
       }
     }
   },
@@ -87,7 +109,7 @@ const TOOLS = [
 
 function getLibrary() {
   const lib = loadLibrary(LIBRARY);
-  return lib.ok ? lib : null;
+  return lib.ok ? authorizeLocalLibrary(lib) : null;
 }
 
 function esc(s) {
@@ -123,11 +145,24 @@ async function handleToolCall(name, args) {
   if (!lib) return { isError: true, content: [{ type: 'text', text: `Memory Lane library not found at ${LIBRARY}` }] };
 
   switch (name) {
+    case 'ml_query': {
+      if (!lib.access) return { isError: true, content: [{ type: 'text', text: 'Memory Lane V3 requires an access policy and authenticated principal.' }] };
+      const request = args && typeof args === 'object' ? args : {};
+      if (!request.entity && !String(request.query || '').trim()) return { isError: true, content: [{ type: 'text', text: 'query or entity is required' }] };
+      const result = await retrieve(lib, request, lib.access);
+      checkCurrentAccess(lib);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
+    }
     case 'ml_search': {
       const q = String((args && args.query) || '');
-      const limit = Number((args && args.limit) || 5);
+      const limit = Math.max(1, Math.min(Number((args && args.limit) || 5), 25));
       if (!q) return { isError: true, content: [{ type: 'text', text: 'query is required' }] };
-      // Fetch a wider candidate set so the Jev re-rank has room to work, then
+      if (lib.access) {
+        const result = await retrieve(lib, { query: q, limit }, lib.access);
+        checkCurrentAccess(lib);
+        return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
+      }
+      // Legacy single-owner mode remains for backwards compatibility only.
       // trim to the caller's limit. rerank=jev by default when a key resolves;
       // opt out with rerank:'none'. Defensive: Jev problems keep plain order.
       const fetchLimit = Math.max(limit * 2, 10);
@@ -137,6 +172,7 @@ async function handleToolCall(name, args) {
       if ((args && args.rerank !== 'none' && jevAvailable() && r.count >= 2)) {
         try {
           const ranked = await jevRank(lib, q, r.matches, { topN: 10 });
+          checkCurrentAccess(lib);
           if (ranked.jev && ranked.jev.applied) {
             r = { ...r, matches: ranked.matches };
             jevNote = ` [jev-reranked: top ${ranked.matches[0].block_id} score ${ranked.matches[0].jev_score}]`;
@@ -150,26 +186,30 @@ async function handleToolCall(name, args) {
     case 'ml_answer': {
       const q = String((args && args.question) || '');
       if (!q) return { isError: true, content: [{ type: 'text', text: 'question is required' }] };
+      if (lib.access) {
+        const result = await retrieve(lib, { query: q }, lib.access);
+        checkCurrentAccess(lib);
+        return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
+      }
       const r = await answerQuestion(lib, q);
+      checkCurrentAccess(lib);
       const modeTag = r.mode === 'direct' ? '[exact match]' : r.mode === 'jev' ? '[jev-ranked from memory]' : '[no memory]';
       const jevTag = r.jev && r.jev.scored ? ` [jev-ranked ${r.jev.scored}]` : '';
       const source = r.source ? `\nSource: ${r.source}` : (r.evidence && r.evidence.length ? `\nEvidence: ${r.evidence.slice(0, 2).map((e) => e.block_id).join(', ')}` : '');
       return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}` }] };
     }
     case 'ml_recent': {
-      const limit = Number((args && args.limit) || 5);
-      const recent = lib.blocks.slice(-limit).reverse();
-      if (!recent.length) return { content: [{ type: 'text', text: 'Library is empty.' }] };
-      const lines = recent.map((b) => {
-        const excerpt = excerptBlock(lib, b);
-        const title = `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || b.block_id)}`;
-        return excerpt ? `${title}\n  ${esc(excerpt)}` : title;
-      });
-      return { content: [{ type: 'text', text: `Most recent memory blocks:\n${lines.join('\n')}` }] };
+      const limit = Math.max(1, Math.min(Number((args && args.limit) || 5), 20));
+      const query = String((args && args.query) || '').slice(0, 500);
+      if (!lib.access) return { isError: true, content: [{ type: 'text', text: 'Access policy required for V3-scoped ml_recent.' }] };
+      const result = await retrieve(lib, { recent: true, limit, query }, lib.access);
+      checkCurrentAccess(lib);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
     }
     case 'ml_resume': {
       const p = String((args && args.phrase) || '');
       if (!p) return { isError: true, content: [{ type: 'text', text: 'phrase is required' }] };
+      if (lib.access) return { isError: true, content: [{ type: 'text', text: 'ml_resume is not available under V3 namespace policy; use ml_query.' }] };
       const r = resolveResume(lib, p);
       if (!r.found) return { content: [{ type: 'text', text: `No block matches resume phrase "${p}".` }] };
       const lines = r.blocks.map((b) => {

@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "corpus": "synthetic-v1",
+  "iterations": 100,
+  "transport": "offline score=2 stub; fixed 5ms simulated transport delay; not Jev accuracy",
+  "observed_cost_usd": 0,
+  "actual_provider_calls": 0,
+  "workloads": [
+    {
+      "name": "exact",
+      "recall_at_5": 1,
+      "recall_at_10": 1,
+      "evidence_precision": 1,
+      "answered": 100,
+      "supported": 100,
+      "abstained": 0,
+      "false_positive_rate": null,
+      "latency_ms": {
+        "p50": 15.568,
+        "p95": 29.22,
+        "p99": 32.236
+      },
+      "simulated_decision_calls_including_warmup": 101
+    },
+    {
+      "name": "paraphrase",
+      "recall_at_5": 1,
+      "recall_at_10": 1,
+      "evidence_precision": null,
+      "answered": 0,
+      "supported": 0,
+      "abstained": 100,
+      "false_positive_rate": null,
+      "latency_ms": {
+        "p50": 15.925,
+        "p95": 31.043,
+        "p99": 31.989
+      },
+      "simulated_decision_calls_including_warmup": 101
+    },
+    {
+      "name": "late_span",
+      "recall_at_5": 1,
+      "recall_at_10": 1,
+      "evidence_precision": 0,
+      "answered": 100,
+      "supported": 0,
+      "abstained": 0,
+      "false_positive_rate": null,
+      "latency_ms": {
+        "p50": 1.595,
+        "p95": 2.398,
+        "p99": 2.936
+      },
+      "simulated_decision_calls_including_warmup": 0
+    },
+    {
+      "name": "no_evidence",
+      "recall_at_5": null,
+      "recall_at_10": null,
+      "evidence_precision": null,
+      "answered": 0,
+      "supported": 0,
+      "abstained": 100,
+      "false_positive_rate": 0,
+      "latency_ms": {
+        "p50": 3.79,
+        "p95": 5.175,
+        "p99": 5.716
+      },
+      "simulated_decision_calls_including_warmup": 0
+    },
+    {
+      "name": "multi_session",
+      "recall_at_5": 1,
+      "recall_at_10": 1,
+      "evidence_precision": null,
+      "answered": 0,
+      "supported": 0,
+      "abstained": 100,
+      "false_positive_rate": null,
+      "latency_ms": {
+        "p50": 16.708,
+        "p95": 30.431,
+        "p99": 31.575
+      },
+      "simulated_decision_calls_including_warmup": 101
+    }
+  ],
+  "ingestion": {
+    "total_source_sections": 8,
+    "sampled_candidates": 30,
+    "sampled_sections": 3
+  },
+  "temporal": {
+    "supported": false,
+    "accuracy": null
+  },
+  "chain": {
+    "intact": true,
+    "blocks": 6
+  }
+}
