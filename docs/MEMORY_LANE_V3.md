@@ -65,6 +65,8 @@ Entity IDs and absolute timestamps are supplied by the caller. Automatic entity 
 
 `node tools/memory-lane-cli.mjs query '<request JSON>'` exposes the same planner to local integrations. Existing CLI and MCP tool names remain available and respect policy when configured.
 
+The session-start selector is also shared by `node tools/memory-lane-cli.mjs recent [limit] [query]`, authenticated `POST /api/v3/recent`, MCP `ml_recent`, and Hermes `prefetch()`. It checks hashes, excludes session anchors, limits the candidate window, and orders by Jev only when an authenticated namespace explicitly allows external Jev decisions. Without Jev permission or availability it returns the newest verified source excerpts.
+
 `POST /api/v3/session` accepts:
 
 ```json
@@ -75,7 +77,9 @@ Entity IDs and absolute timestamps are supplied by the caller. Automatic entity 
 
 The caller sends activity on each user message. The service returns 202 for best-effort queued work. The first event produces `SESSION_OPEN`; inactivity of at least five hours produces `WAKE`. A subsequent request with `closeBlockId` links the session to an existing hash-checked closeout in the same namespace. Session IDs are hashed. Sketches are bounded and minimized. Anchors are excluded from policy-scoped substantive retrieval.
 
-Queues persist retry state, cap pending work, and record failures. Repeated writes deduplicate through canonical append. A durable permission receipt precedes writes. The implementation defers work with `setImmediate`; synchronous canonical I/O can still occupy the event loop afterward. This is not a worker-based ingestion system. Existing production feeders and Hermes lifecycle hooks have not been reconfigured; clients must explicitly wire the authenticated endpoint during cutover.
+Queues persist retry state, cap pending work, and record failures. Repeated writes deduplicate through canonical append. A durable permission receipt precedes writes. The implementation defers work with `setImmediate`; synchronous canonical I/O can still occupy the event loop afterward. This is not a worker-based ingestion system.
+
+The Hermes provider now exposes `on_session_start`, `on_user_message`, and optional `on_session_end` callbacks. Set `MEMORY_LANE_SESSION_URL`, `MEMORY_LANE_NAMESPACE`, and `MEMORY_LANE_ACCESS_TOKEN` in a protected profile environment to enable them. The provider sends activity asynchronously; its startup path remains local and read-only when those values are absent. `on_user_message` requires runtime hook dispatch support. The active profile installations and existing production feeders were not reconfigured; clients must explicitly wire the authenticated endpoint during cutover.
 
 ## Temporal projection schema
 

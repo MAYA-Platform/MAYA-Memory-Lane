@@ -2,7 +2,7 @@
 /**
  * Memory Lane — secret scanner (pre-release gate).
  *
- * Scans the tracked working tree for hardcoded credential patterns and
+ * Scans tracked and untracked non-ignored working-tree files for hardcoded credential patterns and
  * machine/user paths that must never ship in a public repo. This is the
  * enforcement layer behind the 2026-08-16 incident where a live Honcho API key
  * and founder identity leaked into git history across several commits.
@@ -59,13 +59,14 @@ const ALL = [...SECRET_PATTERNS, ...PATH_PATTERNS, ...VOCAB_PATTERNS];
 const TEXT_EXT = new Set(['.py', '.mjs', '.js', '.md', '.html', '.json', '.jsonl', '.txt', '.yaml', '.yml', '.toml', '.csv', '.ts', '.tsx']);
 
 function trackedFiles() {
-  let out = '';
+  let tracked = '', untracked = '';
   try {
-    out = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' });
+    tracked = execFileSync('git', ['ls-files', '-z'], { cwd: ROOT, encoding: 'utf8' });
+    untracked = execFileSync('git', ['ls-files', '--others', '--exclude-standard', '-z'], { cwd: ROOT, encoding: 'utf8' });
   } catch {
     return [];
   }
-  return out.split('\0').filter(Boolean);
+  return [...new Set((tracked + '\0' + untracked).split('\0').filter(Boolean))];
 }
 
 // The scanner's own source and its contract test legitimately contain the
@@ -110,5 +111,5 @@ if (findings.length) {
   for (const f of findings) console.error('  ' + f);
   process.exit(1);
 }
-console.log('Secret scan clean: no credentials, machine paths, or internal vocab in tracked files.');
+console.log('Secret scan clean: no credentials, machine paths, or internal vocab in tracked or untracked source files.');
 process.exit(0);

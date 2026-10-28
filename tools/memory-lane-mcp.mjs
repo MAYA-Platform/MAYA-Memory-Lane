@@ -33,6 +33,7 @@ import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExi
 import { answerQuestion } from '../lib/answer.js';
 import { jevRank, jevAvailable } from '../lib/jevrank.js';
 import { authorizeLocalLibrary, checkCurrentAccess } from '../lib/access.js';
+import { retrieve, recentSelection } from '../lib/retrieval.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
@@ -40,6 +41,25 @@ validateLibraryPathOrExit(process.env.MEMORY_LANE_LIBRARY || null, { source: 'me
 const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
 
 const TOOLS = [
+  {
+    name: 'ml_query',
+    description: 'Run a Memory Lane V3 scoped query. Returns source-backed evidence, bounded cross-session candidates, or temporal state. Jev is used only when the namespace permits external decisions; failure abstains.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Question or evidence lookup.' },
+        entity: { type: 'string', description: 'Optional explicit temporal entity id.' },
+        predicate: { type: 'string', description: 'Optional temporal predicate.' },
+        asOf: { type: 'string', description: 'Optional absolute effective-time boundary.' },
+        knownAt: { type: 'string', description: 'Optional absolute observation-time boundary.' },
+        bundle: { type: 'boolean', description: 'Return a bounded candidate evidence bundle.' },
+        limit: { type: 'number', description: 'Maximum sources, bounded by the V3 planner.' },
+        requiredEntities: { type: 'array', items: { type: 'string' } },
+        before: { type: 'string', description: 'Optional absolute timestamp boundary for bundles.' }
+      },
+      required: []
+    }
+  },
   {
     name: 'ml_search',
     description: 'Search the Memory Lane library (your persistent memory). Returns matching blocks with excerpts. Use when the user references past decisions, people, projects, or asks about something that may have been discussed before.',
@@ -69,7 +89,8 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        limit: { type: 'number', description: 'Number of recent blocks (default 5)' }
+        limit: { type: 'number', description: 'Number of recent blocks (default 5)' },
+        query: { type: 'string', description: 'Optional first-message or topic hint for Jev selection.' }
       }
     }
   },
@@ -124,6 +145,14 @@ async function handleToolCall(name, args) {
   if (!lib) return { isError: true, content: [{ type: 'text', text: `Memory Lane library not found at ${LIBRARY}` }] };
 
   switch (name) {
+    case 'ml_query': {
+      if (!lib.access) return { isError: true, content: [{ type: 'text', text: 'Memory Lane V3 requires an access policy and authenticated principal.' }] };
+      const request = args && typeof args === 'object' ? args : {};
+      if (!request.entity && !String(request.query || '').trim()) return { isError: true, content: [{ type: 'text', text: 'query or entity is required' }] };
+      const result = await retrieve(lib, request, lib.access);
+      checkCurrentAccess(lib);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
+    }
     case 'ml_search': {
       const q = String((args && args.query) || '');
       const limit = Number((args && args.limit) || 5);
@@ -160,15 +189,13 @@ async function handleToolCall(name, args) {
       return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}` }] };
     }
     case 'ml_recent': {
-      const limit = Number((args && args.limit) || 5);
-      const recent = lib.blocks.slice(-limit).reverse();
-      if (!recent.length) return { content: [{ type: 'text', text: 'Library is empty.' }] };
-      const lines = recent.map((b) => {
-        const excerpt = excerptBlock(lib, b);
-        const title = `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || b.block_id)}`;
-        return excerpt ? `${title}\n  ${esc(excerpt)}` : title;
-      });
-      return { content: [{ type: 'text', text: `Most recent memory blocks:\n${lines.join('\n')}` }] };
+      const limit = Math.max(1, Math.min(Number((args && args.limit) || 5), 20));
+      const query = String((args && args.query) || '').slice(0, 500);
+      const result = lib.access
+        ? await retrieve(lib, { recent: true, limit, query }, lib.access)
+        : await recentSelection(lib, { limit, query });
+      if (lib.access) checkCurrentAccess(lib);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
     }
     case 'ml_resume': {
       const p = String((args && args.phrase) || '');

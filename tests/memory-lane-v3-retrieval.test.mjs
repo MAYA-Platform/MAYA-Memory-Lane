@@ -6,6 +6,7 @@ import path from 'node:path';
 import { appendBlock, loadLibrary, readBlock, search } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { jevRank, expandCandidates } from '../lib/jevrank.js';
+import { recentSelection } from '../lib/retrieval.js';
 
 function fixture(t, bodies) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-v3-'));
@@ -18,6 +19,23 @@ function rankScores(scores) {
   return async (_lib, _q, matches) => ({ matches: matches.map((m, i) => ({ ...m, jev_score: scores[i] ?? 0 })),
     jev: { applied: true, usage: { cost: 0.001 }, model: 'fixture' } });
 }
+
+test('session-start selection uses Jev when enabled and falls back to fresh evidence', async t => {
+  const lib = fixture(t, ['Old Orchid decision.', 'Recent unrelated note.', 'Current Orchid migration decision.']);
+  let prompt = '';
+  const selected = await recentSelection(lib, { limit: 2, query: 'Orchid status', available: () => true,
+    rank: async (_library, q, matches) => {
+      prompt = q;
+      return { matches: matches.map((m, i) => ({ ...m, jev_score: i === 0 ? 0 : 2 })),
+        jev: { applied: true, usage: { cost: 0.00003 } } };
+    } });
+  assert.equal(prompt, 'Orchid status');
+  assert.equal(selected.selection, 'jev');
+  assert.equal(selected.blocks[0].block_id, lib.blocks[1].block_id);
+  const fallback = await recentSelection(lib, { limit: 1 });
+  assert.equal(fallback.selection, 'freshness');
+  assert.equal(fallback.blocks[0].block_id, lib.blocks[2].block_id);
+});
 
 test('literal fast path makes zero paid requests even with multiple candidates', async t => {
   const lib = fixture(t, ['Alex leased a Honda Civic in black.', 'Alex enjoys Honda motorcycles.']);

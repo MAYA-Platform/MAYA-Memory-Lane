@@ -488,6 +488,19 @@ const routes = {
     auditReceipt(activeLibraryPath, { type: 'retrieval', principal: req.memoryAccess.principal, tier: result.tier ?? null });
     sendJson(res, 200, { ok: true, ...result });
   },
+  '/api/v3/recent': async (req, res) => {
+    if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST required' });
+    if (!req.memoryAccess) return sendJson(res, 403, { ok: false, error: 'Access policy required' });
+    const request = await readJsonBody(req);
+    if (!request || typeof request !== 'object' || request.error) return sendJson(res, 400, { ok: false, error: 'Invalid request' });
+    const lib = getLibrary();
+    if (!lib.ok) return sendJson(res, 500, { ok: false, error: 'Library unavailable' });
+    const result = await retrieve(lib, { ...request, recent: true }, { ...req.memoryAccess, cache: v3Cache });
+    const current = loadAccessPolicy(activeLibraryPath);
+    if (JSON.stringify(current) !== JSON.stringify(req.memoryAccess.policy)) return sendJson(res, 403, { ok: false, error: 'Access policy changed; retry' });
+    auditReceipt(activeLibraryPath, { type: 'recent_selection', principal: req.memoryAccess.principal, tier: result.tier ?? null, selection: result.selection });
+    sendJson(res, 200, { ok: true, ...result });
+  },
   '/api/status': (req, res) => {
     const lib = getLibrary(req);
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
@@ -942,7 +955,7 @@ const server = http.createServer((req, res) => {
         if (!principal) return sendJson(res, 401, { ok: false, error: 'Authentication required' });
         req.memoryAccess = { policy, principal };
         res.memoryAccess = req.memoryAccess;
-        const scopedRoutes = ['/api/v3/query', '/api/v3/session', '/api/search', '/api/answer', '/api/write-memory', '/api/ingest', '/api/blocks/write'];
+        const scopedRoutes = ['/api/v3/query', '/api/v3/recent', '/api/v3/session', '/api/search', '/api/answer', '/api/write-memory', '/api/ingest', '/api/blocks/write'];
         if (!scopedRoutes.includes(pathname) && !(policy.principals[principal].admin === true &&
           Object.keys(policy.namespaces).every(ns => permitted(policy, principal, ns)))) {
           return sendJson(res, 403, { ok: false, error: 'Administrative route denied' });

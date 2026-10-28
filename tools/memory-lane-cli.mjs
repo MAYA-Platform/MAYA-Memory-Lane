@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { authorizeLocalLibrary, checkCurrentAccess } from '../lib/access.js';
-import { retrieve } from '../lib/retrieval.js';
+import { retrieve, recentSelection } from '../lib/retrieval.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
@@ -71,16 +71,19 @@ async function main() {
 
   if (cmd === 'recent') {
     const limit = Math.max(1, Math.min(Number(rest[0]) || 5, 25));
-    const recent = lib.blocks.slice(-limit).reverse();
-    out({
-      ok: true,
-      blocks: recent.map((b) => ({
+    const query = rest.slice(1).join(' ').trim();
+    const result = lib.access
+      ? await retrieve(lib, { recent: true, limit: Math.min(limit, 20), query }, lib.access)
+      : await recentSelection(lib, { limit, query });
+    if (lib.access) checkCurrentAccess(lib);
+    out({ ok: true, ...result, blocks: result.blocks.map((b) => ({
         block_id: b.block_id,
         lib_id: b.lib_id,
         title: b.canonical_name || b.block_id,
-        excerpt: excerptBlock(lib, b),
-      })),
-    });
+        excerpt: b.excerpt || excerptBlock(lib, b),
+        timestamp: b.timestamp || null,
+        sha256: b.sha256 || null,
+      })) });
     return;
   }
 

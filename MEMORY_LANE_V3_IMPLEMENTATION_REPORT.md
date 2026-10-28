@@ -10,7 +10,7 @@ Date: 2026-10-16. Scope: isolated development and offline evaluation. Production
 - Temporal, governance, ingestion, tooling, benchmark and documentation commit: `92b2515ed9dbf75efc16def86089af92237214f0`.
 - Final implementation hardening commit: `585dfbc8e6a0d4b9eca8d920a1003be90505e148`.
 - `IMPLEMENTED`: the source features listed below are committed.
-- `TESTED`: 172/172 offline tests pass, including all 124 original tests and 48 additions. No known legacy failures remain. Seven original regression cases failed on the specified baseline and passed after repair.
+- `TESTED`: 172/172 offline tests passed on the original delivery head. The V3 team-integration follow-on has a separate focused E2E suite and V3 regressions; these later checks do not supersede the full-suite gate for the current candidate.
 - `BENCHMARKED`: identical synthetic workloads compared against the specified baseline; results and limits below. No production accuracy or live-provider latency claim.
 - `REVIEW_READY`: source, tests, evidence, API/security documentation and rollback procedure are prepared for a draft PR against the Jev-only baseline branch. The delivery message and PR contain the final delivery commit references and CI evidence.
 - `DEPLOYED`: no.
@@ -74,11 +74,11 @@ Files: `benchmarks/v3-baseline.json`, `benchmarks/v3-current.json`; harness: `to
 
 | Workload | Baseline p50/p95/p99 ms | V3 p50/p95/p99 ms | Observed behavior |
 | --- | --- | --- | --- |
-| Exact passage | 15.568 / 29.220 / 32.236 | 2.737 / 4.016 / 4.570 | Simulated decision calls, including warm-up: 101 to 0; support retained |
-| Paraphrase | 15.925 / 31.043 / 31.989 | 31.116 / 32.535 / 32.844 | Baseline abstained; V3 returned the expected original evidence under the stub |
-| Buried late answer | 1.595 / 2.398 / 2.936 | 1.550 / 2.302 / 2.640 | Baseline returned the opening text; V3 returned the labeled supporting passage |
-| No evidence | 3.790 / 5.175 / 5.716 | 3.834 / 5.501 / 6.110 | Both abstained 100/100; fixture false-positive rate 0 |
-| Multi-session | 16.708 / 30.431 / 31.575 | 30.899 / 32.421 / 32.874 | Baseline abstained; V3 returned both labeled supporting records under the stub |
+| Exact passage | 15.568 / 29.220 / 32.236 | 3.448 / 4.986 / 5.222 | Simulated decision calls, including warm-up: 101 to 0; support retained |
+| Paraphrase | 15.925 / 31.043 / 31.989 | 31.227 / 33.046 / 37.637 | Baseline abstained; V3 returned the expected original evidence under the stub |
+| Buried late answer | 1.595 / 2.398 / 2.936 | 2.581 / 3.325 / 3.572 | Baseline returned the opening text; V3 returned the labeled supporting passage |
+| No evidence | 3.790 / 5.175 / 5.716 | 5.094 / 6.451 / 6.810 | Both abstained 100/100; fixture false-positive rate 0 |
+| Multi-session | 16.708 / 30.431 / 31.575 | 31.118 / 32.413 / 33.688 | Baseline abstained; V3 returned both labeled supporting records under the stub |
 
 Recall@5 and Recall@10 were 1.0 for both builds on all four answerable synthetic workloads. This corpus demonstrates correctness repairs, not a general recall improvement. Late-passage evidence precision changed from 0 to 1.0. Paraphrase and multi-session baseline precision is undefined because it abstained; V3 fixture precision was 1.0. These checks validate source-selection plumbing with an intentionally deterministic scorer, not provider judgment quality.
 
@@ -114,3 +114,20 @@ Observed real provider cost during development: **$0**. Actual paid provider cal
 See `docs/V3_MIGRATION_AND_ROLLBACK.md` for the concrete dry-run, cutover and rollback commands/checks. Back up the live library/configuration, verify its actual chain, preserve tokens/policy and source attestations, and disable new lifecycle callers before rolling back executable code. Derivative indexes can be rebuilt or discarded; newly sealed anchors remain immutable history. Old readers do not enforce V3 policy, so rollback must not expose them to client scopes.
 
 Remaining founder approval requirements: production deployment/restarts and feeder reconfiguration; any bulk paid backfill with an explicit reviewed scope/cost plan; acceptance of live calibration and production results. No deployment or founder acceptance is implied by a passing test suite or a draft PR.
+
+## October 28 founder order follow-up
+
+Requested base was verified as `c571fa5042bd7eda9560c85bdf4df18f158b24b0` on `origin/codex/ml-v3-20261016`; the shared worktree was clean and detached at inspection. The changes below are in the shared worktree but could not be committed: workspace policy makes `.git` read-only, and creating the requested local branch failed when Git could not create `.git/index.lock`. The base SHA therefore remains the last commit SHA; it is not a SHA for these working-tree changes.
+
+Implemented in this checkout:
+
+- Added one hash-checked V3 session-start selector with bounded recent candidates, freshness fallback, optional Jev selection under namespace policy, and explicit anchor exclusion.
+- Wired V3 recent selection and scoped `ml_query` through CLI, authenticated HTTP (`POST /api/v3/recent`), MCP, and Hermes prefetch. Added Hermes session-start, user-message, and optional closeout callbacks; activity is disabled unless endpoint, namespace, and access token are explicitly configured.
+- Added cross-entry-point E2E coverage and the team/feeder activation contract in `docs/V3_TEAM_AND_FEEDER_ACTIVATION.md`.
+- Extended the secret scanner to include untracked non-ignored source files so new deliverables are covered before staging.
+
+Verification from the shared checkout: `npm test` passed 175/175; `npm run benchmark:v3` passed all five synthetic workloads, temporal fixture 3/3, chain 6/6, and recorded zero real provider calls; `node tools/secret_scan.mjs` reported clean. Benchmark output used a deterministic Jev stub and is not live Jev calibration. The Hermes runtime itself and its `on_user_message` dispatch were not available for runtime verification.
+
+Hard gates remain: the private labeled evaluation corpus and approved live Jev calibration environment were not present, so no private evaluation or paid provider call was run; the four feeder repositories and their identities were absent from this checkout, so only the shared endpoint contract and Hermes source integration were delivered; and the team's active profiles/service cannot be changed under the order's no-config/no-restart/no-deploy constraints. Team activation still requires review of the private corpus results, feeder revisions/namespaces, installed Hermes hook support, and explicit cutover authorization.
+
+2ndNatureAi
