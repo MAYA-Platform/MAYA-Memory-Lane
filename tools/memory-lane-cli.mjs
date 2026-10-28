@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { loadLibrary, search, resolveResume, readBlock, validateLibraryPathOrExit } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { authorizeLocalLibrary, checkCurrentAccess } from '../lib/access.js';
-import { retrieve, recentSelection } from '../lib/retrieval.js';
+import { retrieve } from '../lib/retrieval.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // D9: refuse traversal / non-allowlisted MEMORY_LANE_LIBRARY at boot (exit 78).
