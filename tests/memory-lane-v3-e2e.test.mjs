@@ -65,11 +65,15 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
   const calls = [
     { name: 'ml_recent', arguments: { limit: 5, query: 'Orchid' } },
     { name: 'ml_query', arguments: { query: 'Orchid migration', bundle: true } },
+    { name: 'ml_search', arguments: { query: 'Orchid migration' } },
+    { name: 'ml_answer', arguments: { question: 'Which Orchid migration?' } },
+    { name: 'ml_resume', arguments: { phrase: 'Orchid' } },
   ].map((params, i) => JSON.stringify({ jsonrpc: '2.0', id: i + 1, method: 'tools/call', params })).join('\n') + '\n';
   const mcpLines = execFileSync(process.execPath, ['tools/memory-lane-mcp.mjs'], { cwd, env, input: calls, encoding: 'utf8' }).trim().split(/\r?\n/);
-  assert.equal(mcpLines.length, 2);
-  const mcp = mcpLines.map(line => JSON.parse(line));
-  assert.ok(mcp.every(item => !item.result.isError));
+  const mcp = new Map(mcpLines.map(line => { const item = JSON.parse(line); return [item.id, item.result]; }));
+  assert.equal(mcp.size, 5);
+  assert.ok([1, 2, 3, 4].every(id => !mcp.get(id).isError));
+  assert.equal(mcp.get(5).isError, true, 'resume is blocked when the library is namespace-scoped');
   assert.ok(!mcpLines.join('\n').includes('B-492'));
   assert.ok(!mcpLines.join('\n').includes('SESSION_OPEN'));
 });

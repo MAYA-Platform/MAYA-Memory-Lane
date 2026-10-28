@@ -111,7 +111,10 @@ async function main() {
   if (cmd === 'resume') {
     const phrase = rest[0] || '';
     if (!phrase) { out({ ok: false, error: 'phrase required' }); process.exit(1); }
-    if (lib.access) throw Error('ml_resume is disabled for policy-scoped V3 principals; use query with an authorized namespace');
+    if (lib.access) {
+      out({ ok: false, error: 'ml_resume is disabled for policy-scoped V3 principals; use query with an authorized namespace' });
+      return;
+    }
     const r = resolveResume(lib, phrase);
     out({
       ok: true,

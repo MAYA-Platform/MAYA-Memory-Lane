@@ -158,7 +158,7 @@ async function handleToolCall(name, args) {
       const limit = Math.max(1, Math.min(Number((args && args.limit) || 5), 25));
       if (!q) return { isError: true, content: [{ type: 'text', text: 'query is required' }] };
       if (lib.access) {
-        const result = await retrieve(lib, { query: q }, lib.access);
+        const result = await retrieve(lib, { query: q, limit }, lib.access);
         checkCurrentAccess(lib);
         return { content: [{ type: 'text', text: JSON.stringify({ ok: true, ...result }) }] };
       }

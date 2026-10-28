@@ -85,12 +85,25 @@ test('CLI and MCP apply the same namespace policy as HTTP', t => {
   const cwd = path.resolve(import.meta.dirname, '..');
   const env = { ...process.env, MEMORY_LANE_LIBRARY: lib.rootDir, MEMORY_LANE_ACCESS_TOKEN: 'test-alice' };
   const cli = JSON.parse(execFileSync(process.execPath, ['tools/memory-lane-cli.mjs', 'search', 'Orchid'], { cwd, env, encoding: 'utf8' }));
-  assert.equal(cli.matches.length, 1);
+  assert.equal(cli.evidence.length, 1);
   assert.ok(!JSON.stringify(cli).includes('Beta'));
-  const input = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'ml_search', arguments: { query: 'Orchid' } } }) + '\n';
-  const mcp = JSON.parse(execFileSync(process.execPath, ['tools/memory-lane-mcp.mjs'], { cwd, env, input, encoding: 'utf8' }).trim());
-  assert.ok(!mcp.result.isError);
-  assert.ok(!JSON.stringify(mcp).includes('Beta'));
+  const blockedResume = JSON.parse(execFileSync(process.execPath, ['tools/memory-lane-cli.mjs', 'resume', 'Orchid'], { cwd, env, encoding: 'utf8' }));
+  assert.match(blockedResume.error, /disabled for policy-scoped/);
+  const calls = [
+    { id: 1, name: 'ml_recent', arguments: { limit: 5, query: 'Orchid' } },
+    { id: 2, name: 'ml_query', arguments: { query: 'Orchid migration', bundle: true } },
+    { id: 3, name: 'ml_search', arguments: { query: 'Orchid' } },
+    { id: 4, name: 'ml_answer', arguments: { question: 'Which Orchid?' } },
+    { id: 5, name: 'ml_resume', arguments: { phrase: 'Orchid' } },
+  ];
+  const input = calls.map(item => JSON.stringify({ jsonrpc: '2.0', id: item.id, method: 'tools/call', params: { name: item.name, arguments: item.arguments } })).join('\n') + '\n';
+  const lines = execFileSync(process.execPath, ['tools/memory-lane-mcp.mjs'], { cwd, env, input, encoding: 'utf8' }).trim().split(/\r?\n/);
+  const responses = new Map(lines.map(line => { const item = JSON.parse(line); return [item.id, item.result]; }));
+  assert.equal(responses.size, 5);
+  assert.ok([1, 2, 3, 4].every(id => !responses.get(id).isError));
+  assert.equal(responses.get(5).isError, true);
+  assert.ok(!lines.join('\n').includes('B-492'));
+  assert.ok(!lines.join('\n').includes('SESSION_OPEN'));
 });
 
 test('projection maintenance dry run performs no library writes', t => {
