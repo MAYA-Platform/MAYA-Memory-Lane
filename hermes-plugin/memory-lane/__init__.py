@@ -25,6 +25,7 @@ Config (env or config.yaml under memory_lane:):
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
 import os
@@ -167,6 +168,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         self._cli = DEFAULT_CLI
         self._session_id = ""
         self._prefetched = False
+        self._prefetch_identity = ""
         self._prefetch_lock = threading.Lock()
         self._last_prefetch = ""
         self._init_error = ""
@@ -199,6 +201,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         self._library = self._setting("MEMORY_LANE_LIBRARY", "library", DEFAULT_LIBRARY, require_owner=False)
         self._cli = self._setting("MEMORY_LANE_CLI", "cli", DEFAULT_CLI, require_owner=False)
         self._prefetched = False
+        self._prefetch_identity = ""
         # cron/flush contexts should not inject personal memory into prompts.
         agent_context = kwargs.get("agent_context", "")
         platform = kwargs.get("platform", "cli")
@@ -212,6 +215,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         if session_id:
             self._session_id = session_id
         self._prefetched = False
+        self._prefetch_identity = ""
         self._last_prefetch = ""
         # Kept for hosts that dispatch this optional hook. The first real turn
         # is reported by on_turn_start so initialization never exports text.
@@ -229,11 +233,34 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         """Pull recent blocks once at session start and inject as context."""
         self._require_owner_scope()
         with self._prefetch_lock:
+            identity = self._current_prefetch_identity()
+            if not identity or not self._activity_enabled:
+                self._prefetched = False
+                self._prefetch_identity = ""
+                self._last_prefetch = ""
+                return ""
+            if identity != self._prefetch_identity:
+                self._prefetched = False
+                self._last_prefetch = ""
+                self._prefetch_identity = identity
             if self._prefetched:
                 return self._last_prefetch
             self._prefetched = True
             self._last_prefetch = self._format_recent_context(5, query)
             return self._last_prefetch
+
+    def _current_prefetch_identity(self) -> str:
+        """Fingerprint the live scoped read route without retaining the bearer."""
+        lib = self._setting("MEMORY_LANE_LIBRARY", "library", "" if is_multiplex_active() else DEFAULT_LIBRARY)
+        token = (get_secret("MEMORY_LANE_ACCESS_TOKEN", "") or "").strip()
+        if not lib or ((is_multiplex_active() or Path(lib, "access-policy.json").exists()) and not token):
+            return ""
+        route = [hermes_home_key(self._bound_home), os.path.normcase(os.path.abspath(lib)),
+                 self._setting("MEMORY_LANE_CLI", "cli", DEFAULT_CLI),
+                 self._setting("MEMORY_LANE_NAMESPACE", "namespace", ""),
+                 self._setting("MEMORY_LANE_SESSION_URL", "session_url", ""),
+                 self._setting("MEMORY_LANE_DECISIONS_URL", "decisions_url", ""), token]
+        return hashlib.sha256(json.dumps(route, separators=(",", ":")).encode("utf-8")).hexdigest()
 
     def _format_recent_context(self, limit: int, query: str = "") -> str:
         """Format recent blocks as clean prose for context injection."""
@@ -259,6 +286,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         if new_session_id != self._session_id or kwargs.get("reset") or kwargs.get("rewound"):
             self._session_id = new_session_id
             self._prefetched = False
+            self._prefetch_identity = ""
             self._last_prefetch = ""
 
     def on_turn_start(self, turn_number: int, message: str, **kwargs) -> None:

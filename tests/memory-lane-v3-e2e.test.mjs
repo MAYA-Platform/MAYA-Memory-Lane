@@ -110,6 +110,7 @@ test('installed Hermes MemoryManager dispatches turn activity and scoped prefetc
     MEMORY_LANE_SESSION_URL: 'http://127.0.0.1:9/api/v3/session', MERGE_API_KEY: 'poison-process-merge',
     MEMORY_LANE_DECISIONS_URL: 'http://127.0.0.1:9/decisions' }, encoding: 'utf8' });
   assert.deepEqual(JSON.parse(raw), { ok: true, runtime: 'installed MemoryManager', profiles: 2,
-    turns: 3, subprocesses: 3, unscoped_refused: true, prefetch: 'profile-scoped' });
+    turns: 3, subprocesses: 6, unscoped_refused: true, prefetch: 'profile-scoped',
+    warm_cache_revocation: true, warm_cache_principal_switch: true, warm_cache_library_switch: true });
   t.diagnostic(`runtime probe: ${raw.trim()}`);
 });

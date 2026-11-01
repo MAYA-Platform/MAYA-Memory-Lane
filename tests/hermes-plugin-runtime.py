@@ -100,6 +100,35 @@ try:
         managers["alpha"].on_turn_start(1, "SECOND_PRIVATE_ALPHA")
         assert "A-491" in managers["alpha"].prefetch_all("Orchid", session_id="session-alpha-next")
 
+        cached_children = len(children)
+        missing = set_secret_scope({"MEMORY_LANE_LIBRARY": alpha_library, "MEMORY_LANE_CLI": cli},
+                                   profile_home=str(profiles["alpha"]["home"]))
+        try:
+            assert managers["alpha"].prefetch_all("Orchid", session_id="session-alpha-next") == ""
+            assert len(children) == cached_children
+        finally:
+            reset_secret_scope(missing)
+
+        replacement = set_secret_scope({"MEMORY_LANE_LIBRARY": alpha_library, "MEMORY_LANE_CLI": cli,
+                                        "MEMORY_LANE_ACCESS_TOKEN": "test-bob"},
+                                       profile_home=str(profiles["alpha"]["home"]))
+        try:
+            changed_principal = managers["alpha"].prefetch_all("Orchid", session_id="session-alpha-next")
+            assert "B-492" in changed_principal and "A-491" not in changed_principal, changed_principal
+        finally:
+            reset_secret_scope(replacement)
+
+        moved = set_secret_scope({"MEMORY_LANE_LIBRARY": beta_library, "MEMORY_LANE_CLI": cli,
+                                  "MEMORY_LANE_ACCESS_TOKEN": "test-alice"},
+                                 profile_home=str(profiles["alpha"]["home"]))
+        try:
+            changed_library = managers["alpha"].prefetch_all("Orchid", session_id="session-alpha-next")
+            assert "A-493" in changed_library and "A-491" not in changed_library, changed_library
+        finally:
+            reset_secret_scope(moved)
+        restored = managers["alpha"].prefetch_all("Orchid", session_id="session-alpha-next")
+        assert "A-491" in restored and "B-492" not in restored, restored
+
     assert managers["alpha"].prefetch_all("Orchid", session_id="session-alpha-next") == ""
     managers["alpha"].on_turn_start(2, "UNSCOPED_MESSAGE")
     with scoped("beta"):
@@ -125,17 +154,20 @@ try:
             break
         threading.Event().wait(0.05)
     assert len(receipts) == 3, receipts
-    assert len(children) == 3, children
+    assert len(children) == 6, children
     assert sorted(r["authorization"] for r in receipts) == ["Bearer test-alice", "Bearer test-alice", "Bearer test-bob"]
     assert sorted(r["body"]["namespace"] for r in receipts) == ["client-a", "client-a", "client-b"]
     assert all(r["body"]["sketch"] == "" and "closeBlockId" not in r["body"] for r in receipts)
     assert all("PRIVATE" not in json.dumps(r) and "TRANSCRIPT" not in json.dumps(r) for r in receipts)
-    assert [c["MEMORY_LANE_LIBRARY"] for c in children] == [alpha_library, alpha_library, beta_library]
-    assert [c["MEMORY_LANE_ACCESS_TOKEN"] for c in children] == ["test-alice", "test-alice", "test-bob"]
+    assert [c["MEMORY_LANE_LIBRARY"] for c in children] == [
+        alpha_library, alpha_library, alpha_library, beta_library, alpha_library, beta_library]
+    assert [c["MEMORY_LANE_ACCESS_TOKEN"] for c in children] == [
+        "test-alice", "test-alice", "test-bob", "test-alice", "test-alice", "test-bob"]
     assert all(c["MEMORY_LANE_MERGE_CONFIG"] == os.devnull for c in children)
     print(json.dumps({"ok": True, "runtime": "installed MemoryManager", "profiles": 2,
                       "turns": len(receipts), "subprocesses": len(children), "unscoped_refused": True,
-                      "prefetch": "profile-scoped"}))
+                      "prefetch": "profile-scoped", "warm_cache_revocation": True,
+                      "warm_cache_principal_switch": True, "warm_cache_library_switch": True}))
 finally:
     set_multiplex_active(False)
     server.shutdown()
