@@ -37,11 +37,11 @@ Enriched facts are stored independently of sealed records. Feeding those checkpo
 
 ## Founder-gated cutover
 
-1. Back up the live canonical library, service configuration, policy, token files, and code revision. Record and verify its actual block count and chain verdict; development tests do not verify the reported 2,964-block live library.
+1. Back up the live canonical library, service configuration, policy, token files, and code revision. Record and verify its actual block count and chain verdict at cutover; historical counts are not an acceptance check.
 2. Reproduce tests and benchmark on the deployment runtime. Review the PR and confirm all live feeders are compatible with enforced write auth and the exclusive writer lock.
 3. Review legacy namespace ownership. Create policy entries for owner/company/agents/clients and strong independent tokens. Keep external decisions disabled by default. Configure the serving process so the access policy cannot silently disappear on restart.
 4. Run dry-run projections on a sandbox copy. Add only reviewed source-hash attestations. Do not treat unstructured historic claims as verified events.
-5. Wire lifecycle callers to authenticated `/api/v3/session` for each user message and optional closeout references. Test against a sandbox first. The production Hermes plugin and four feeder deployments were not altered by development.
+5. Wire lifecycle callers to authenticated `/api/v3/session` for each user turn and optional separately verified closeout references. Test against a sandbox first. The production Hermes plugin and four feeder deployments were not altered by development.
 6. Validate live Jev outputs on a separately approved, minimized labeled corpus. Replace provisional offline calibration only after measuring precision, recall, abstention, latency and cost. This step is not covered by the simulated transport benchmark.
 7. Obtain explicit founder approval before changing the running deployment. Then cut over deliberately, verify health/auth/chain/search, and inspect scoped receipts.
 

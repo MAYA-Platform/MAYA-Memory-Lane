@@ -4,7 +4,7 @@ description: "Memory Lane — local-first, zero-dependency, chain-verified memor
 pip_dependencies: []
 hooks:
   - on_session_start
-  - on_user_message
+  - on_turn_start
   - on_session_end
   - on_session_switch
   - on_memory_write

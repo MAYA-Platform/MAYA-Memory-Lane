@@ -44,7 +44,7 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
   const env = { ...process.env, MEMORY_LANE_LIBRARY: lib.rootDir, MEMORY_LANE_ACCESS_TOKEN: 'test-alice' };
 
   const recent = JSON.parse(execFileSync(process.execPath, ['tools/memory-lane-cli.mjs', 'recent', '5', 'Orchid'], { cwd, env, encoding: 'utf8' }));
-  assert.equal(recent.selection, 'newest_first');
+  assert.equal(recent.selection, 'freshness');
   assert.equal(recent.blocks.length, 1);
   assert.match(recent.blocks[0].excerpt, /A-491/);
   assert.ok(!JSON.stringify(recent).includes('B-492'));
@@ -61,6 +61,9 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
   assert.equal(httpBody.blocks.length, 1);
   assert.ok(!JSON.stringify(httpBody).includes('B-492'));
   assert.equal((await fetch(base + '/api/v3/recent', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
+  assert.equal((await fetch(base + '/api/v3/recent', { method: 'POST', headers: auth('test-alice'), body: '[]' })).status, 400);
+  assert.equal((await fetch(base + '/api/v3/recent', { method: 'POST', headers: auth('test-alice'), body: '{"limit":-3}' })).status, 400);
+  assert.equal((await fetch(base + '/api/v3/query', { method: 'POST', headers: auth('test-alice'), body: '{}' })).status, 400);
 
   const calls = [
     { name: 'ml_recent', arguments: { limit: 5, query: 'Orchid' } },
@@ -78,14 +81,22 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
   assert.ok(!mcpLines.join('\n').includes('SESSION_OPEN'));
 });
 
-test('Hermes provider declares V3, session-start selection, and lifecycle activity bridge', () => {
-  const source = fs.readFileSync(path.join(cwd, 'hermes-plugin/memory-lane/__init__.py'), 'utf8');
+test('Hermes provider manifest declares installed turn lifecycle', () => {
   const manifest = fs.readFileSync(path.join(cwd, 'hermes-plugin/memory-lane/plugin.yaml'), 'utf8');
-  assert.match(source, /"name": "ml_query"/);
-  assert.match(source, /self\._format_recent_context\(5, query\)/);
-  assert.match(source, /def on_user_message\(/);
-  assert.match(source, /MEMORY_LANE_SESSION_URL/);
-  assert.match(source, /MEMORY_LANE_NAMESPACE/);
   assert.match(manifest, /on_session_start/);
-  assert.match(manifest, /on_user_message/);
+  assert.match(manifest, /on_turn_start/);
+});
+
+test('installed Hermes MemoryManager dispatches turn activity and scoped prefetch', t => {
+  const source = process.env.HERMES_AGENT_SOURCE;
+  const python = process.env.HERMES_PYTHON;
+  if (!source || !python) return t.skip('set HERMES_AGENT_SOURCE and HERMES_PYTHON for installed runtime probe');
+  const lib = makeLibrary(t, [
+    { body: 'Client alpha current project is Orchid migration A-491.', namespace: 'client-a' },
+    { body: 'Client beta current project is Orchid migration B-492.', namespace: 'client-b' },
+  ]);
+  fs.writeFileSync(path.join(lib.rootDir, 'access-policy.json'), JSON.stringify(policy()));
+  const raw = execFileSync(python, ['tests/hermes-plugin-runtime.py', lib.rootDir,
+    path.join(cwd, 'tools/memory-lane-cli.mjs')], { cwd, env: { ...process.env, HERMES_HOME: process.env.HERMES_HOME || path.join(cwd, '.hermes-test') }, encoding: 'utf8' });
+  assert.deepEqual(JSON.parse(raw), { ok: true, runtime: 'installed MemoryManager', turns: 3, prefetch: 'scoped' });
 });

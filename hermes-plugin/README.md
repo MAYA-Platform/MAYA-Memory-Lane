@@ -43,7 +43,8 @@ isolated V3 service, configure `MEMORY_LANE_SESSION_URL` (full
 `/api/v3/session` URL), `MEMORY_LANE_NAMESPACE`, and the principal's existing
 `MEMORY_LANE_ACCESS_TOKEN` in the protected Hermes profile environment. Remote
 URLs must use HTTPS; loopback HTTP is allowed for local development. The
-`on_user_message` callback depends on support in the installed Hermes runtime.
+The installed Hermes `on_turn_start` callback reports metadata-only activity
+with an empty sketch. Message text and transcripts are never sent by the plugin.
 Without these values, session writes stay disabled and retrieval remains
 read-only.
 

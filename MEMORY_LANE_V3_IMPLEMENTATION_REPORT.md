@@ -117,19 +117,10 @@ See `docs/V3_MIGRATION_AND_ROLLBACK.md` for the concrete dry-run, cutover and ro
 
 Remaining founder approval requirements: production deployment/restarts and feeder reconfiguration; any bulk paid backfill with an explicit reviewed scope/cost plan; acceptance of live calibration and production results. No deployment or founder acceptance is implied by a passing test suite or a draft PR.
 
-## October 28 founder order follow-up
+## October 31 integration checkpoint
 
-Requested base was verified as `c571fa5042bd7eda9560c85bdf4df18f158b24b0` on `origin/codex/ml-v3-20261016`; the shared worktree was clean and detached at inspection. The changes below are in the shared worktree but could not be committed: workspace policy makes `.git` read-only, and creating the requested local branch failed when Git could not create `.git/index.lock`. The base SHA therefore remains the last commit SHA; it is not a SHA for these working-tree changes.
+The reviewed candidate is based on the current draft PR branch, preserving its policy-scoped legacy search/answer and fail-closed resume/recent behavior. The detached predecessor checkout was retained separately. This update repairs the installed Hermes `on_turn_start` lifecycle, eliminates message sketches from Hermes activity payloads, adds an actual installed `MemoryManager` runtime probe, and makes policy-scoped recent selection enforce a 30-day timestamp window with explicit abstention. See `docs/V3_READER_ACTIVATION_MATRIX.md` for each reader and activation state.
 
-Implemented in this checkout:
-
-- Added one hash-checked V3 session-start selector with bounded recent candidates, freshness fallback, optional Jev selection under namespace policy, and explicit anchor exclusion.
-- Wired V3 recent selection and scoped `ml_query` through CLI, authenticated HTTP (`POST /api/v3/recent`), MCP, and Hermes prefetch. Added Hermes session-start, user-message, and optional closeout callbacks; activity is disabled unless endpoint, namespace, and access token are explicitly configured.
-- Added cross-entry-point E2E coverage and the team/feeder activation contract in `docs/V3_TEAM_AND_FEEDER_ACTIVATION.md`.
-- Extended the secret scanner to include untracked non-ignored source files so new deliverables are covered before staging.
-
-Verification from the shared checkout: `npm test` passed 175/175; `npm run benchmark:v3` passed all five synthetic workloads, temporal fixture 3/3, chain 6/6, and recorded zero real provider calls; `node tools/secret_scan.mjs` reported clean. Benchmark output used a deterministic Jev stub and is not live Jev calibration. The Hermes runtime itself and its `on_user_message` dispatch were not available for runtime verification.
-
-Hard gates remain: the private labeled evaluation corpus and approved live Jev calibration environment were not present, so no private evaluation or paid provider call was run; the four feeder repositories and their identities were absent from this checkout, so only the shared endpoint contract and Hermes source integration were delivered; and the team's active profiles/service cannot be changed under the order's no-config/no-restart/no-deploy constraints. Team activation still requires review of the private corpus results, feeder revisions/namespaces, installed Hermes hook support, and explicit cutover authorization.
+The full test suite, offline synthetic benchmark, secret scan, exact commit and remote read-back are recorded in the task review return. The benchmark makes zero real Jev provider calls and is not live accuracy calibration. No production library, service, feeder, or team profile was changed by this candidate. Team rollout still requires independent exact-head acceptance, reviewed namespace ownership and profile identities, private feeder inventory, and live Jev calibration before production cutover.
 
 2ndNatureAi

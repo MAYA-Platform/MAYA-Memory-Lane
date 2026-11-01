@@ -174,6 +174,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         self._init_error = ""
         self._session_url = os.environ.get("MEMORY_LANE_SESSION_URL", "").strip()
         self._namespace = os.environ.get("MEMORY_LANE_NAMESPACE", "").strip()
+        self._activity_enabled = True
 
     # -- MemoryProvider ABC -------------------------------------------------
 
@@ -203,17 +204,19 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         # cron/flush contexts should not inject personal memory into prompts.
         agent_context = kwargs.get("agent_context", "")
         platform = kwargs.get("platform", "cli")
-        if agent_context in {"cron", "flush"} or platform == "cron":
+        self._activity_enabled = agent_context not in {"cron", "flush", "subagent"} and platform != "cron"
+        if not self._activity_enabled:
             self._prefetched = True  # skip prefetch for non-primary contexts
-        else:
-            self._report_activity()
+        # The installed MemoryManager dispatches on_turn_start, not a provider
+        # on_session_start hook.  Do not create an anchor until a real turn.
 
     def on_session_start(self, session_id: str = "", **kwargs) -> None:
         if session_id:
             self._session_id = session_id
         self._prefetched = False
         self._last_prefetch = ""
-        self._report_activity(sketch=kwargs.get("first_message", ""))
+        # Kept for hosts that dispatch this optional hook. The first real turn
+        # is reported by on_turn_start so initialization never exports text.
 
     # -- Context injection (auto-resume) ------------------------------------
 
@@ -254,24 +257,21 @@ class MemoryLaneMemoryProvider(MemoryProvider):
 
     def on_session_switch(self, new_session_id: str, *, parent_session_id: str = "", **kwargs) -> None:
         # A genuinely new session should re-pull recent memory (auto-resume).
-        if kwargs.get("reset"):
+        if new_session_id != self._session_id or kwargs.get("reset") or kwargs.get("rewound"):
             self._session_id = new_session_id
             self._prefetched = False
             self._last_prefetch = ""
-            self._report_activity()
 
-    def on_user_message(self, message: str, **kwargs) -> None:
-        """Report activity without exporting transcript text; sketch export is not enabled yet."""
+    def on_turn_start(self, turn_number: int, message: str, **kwargs) -> None:
+        """Installed Hermes MemoryManager calls this before prefetch on every turn."""
         self._report_activity()
 
-    def on_session_end(self, messages: List[Dict[str, Any]], **kwargs) -> None:
-        """Hermes passes the ended transcript here. Never treat it as a closeout id."""
-        # Session-closeout linkage requires a separately verified sealed block id;
-        # none is provided by MemoryProvider.on_session_end in this Hermes runtime.
+    def on_session_end(self, messages: list[dict[str, Any]]) -> None:
+        """Hermes passes a transcript here; never treat it as a closeout ID."""
         return
 
-    def _report_activity(self, sketch: str = "", close_block_id: str = "") -> None:
-        if not self._session_url or not self._namespace or not self._session_id:
+    def _report_activity(self, close_block_id: str = "") -> None:
+        if not self._activity_enabled or not self._session_url or not self._namespace or not self._session_id:
             return
         parsed = urlsplit(self._session_url)
         loopback_http = parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost", "::1"}
@@ -286,7 +286,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
             "sessionId": self._session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "runtime": "hermes",
-            "sketch": str(sketch or "")[:500],
+            "sketch": "",
         }
         if close_block_id:
             payload["closeBlockId"] = str(close_block_id)[:128]

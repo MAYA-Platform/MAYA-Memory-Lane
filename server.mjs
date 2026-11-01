@@ -478,7 +478,8 @@ const routes = {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST required' });
     if (!req.memoryAccess) return sendJson(res, 403, { ok: false, error: 'Access policy required' });
     const request = await readJsonBody(req);
-    if (!request || typeof request !== 'object' || request.error) return sendJson(res, 400, { ok: false, error: 'Invalid request' });
+    if (!request || typeof request !== 'object' || Array.isArray(request) || request.error ||
+      (!String(request.query || '').trim() && !String(request.entity || '').trim())) return sendJson(res, 400, { ok: false, error: 'Invalid request' });
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, error: 'Library unavailable' });
     const result = await retrieve(lib, request, { ...req.memoryAccess, cache: v3Cache });
@@ -492,7 +493,9 @@ const routes = {
     if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST required' });
     if (!req.memoryAccess) return sendJson(res, 403, { ok: false, error: 'Access policy required' });
     const request = await readJsonBody(req);
-    if (!request || typeof request !== 'object' || request.error) return sendJson(res, 400, { ok: false, error: 'Invalid request' });
+    if (!request || typeof request !== 'object' || Array.isArray(request) || request.error ||
+      (request.limit !== undefined && (!Number.isInteger(request.limit) || request.limit < 1 || request.limit > 20)) ||
+      (request.query !== undefined && typeof request.query !== 'string')) return sendJson(res, 400, { ok: false, error: 'Invalid request' });
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, error: 'Library unavailable' });
     const result = await retrieve(lib, { ...request, recent: true }, { ...req.memoryAccess, cache: v3Cache });
