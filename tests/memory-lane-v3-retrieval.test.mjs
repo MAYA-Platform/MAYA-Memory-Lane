@@ -6,6 +6,7 @@ import path from 'node:path';
 import { appendBlock, loadLibrary, readBlock, search } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { jevRank, expandCandidates } from '../lib/jevrank.js';
+import { recentSelection } from '../lib/retrieval.js';
 
 function fixture(t, bodies) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-v3-'));
@@ -18,6 +19,41 @@ function rankScores(scores) {
   return async (_lib, _q, matches) => ({ matches: matches.map((m, i) => ({ ...m, jev_score: scores[i] ?? 0 })),
     jev: { applied: true, usage: { cost: 0.001 }, model: 'fixture' } });
 }
+
+test('session-start selection uses Jev when enabled and falls back to fresh evidence', async t => {
+  const lib = fixture(t, ['Old Orchid decision.', 'Recent unrelated note.', 'Current Orchid migration decision.']);
+  let prompt = '';
+  const selected = await recentSelection(lib, { limit: 2, query: 'Orchid status', available: () => true,
+    rank: async (_library, q, matches) => {
+      prompt = q;
+      return { matches: matches.map((m, i) => ({ ...m, jev_score: i === 0 ? 0 : 2 })),
+        jev: { applied: true, usage: { cost: 0.00003 } } };
+    } });
+  assert.equal(prompt, 'Orchid status');
+  assert.equal(selected.selection, 'jev');
+  assert.equal(selected.blocks[0].block_id, lib.blocks[1].block_id);
+  const fallback = await recentSelection(lib, { limit: 1 });
+  assert.equal(fallback.selection, 'freshness');
+  assert.equal(fallback.blocks[0].block_id, lib.blocks[2].block_id);
+});
+
+test('policy-scoped recent favors valid event time and abstains on stale evidence', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-v3-fresh-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'MANIFEST.json'), JSON.stringify({ blocks: [] }));
+  appendBlock(root, { title: 'Fresh', body: 'Fresh verified event', timestamp: '2026-10-30T00:00:00Z' });
+  appendBlock(root, { title: 'Stale', body: 'Stale newer ID', timestamp: '2026-01-01T00:00:00Z' });
+  appendBlock(root, { title: 'Future', body: 'Future claim', timestamp: '2026-11-05T00:00:00Z' });
+  const lib = loadLibrary(root), now = Date.parse('2026-10-31T00:00:00Z');
+  const selected = await recentSelection(lib, { strictFreshness: true, now });
+  assert.equal(selected.blocks.length, 1);
+  assert.match(selected.blocks[0].excerpt, /Fresh verified/);
+  const stale = await recentSelection(lib, { strictFreshness: true, now: Date.parse('2027-01-01T00:00:00Z') });
+  assert.equal(stale.blocks.length, 0);
+  assert.equal(stale.freshness.abstained, true);
+  const legacy = await recentSelection(lib, { now });
+  assert.equal(legacy.blocks.length, 3);
+});
 
 test('literal fast path makes zero paid requests even with multiple candidates', async t => {
   const lib = fixture(t, ['Alex leased a Honda Civic in black.', 'Alex enjoys Honda motorcycles.']);

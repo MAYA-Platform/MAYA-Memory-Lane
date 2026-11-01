@@ -16,9 +16,9 @@
       "abstained": 0,
       "false_positive_rate": null,
       "latency_ms": {
-        "p50": 2.737,
-        "p95": 4.016,
-        "p99": 4.57
+        "p50": 4.785,
+        "p95": 6.794,
+        "p99": 7.277
       },
       "simulated_decision_calls_including_warmup": 0
     },
@@ -32,9 +32,9 @@
       "abstained": 0,
       "false_positive_rate": null,
       "latency_ms": {
-        "p50": 31.116,
-        "p95": 32.535,
-        "p99": 32.844
+        "p50": 43.905,
+        "p95": 156.704,
+        "p99": 280.442
       },
       "simulated_decision_calls_including_warmup": 101
     },
@@ -48,9 +48,9 @@
       "abstained": 0,
       "false_positive_rate": null,
       "latency_ms": {
-        "p50": 1.55,
-        "p95": 2.302,
-        "p99": 2.64
+        "p50": 2.864,
+        "p95": 4.123,
+        "p99": 5.208
       },
       "simulated_decision_calls_including_warmup": 0
     },
@@ -64,9 +64,9 @@
       "abstained": 100,
       "false_positive_rate": 0,
       "latency_ms": {
-        "p50": 3.834,
-        "p95": 5.501,
-        "p99": 6.11
+        "p50": 7.493,
+        "p95": 12.965,
+        "p99": 19.518
       },
       "simulated_decision_calls_including_warmup": 0
     },
@@ -80,9 +80,9 @@
       "abstained": 0,
       "false_positive_rate": null,
       "latency_ms": {
-        "p50": 30.899,
-        "p95": 32.421,
-        "p99": 32.874
+        "p50": 30.814,
+        "p95": 33.754,
+        "p99": 45.579
       },
       "simulated_decision_calls_including_warmup": 101
     }

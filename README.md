@@ -115,9 +115,17 @@ Memory Lane isn't just a UI, it's an **agent memory layer**. A zero-dependency M
 | Tool | What it does |
 |---|---|
 | `ml_search(query)` | Full-text search across all blocks, re-ranked for intent by Jev when a key is available (pass `rerank: "none"` to skip) |
-| `ml_answer(question)` | Ask a natural-language question, exact match or synthesized from evidence |
-| `ml_recent(limit)` | Digest of the most recent blocks (call at session start) |
+| `ml_answer(question)` | Ask a natural-language question; returns exact or Jev-selected source passages, never generated prose |
+| `ml_query(request)` | V3 scoped evidence, candidate bundle, or explicit temporal query |
+| `ml_recent(limit, query?)` | Hash-checked session-start context; Jev reorders only when namespace policy allows it |
 | `ml_resume(phrase)` | Resolve a resume phrase to blocks |
+
+The Hermes plugin and CLI use the same bounded recent selector. Policy-enabled
+HTTP clients can call `POST /api/v3/recent`; session lifecycle writers use the
+authenticated `POST /api/v3/session`. See
+[`docs/V3_TEAM_AND_FEEDER_ACTIVATION.md`](docs/V3_TEAM_AND_FEEDER_ACTIVATION.md)
+for the team and feeder migration contract. No active profile or service is
+changed by installing these source integrations.
 
 ### Query-time re-ranking (JevRank)
 
