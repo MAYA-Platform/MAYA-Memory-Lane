@@ -79,7 +79,7 @@ The caller sends activity on each user message. The service returns 202 for best
 
 Queues persist retry state, cap pending work, and record failures. Repeated writes deduplicate through canonical append. A durable permission receipt precedes writes. The implementation defers work with `setImmediate`; synchronous canonical I/O can still occupy the event loop afterward. This is not a worker-based ingestion system.
 
-The Hermes provider uses the installed runtime's `on_turn_start` callback. Set `MEMORY_LANE_SESSION_URL`, `MEMORY_LANE_NAMESPACE`, and `MEMORY_LANE_ACCESS_TOKEN` in a protected profile environment to enable metadata-only session activity. Its payload has an empty `sketch`; it does not export a user message or transcript. `on_session_end(messages)` ignores the transcript and does not infer a closeout ID. The active profile installations and existing production feeders were not reconfigured; clients must explicitly wire the authenticated endpoint during cutover.
+The Hermes provider uses the installed runtime's `on_turn_start` callback. Bind `MEMORY_LANE_ACCESS_TOKEN` through the owning profile's secret scope; bind `MEMORY_LANE_NAMESPACE` and `MEMORY_LANE_SESSION_URL` through that scope or the profile's `memory_lane` config. The session activity POST has an empty `sketch` and no message or transcript. Separately, a Jev-enabled session-start prefetch can export the bounded, redacted user-derived query and source excerpts under that namespace's `externalJev` policy. `on_session_end(messages)` ignores the transcript and does not infer a closeout ID. The active profile installations and existing production feeders were not reconfigured; clients must explicitly wire the authenticated endpoint during cutover.
 
 ## Temporal projection schema
 

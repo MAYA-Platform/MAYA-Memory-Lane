@@ -6,16 +6,16 @@ in the same settings menu as Honcho, Mem0, and Supermemory.
 
 ## What it is
 
-Memory Lane is a MIT-licensed memory library that runs entirely offline on
-consumer hardware:
+Memory Lane is a MIT-licensed memory library with a local storage and
+verification path:
 
 - **SQLite FTS5** retrieval (61% recall@5 on LongMemEval — above hosted Honcho
   at 40%, and competitive with Mem0's dense+hosted lane while staying local).
 - **SHA-256 chain-verified blocks** — every memory block is linked to its
   predecessor and verified, so corruption is detectable (Bitcoin-style
   integrity, but no tokens/mining/consensus).
-- **Zero dependencies** — no API key, no cloud, no account. Your memory never
-  leaves the machine.
+- **Local legacy mode** — the v1 path needs no hosted account. A V3 namespace
+  may explicitly allow bounded query and excerpt egress for Jev decisions.
 
 ## How it works
 
@@ -40,13 +40,17 @@ namespace explicitly permits external Jev decisions.
 
 The provider exposes session lifecycle callbacks. To send activity to an
 isolated V3 service, configure `MEMORY_LANE_SESSION_URL` (full
-`/api/v3/session` URL), `MEMORY_LANE_NAMESPACE`, and the principal's existing
-`MEMORY_LANE_ACCESS_TOKEN` in the protected Hermes profile environment. Remote
-URLs must use HTTPS; loopback HTTP is allowed for local development. The
-The installed Hermes `on_turn_start` callback reports metadata-only activity
-with an empty sketch. Message text and transcripts are never sent by the plugin.
-Without these values, session writes stay disabled and retrieval remains
-read-only.
+`/api/v3/session` URL), `MEMORY_LANE_NAMESPACE`, and the principal's
+`MEMORY_LANE_ACCESS_TOKEN` in the owning Hermes profile scope or config as
+described below. Remote
+URLs must use HTTPS; loopback HTTP is allowed for local development.
+The installed Hermes `on_turn_start` callback reports session activity with
+an empty sketch. A separate Jev-enabled prefetch may send a bounded,
+redacted user-derived query and source excerpts when the namespace permits it.
+The bearer and read path are resolved from the owning profile's secret scope;
+namespace and session URL can also come from its profile config.
+Without a profile-scoped V3 bearer, policy-scoped retrieval and session writes
+are refused. The single-owner legacy path keeps its compatibility behavior.
 
 **Write side** — durable writes are handled by the Session Auto-Sealer
 (session → continuity block → ingest), so the provider is deliberately

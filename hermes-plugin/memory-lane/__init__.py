@@ -37,6 +37,8 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from agent.memory_provider import MemoryProvider
+from agent.secret_scope import current_secret_scope_home, get_secret, is_multiplex_active
+from hermes_constants import hermes_home_key, reset_hermes_home_override, set_hermes_home_override
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +56,6 @@ def _default_cli() -> str:
 
 
 DEFAULT_CLI = _default_cli()
-
-
-def _coerce_path(value: Any) -> str:
-    return str(value).strip() if value else ""
 
 
 # ---------------------------------------------------------------------------
@@ -172,8 +170,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         self._prefetch_lock = threading.Lock()
         self._last_prefetch = ""
         self._init_error = ""
-        self._session_url = os.environ.get("MEMORY_LANE_SESSION_URL", "").strip()
-        self._namespace = os.environ.get("MEMORY_LANE_NAMESPACE", "").strip()
+        self._bound_home = ""
         self._activity_enabled = True
 
     # -- MemoryProvider ABC -------------------------------------------------
@@ -188,18 +185,19 @@ class MemoryLaneMemoryProvider(MemoryProvider):
             node = _find_node()
             if not node:
                 return False
-            cli = _resolve(self._cli, "MEMORY_LANE_CLI", DEFAULT_CLI)
+            cli = self._setting("MEMORY_LANE_CLI", "cli", DEFAULT_CLI)
             if not cli or not Path(cli).is_file():
                 return False
-            lib = _resolve(self._library, "MEMORY_LANE_LIBRARY", DEFAULT_LIBRARY)
+            lib = self._setting("MEMORY_LANE_LIBRARY", "library", "" if is_multiplex_active() else DEFAULT_LIBRARY)
             return Path(lib, "MANIFEST.json").exists()
         except Exception:
             return False
 
     def initialize(self, session_id: str, **kwargs) -> None:
         self._session_id = session_id or ""
-        self._library = _resolve(self._library, "MEMORY_LANE_LIBRARY", DEFAULT_LIBRARY)
-        self._cli = _resolve(self._cli, "MEMORY_LANE_CLI", DEFAULT_CLI)
+        self._bound_home = str(kwargs.get("hermes_home") or "")
+        self._library = self._setting("MEMORY_LANE_LIBRARY", "library", DEFAULT_LIBRARY, require_owner=False)
+        self._cli = self._setting("MEMORY_LANE_CLI", "cli", DEFAULT_CLI, require_owner=False)
         self._prefetched = False
         # cron/flush contexts should not inject personal memory into prompts.
         agent_context = kwargs.get("agent_context", "")
@@ -229,6 +227,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
 
     def prefetch(self, query: str, *, session_id: str = "") -> str:
         """Pull recent blocks once at session start and inject as context."""
+        self._require_owner_scope()
         with self._prefetch_lock:
             if self._prefetched:
                 return self._last_prefetch
@@ -271,18 +270,23 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         return
 
     def _report_activity(self, close_block_id: str = "") -> None:
-        if not self._activity_enabled or not self._session_url or not self._namespace or not self._session_id:
+        if not self._activity_enabled or not self._session_id:
             return
-        parsed = urlsplit(self._session_url)
+        self._require_owner_scope()
+        if is_multiplex_active() and not self._setting("MEMORY_LANE_LIBRARY", "library", ""):
+            return
+        session_url = self._setting("MEMORY_LANE_SESSION_URL", "session_url", "")
+        namespace = self._setting("MEMORY_LANE_NAMESPACE", "namespace", "")
+        token = (get_secret("MEMORY_LANE_ACCESS_TOKEN", "") or "").strip()
+        if not session_url or not namespace or not token:
+            return
+        parsed = urlsplit(session_url)
         loopback_http = parsed.scheme == "http" and parsed.hostname in {"127.0.0.1", "localhost", "::1"}
         if (parsed.scheme != "https" and not loopback_http) or parsed.path.rstrip("/") != "/api/v3/session" or parsed.username or parsed.password:
             logger.warning("Memory Lane session URL must be the V3 session endpoint over HTTPS or loopback HTTP")
             return
-        token = os.environ.get("MEMORY_LANE_ACCESS_TOKEN", "").strip()
-        if not token:
-            return
         payload = {
-            "namespace": self._namespace,
+            "namespace": namespace,
             "sessionId": self._session_id,
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "runtime": "hermes",
@@ -294,7 +298,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         def send():
             try:
                 body = json.dumps(payload).encode("utf-8")
-                request = Request(self._session_url, data=body, headers={
+                request = Request(session_url, data=body, headers={
                     "Authorization": f"Bearer {token}", "Content-Type": "application/json",
                 }, method="POST")
                 with urlopen(request, timeout=1.5) as response:
@@ -333,11 +337,11 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         return
 
     def backup_paths(self) -> List[str]:
-        lib = _resolve(self._library, "MEMORY_LANE_LIBRARY", DEFAULT_LIBRARY)
+        lib = self._library
         paths = [lib]
         # The CLI bridge lives in the public repo checkout; include it so a
         # restore keeps the provider functional.
-        cli = _resolve(self._cli, "MEMORY_LANE_CLI", DEFAULT_CLI)
+        cli = self._cli
         if cli:
             paths.append(cli)
         return paths
@@ -346,16 +350,22 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         return [
             {"key": "library", "description": "Memory Lane library directory (local)", "default": DEFAULT_LIBRARY, "secret": False},
             {"key": "cli", "description": "Path to memory-lane-cli.mjs bridge", "default": DEFAULT_CLI, "secret": False},
+            {"key": "namespace", "description": "Assigned V3 namespace", "default": "", "secret": False},
+            {"key": "session_url", "description": "V3 session endpoint", "default": "", "secret": False},
+            {"key": "access_token", "description": "Profile-scoped V3 bearer", "secret": True, "env_var": "MEMORY_LANE_ACCESS_TOKEN"},
         ]
 
     def save_config(self, values: Dict[str, Any], hermes_home: str) -> None:
         # Store provider paths in config.yaml under memory_lane: (non-secret).
         try:
             from hermes_cli.config import set_config_value
-            if values.get("library"):
-                set_config_value("memory_lane.library", values["library"])
-            if values.get("cli"):
-                set_config_value("memory_lane.cli", values["cli"])
+            token = set_hermes_home_override(hermes_home)
+            try:
+                for key in ("library", "cli", "namespace", "session_url"):
+                    if values.get(key):
+                        set_config_value(f"memory_lane.{key}", values[key])
+            finally:
+                reset_hermes_home_override(token)
         except Exception:
             pass
 
@@ -370,15 +380,33 @@ class MemoryLaneMemoryProvider(MemoryProvider):
 
     def _run(self, *argv: str) -> str:
         """Run the bridge and return the raw JSON string (or a tool-error JSON)."""
+        self._require_owner_scope()
         node = _find_node()
         if not node:
             return json.dumps({"ok": False, "error": "node not found on PATH"})
-        cli = _resolve(self._cli, "MEMORY_LANE_CLI", DEFAULT_CLI)
-        lib = _resolve(self._library, "MEMORY_LANE_LIBRARY", DEFAULT_LIBRARY)
+        cli = self._setting("MEMORY_LANE_CLI", "cli", DEFAULT_CLI)
+        lib = self._setting("MEMORY_LANE_LIBRARY", "library", "" if is_multiplex_active() else DEFAULT_LIBRARY)
+        token = (get_secret("MEMORY_LANE_ACCESS_TOKEN", "") or "").strip()
+        if not lib:
+            return json.dumps({"ok": False, "error": "Profile-scoped Memory Lane library required"})
         if not cli or not Path(cli).is_file():
             return json.dumps({"ok": False, "error": "MEMORY_LANE_CLI must point to tools/memory-lane-cli.mjs"})
-        env = dict(os.environ)
+        if not token and (is_multiplex_active() or Path(lib, "access-policy.json").exists()):
+            return json.dumps({"ok": False, "error": "Profile-scoped Memory Lane access token required"})
+        env = {key: value for key, value in os.environ.items()
+               if not key.startswith("MEMORY_LANE_") and key != "MERGE_API_KEY"}
         env["MEMORY_LANE_LIBRARY"] = lib
+        if token:
+            env["MEMORY_LANE_ACCESS_TOKEN"] = token
+        # Prevent the Node bridge from finding a process-global Merge key in
+        # the launch profile's config when this profile did not grant one.
+        env["MEMORY_LANE_MERGE_CONFIG"] = os.devnull
+        merge_key = (get_secret("MERGE_API_KEY", "") or "").strip()
+        if merge_key:
+            env["MERGE_API_KEY"] = merge_key
+        decisions_url = self._setting("MEMORY_LANE_DECISIONS_URL", "decisions_url", "")
+        if decisions_url:
+            env["MEMORY_LANE_DECISIONS_URL"] = decisions_url
         try:
             r = subprocess.run(
                 [node, cli, *argv],
@@ -396,6 +424,41 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         except Exception:
             return {"ok": False, "error": "invalid JSON from bridge"}
 
+    def _require_owner_scope(self) -> None:
+        if not self._bound_home:
+            raise RuntimeError("Memory Lane provider is not bound to a profile")
+        if is_multiplex_active():
+            scope_home = current_secret_scope_home()
+            if not scope_home or hermes_home_key(scope_home) != hermes_home_key(self._bound_home):
+                raise RuntimeError("Memory Lane profile scope is missing or does not match its owner")
+
+    def _setting(self, env_key: str, config_key: str, default: str, *, require_owner: bool = True) -> str:
+        if require_owner and self._bound_home:
+            self._require_owner_scope()
+        try:
+            scope_home = current_secret_scope_home()
+            if self._bound_home and not require_owner and (not scope_home or
+                hermes_home_key(scope_home) != hermes_home_key(self._bound_home)) and is_multiplex_active():
+                scoped = ""
+            else:
+                scoped = get_secret(env_key, "")
+        except Exception:
+            if require_owner:
+                raise
+            scoped = ""
+        if scoped:
+            return str(scoped).strip()
+        home_token = set_hermes_home_override(self._bound_home) if self._bound_home else None
+        try:
+            from hermes_cli.config import cfg_get, load_config_readonly
+            value = cfg_get(load_config_readonly(), "memory_lane", config_key)
+            return str(value).strip() if value else default
+        except Exception:
+            return default
+        finally:
+            if home_token is not None:
+                reset_hermes_home_override(home_token)
+
 
 # ---------------------------------------------------------------------------
 # Discovery helpers
@@ -404,24 +467,6 @@ class MemoryLaneMemoryProvider(MemoryProvider):
 def _find_node() -> Optional[str]:
     import shutil
     return shutil.which("node")
-
-
-def _resolve(current: str, env_key: str, default: str) -> str:
-    if os.environ.get(env_key):
-        return os.environ[env_key]
-    if current and current != default:
-        return current
-    # Fall back to config.yaml memory_lane.<key> if present.
-    try:
-        from hermes_cli.config import cfg_get, load_config
-        cfg = load_config()
-        key = env_key.replace("MEMORY_LANE_", "").lower()
-        val = cfg_get(cfg, "memory_lane", key)
-        if val:
-            return str(val)
-    except Exception:
-        pass
-    return default
 
 
 def register(ctx) -> None:

@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
 import { spawn, execFileSync } from 'node:child_process';
@@ -91,12 +92,24 @@ test('installed Hermes MemoryManager dispatches turn activity and scoped prefetc
   const source = process.env.HERMES_AGENT_SOURCE;
   const python = process.env.HERMES_PYTHON;
   if (!source || !python) return t.skip('set HERMES_AGENT_SOURCE and HERMES_PYTHON for installed runtime probe');
-  const lib = makeLibrary(t, [
+  const alpha = makeLibrary(t, [
     { body: 'Client alpha current project is Orchid migration A-491.', namespace: 'client-a' },
     { body: 'Client beta current project is Orchid migration B-492.', namespace: 'client-b' },
   ]);
-  fs.writeFileSync(path.join(lib.rootDir, 'access-policy.json'), JSON.stringify(policy()));
-  const raw = execFileSync(python, ['tests/hermes-plugin-runtime.py', lib.rootDir,
-    path.join(cwd, 'tools/memory-lane-cli.mjs')], { cwd, env: { ...process.env, HERMES_HOME: process.env.HERMES_HOME || path.join(cwd, '.hermes-test') }, encoding: 'utf8' });
-  assert.deepEqual(JSON.parse(raw), { ok: true, runtime: 'installed MemoryManager', turns: 3, prefetch: 'scoped' });
+  const beta = makeLibrary(t, [
+    { body: 'Other alpha project is Orchid migration A-493.', namespace: 'client-a' },
+    { body: 'Client beta current project is Orchid migration B-492.', namespace: 'client-b' },
+  ]);
+  for (const lib of [alpha, beta]) fs.writeFileSync(path.join(lib.rootDir, 'access-policy.json'), JSON.stringify(policy()));
+  const profileRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-v3-profiles-'));
+  t.after(() => fs.rmSync(profileRoot, { recursive: true, force: true }));
+  const raw = execFileSync(python, ['tests/hermes-plugin-runtime.py', alpha.rootDir, beta.rootDir,
+    path.join(cwd, 'tools/memory-lane-cli.mjs'), profileRoot], { cwd, env: {
+    ...process.env, HERMES_HOME: profileRoot, MEMORY_LANE_LIBRARY: 'poison-process-library',
+    MEMORY_LANE_ACCESS_TOKEN: 'poison-process-token', MEMORY_LANE_NAMESPACE: 'poison-process-namespace',
+    MEMORY_LANE_SESSION_URL: 'http://127.0.0.1:9/api/v3/session', MERGE_API_KEY: 'poison-process-merge',
+    MEMORY_LANE_DECISIONS_URL: 'http://127.0.0.1:9/decisions' }, encoding: 'utf8' });
+  assert.deepEqual(JSON.parse(raw), { ok: true, runtime: 'installed MemoryManager', profiles: 2,
+    turns: 3, subprocesses: 3, unscoped_refused: true, prefetch: 'profile-scoped' });
+  t.diagnostic(`runtime probe: ${raw.trim()}`);
 });

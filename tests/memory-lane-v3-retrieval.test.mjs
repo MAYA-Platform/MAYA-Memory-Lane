@@ -6,7 +6,7 @@ import path from 'node:path';
 import { appendBlock, loadLibrary, readBlock, search } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { jevRank, expandCandidates } from '../lib/jevrank.js';
-import { recentSelection } from '../lib/retrieval.js';
+import { recentSelection, retrieve } from '../lib/retrieval.js';
 
 function fixture(t, bodies) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-v3-'));
@@ -53,6 +53,41 @@ test('policy-scoped recent favors valid event time and abstains on stale evidenc
   assert.equal(stale.freshness.abstained, true);
   const legacy = await recentSelection(lib, { now });
   assert.equal(legacy.blocks.length, 3);
+});
+
+test('session-start Jev egress requires namespace consent and serializes only bounded decisions', async t => {
+  const lib = fixture(t, ['Orchid status belongs to client-a person@example.test.',
+    'Orchid migration has a second source with password=synthetic.']);
+  const policy = { version: 1, legacyNamespace: 'founder',
+    namespaces: { founder: { externalJev: false } }, principals: { reader: { read: ['founder'] } } };
+  const saved = process.env.MERGE_API_KEY;
+  process.env.MERGE_API_KEY = 'offline-test';
+  t.after(() => { if (saved === undefined) delete process.env.MERGE_API_KEY; else process.env.MERGE_API_KEY = saved; });
+  const payloads = [];
+  t.mock.method(globalThis, 'fetch', async (_url, options) => {
+    const payload = JSON.parse(options.body);
+    payloads.push(payload);
+    return { ok: true, json: async () => ({ answers: Object.fromEntries(
+      Object.keys(payload.questions).map(id => [id, { score: 2 }])) }) };
+  });
+  const request = { recent: true, query: `person@example.test ${'Orchid '.repeat(110)}` };
+  const local = await retrieve(lib, request, { policy, principal: 'reader' });
+  assert.equal(local.selection, 'freshness');
+  assert.equal(payloads.length, 0);
+  policy.namespaces.founder.externalJev = true;
+  const consented = await retrieve(lib, request, { policy, principal: 'reader' });
+  assert.equal(consented.selection, 'jev');
+  assert.equal(payloads.length, 1);
+  const payload = payloads[0];
+  assert.deepEqual(Object.keys(payload).sort(), ['model', 'questions', 'state']);
+  assert.equal(payload.model, 'typesafe/jev-1.13');
+  assert.match(payload.state, /^Query: \[email\]/);
+  assert.ok(!payload.state.includes('person@'), payload.state);
+  assert.ok(!payload.state.includes('password='));
+  const lines = payload.state.split('\n');
+  assert.ok(lines[0].length <= 'Query: '.length + 500);
+  assert.ok(lines.slice(1).length <= 12 && lines.slice(1).every(line => line.length <= 204));
+  assert.ok(Object.values(payload.questions).every(q => q.type === 'score'));
 });
 
 test('literal fast path makes zero paid requests even with multiple candidates', async t => {

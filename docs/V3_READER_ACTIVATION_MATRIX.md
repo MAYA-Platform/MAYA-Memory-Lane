@@ -12,9 +12,9 @@ was reconfigured. Fixture tokens and records are synthetic.
 | CLI legacy search/answer/resume | PASS | Policy-scoped answer uses V3 planner; policy-scoped resume denied; legacy mode remains available | OFF |
 | MCP `ml_query`, `ml_recent` | PASS | JSON-RPC client, scoped evidence, no anchor or other-client fixture leakage | OFF |
 | MCP legacy search/answer/resume | PASS | Policy-scoped search/answer use V3 planner; policy-scoped resume denied; Jev requires namespace opt-in | OFF |
-| Hermes MemoryProvider | PASS on installed local runtime | Actual `MemoryManager.on_turn_start` dispatch, scoped CLI prefetch, session switch and metadata-only local receiver; transcript ignored | OFF |
+| Hermes MemoryProvider | PASS on installed local runtime | Two fake profile homes and secret scopes; actual `MemoryManager.on_turn_start`/`prefetch_all`, distinct child tokens/libraries, wrong/unscoped refusal, session switch, metadata-only loopback receiver | OFF |
 | Session freshness writer | PASS in isolated suite | Authenticated namespace writer; `SESSION_OPEN`/`WAKE` and malformed-event tests | OFF |
-| Jev decisions | Synthetic test only | Failure/timeout abstention; zero actual provider calls in offline benchmark | OFF pending private calibration |
+| Jev decisions | Synthetic test only | `externalJev=false` makes zero calls; opt-in stub captures bounded redacted query, excerpts and score questions; zero actual provider calls in offline benchmark | OFF pending namespace egress consent and private calibration |
 | Four private feeders | UNVERIFIED | Revisions, principals, namespaces, hooks and closeout sources absent from this checkout | OFF |
 | Active team profiles | UNVERIFIED runtime state | Current profile YAML check below; runtime environment and route read-back remain required | OFF |
 

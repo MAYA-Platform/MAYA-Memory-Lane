@@ -7,7 +7,7 @@ planner. This document describes how a team deployment adopts those paths.
 
 ## Scope and privacy boundary
 
-The provider now exports session identifiers, timestamps, and runtime name only. It does not export first messages, user-message text, or end-of-session transcripts. The V3 endpoint supports a minimized `sketch`, but this Hermes integration deliberately leaves it empty until an explicit per-namespace export-consent design exists. Hermes calls `MemoryProvider.on_session_end(messages)` with the transcript; this callback ignores it rather than treating it as a closeout ID. Closeout linkage is deferred until Hermes can provide a separately verified sealed block ID.
+The Hermes session-activity POST contains a session identifier, timestamp, runtime name, namespace, and an empty `sketch`. It does not send a first message or transcript to that endpoint. Session-start **prefetch is a separate read path**: when the authorized namespace has `externalJev: true`, its user-derived query (up to 500 characters) and at most 12 source excerpts (up to 200 characters each) can reach the configured Jev decisions endpoint after best-effort redaction. Keep `externalJev: false` for the first deterministic pilot; enable it only after that namespace's egress consent and live calibration are accepted. `on_session_end(messages)` ignores the transcript; closeout linkage needs a separately verified sealed block ID.
 
 Each feeder must use its own principal and approved namespace. A shared legacy library without `access-policy.json` is not ready for multi-principal V3 activation. Do not flip the team's provider route to V3 against the 3,130-record unscoped library. First inventory the owned feeder/profile consumers, choose owner-approved namespace mapping, classify/migrate legacy blocks without guessing ownership, stage an operator-owned policy and unique principal tokens, then test in an isolated profile/service. In policy-enabled mode every read surface must be authenticated and scoped; do not rely on legacy compatibility routes for tenant isolation.
 
@@ -18,8 +18,10 @@ runtime principal only the `read` and `write` namespaces it needs. Session
 anchors require namespace write access. Set external Jev access separately for
 each namespace; it remains disabled unless explicitly enabled.
 
-For a Hermes profile, set these values in the profile's protected environment
-or service secret store after deployment review:
+For a Hermes profile, bind these values to its own protected secret scope or
+profile `memory_lane` configuration after deployment review. The bearer must
+come from that profile's secret scope; namespace and session URL may be
+profile config values. Never inject another profile's values into process globals:
 
 ```text
 MEMORY_LANE_LIBRARY=<mounted-library>
@@ -31,7 +33,9 @@ MEMORY_LANE_CLI=<path-to-this-repository>/tools/memory-lane-cli.mjs
 
 Loopback HTTP is accepted for isolated local use. Remote session URLs must use
 HTTPS. The plugin starts activity delivery only when URL, namespace, and token
-are all present. Its `sketch` is empty; no message text or transcript is sent.
+are all present. Its `sketch` is empty; no message text or transcript is sent
+to the session endpoint. A Jev-enabled prefetch can send the bounded query and
+candidate excerpts described above.
 Session activity is best-effort and queued by the service; delivery failure
 does not block chat. The installed Hermes `MemoryManager` dispatches
 `on_turn_start` before prefetch on each real turn. Initialization alone does
@@ -83,8 +87,11 @@ enabling it.
 
 The repository E2E suite verifies CLI, HTTP, and MCP against temporary synthetic
 libraries. With `HERMES_AGENT_SOURCE` and `HERMES_PYTHON` set, it also loads the
-installed Hermes `MemoryManager` and tests turn dispatch, scoped prefetch,
-session switch, and metadata-only activity against an isolated local receiver.
+installed Hermes `MemoryManager` under two real profile secret scopes and fake
+profile homes. It tests turn dispatch, `prefetch_all`, scoped CLI child values,
+session switch, wrong/unscoped refusals, and metadata-only activity against an
+isolated loopback receiver. A stubbed Jev test checks the separate consented
+decisions payload and confirms zero calls when `externalJev` is false.
 Private feeder runtimes and active team profile configurations remain unverified.
 
 ## Activation gates
