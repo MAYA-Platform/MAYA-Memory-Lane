@@ -444,7 +444,7 @@ class MemoryLaneMemoryProvider(MemoryProvider):
         try:
             r = subprocess.run(
                 [node, cli, *argv],
-                capture_output=True, text=True, timeout=60, env=env,
+                capture_output=True, text=True, timeout=5 if local_open else 60, env=env,
             )
             if r.returncode != 0:
                 return json.dumps({"ok": False, "error": (r.stderr or r.stdout or "unknown")[:400]})
