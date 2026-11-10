@@ -18,6 +18,11 @@ from memory_lane_candidate import open_prefetch as cache
 
 
 class OpenRecall(unittest.TestCase):
+    def test_discoverable_before_provider_initialization(self):
+        from hermes_cli.plugins_manifest import parse_manifest_file
+        manifest = parse_manifest_file(PLUGIN / "plugin.yaml", PLUGIN, source="user", prefix="")
+        self.assertEqual(manifest.kind, "standalone")
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
