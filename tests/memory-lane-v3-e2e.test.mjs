@@ -36,10 +36,12 @@ async function launch(t, library) {
 }
 
 test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors stay hidden', async t => {
+  const timestamp = new Date().toISOString();
+  const before = new Date(Date.now() + 86_400_000).toISOString();
   const lib = makeLibrary(t, [
-    { body: 'Client alpha current project is Orchid migration A-491.', namespace: 'client-a' },
-    { body: 'Client beta current project is Orchid migration B-492.', namespace: 'client-b' },
-    { body: '@anchor {"type":"SESSION_OPEN","session_id":"synthetic"}', namespace: 'client-a', anchorType: 'SESSION_OPEN' },
+    { timestamp, body: 'Client alpha current project is Orchid migration A-491.', namespace: 'client-a' },
+    { timestamp, body: 'Client beta current project is Orchid migration B-492.', namespace: 'client-b' },
+    { timestamp, body: '@anchor {"type":"SESSION_OPEN","session_id":"synthetic"}', namespace: 'client-a', anchorType: 'SESSION_OPEN' },
   ]);
   fs.writeFileSync(path.join(lib.rootDir, 'access-policy.json'), JSON.stringify(policy()));
   const env = { ...process.env, MEMORY_LANE_LIBRARY: lib.rootDir, MEMORY_LANE_ACCESS_TOKEN: 'test-alice' };
@@ -54,9 +56,17 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
   const cliQuery = JSON.parse(execFileSync(process.execPath, ['tools/memory-lane-cli.mjs', 'query', JSON.stringify({ query: 'Orchid migration', bundle: true })], { cwd, env, encoding: 'utf8' }));
   assert.equal(cliQuery.evidence.length, 1);
   assert.ok(!JSON.stringify(cliQuery).includes('B-492'));
+  const cliTemporal = JSON.parse(execFileSync(process.execPath, ['tools/memory-lane-cli.mjs', 'query', JSON.stringify({ query: 'Orchid migration', bundle: true, before })], { cwd, env, encoding: 'utf8' }));
+  assert.equal(cliTemporal.complete, false);
+  assert.equal(cliTemporal.traversal.temporal_coverage, 'bounded-candidates-not-exhaustive');
 
   const base = await launch(t, lib);
   const httpRecent = await fetch(base + '/api/v3/recent', { method: 'POST', headers: auth('test-alice'), body: JSON.stringify({ limit: 5, query: 'Orchid' }) });
+  const httpTemporal = await fetch(base + '/api/v3/query', { method: 'POST', headers: auth('test-alice'), body: JSON.stringify({ query: 'Orchid migration', bundle: true, before }) });
+  const temporalBody = await httpTemporal.json();
+  assert.equal(httpTemporal.status, 200);
+  assert.equal(temporalBody.complete, false);
+  assert.equal(temporalBody.traversal.temporal_coverage, 'bounded-candidates-not-exhaustive');
   assert.equal(httpRecent.status, 200);
   const httpBody = await httpRecent.json();
   assert.equal(httpBody.blocks.length, 1);
@@ -68,7 +78,7 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
 
   const calls = [
     { name: 'ml_recent', arguments: { limit: 5, query: 'Orchid' } },
-    { name: 'ml_query', arguments: { query: 'Orchid migration', bundle: true } },
+    { name: 'ml_query', arguments: { query: 'Orchid migration', bundle: true, before } },
     { name: 'ml_search', arguments: { query: 'Orchid migration' } },
     { name: 'ml_answer', arguments: { question: 'Which Orchid migration?' } },
     { name: 'ml_resume', arguments: { phrase: 'Orchid' } },
@@ -76,6 +86,9 @@ test('V3 recent and query stay scoped across CLI, HTTP, and MCP; session anchors
   const mcpLines = execFileSync(process.execPath, ['tools/memory-lane-mcp.mjs'], { cwd, env, input: calls, encoding: 'utf8' }).trim().split(/\r?\n/);
   const mcp = new Map(mcpLines.map(line => { const item = JSON.parse(line); return [item.id, item.result]; }));
   assert.equal(mcp.size, 5);
+  const mcpTemporal = JSON.parse(mcp.get(2).content[0].text);
+  assert.equal(mcpTemporal.complete, false);
+  assert.equal(mcpTemporal.traversal.temporal_coverage, 'bounded-candidates-not-exhaustive');
   assert.ok([1, 2, 3, 4].every(id => !mcp.get(id).isError));
   assert.equal(mcp.get(5).isError, true, 'resume is blocked when the library is namespace-scoped');
   assert.ok(!mcpLines.join('\n').includes('B-492'));
