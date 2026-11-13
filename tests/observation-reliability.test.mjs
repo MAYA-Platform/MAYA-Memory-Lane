@@ -22,8 +22,13 @@ async function startSandbox(t, mounted) {
   for (const dir of ['lib', 'empty-library', 'sample-library']) {
     fs.cpSync(path.join(ROOT, dir), path.join(root, dir), { recursive: true });
   }
-  const external = path.join(root, 'mounted');
-  if (mounted) fs.cpSync(path.join(root, 'empty-library'), external, { recursive: true });
+  let external = path.join(root, 'mounted');
+  if (mounted === true) fs.cpSync(path.join(root, 'empty-library'), external, { recursive: true });
+  if (mounted === 'empty' || mounted === 'sample') external = path.join(root, `${mounted}-library`);
+  if (mounted === 'alias') {
+    external = path.join(root, 'demo-alias');
+    fs.symlinkSync(path.join(root, 'empty-library'), external, 'junction');
+  }
 
   const listener = net.createServer();
   await new Promise((resolve, reject) => listener.once('error', reject).listen(0, '127.0.0.1', resolve));
@@ -78,3 +83,18 @@ test('mounted observation receipts and injected pins reflect distinct stored rec
   const injected = await (await fetch(`${base}/api/inject?pins=fixture`)).json();
   assert.equal((injected.snapshot.match(/I prefer the fixture theme/g) || []).length, 1);
 });
+
+for (const mounted of ['empty', 'sample', 'alias']) {
+  test(`an explicit ${mounted} demo path cannot be used to write`, async (t) => {
+    const { root, base } = await startSandbox(t, mounted);
+    const write = await fetch(`${base}/api/ingest`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: 'synthetic fixture', facts: [] }),
+    });
+    assert.equal(write.status, 400);
+    assert.equal((await post(base, { message: 'I prefer a synthetic fixture' })).status, 400);
+    for (const name of ['empty-library', 'sample-library']) {
+      assert.equal(fs.existsSync(path.join(root, name, 'observations.jsonl')), false);
+    }
+  });
+}
