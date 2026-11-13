@@ -65,6 +65,8 @@ Eligible `.md` and `.txt` files become blocks titled from their first heading or
 
 Read or append failures, a directory depth beyond 12, or more than 5,000 candidate files cause a nonzero exit, including in quiet mode. An unsuccessful run may already have imported some notes; it does not roll them back. The candidate limit applies on each run, so rerunning a larger vault will not necessarily reach the remaining files. Import larger vaults in smaller source folders and review the results; changing the source folder changes lineage and can create duplicates of notes previously imported from the parent folder.
 
+The importer checks collected paths for collisions in its legacy 32-bit lineage before writing and stops if it finds one. This check covers only paths collected in the current scan; it cannot identify collisions with paths that are absent, skipped during traversal, present only in older imports, or imported separately from another source root. The hash uses the supplied source path and case, not a canonical file identity. Historical lineage values are retained for compatibility, so review older imports separately.
+
 ## How the chain works
 
 Every session ends as a **micro block**, a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks are consolidated into one **shelf block**, numbered, timestamped, and chained to the shelf block before it by carrying its fingerprint. Blocks are filed into **shelves** (six per shelf), grouped into **volumes**, and tracked in a **manifest**.
@@ -137,8 +139,21 @@ top full-text candidates and sends **one** batched request to the TypeSafe Jev
 decisions model (`typesafe/jev-1.13` via the configured decisions gateway) asking it to score each
 candidate's relevance to the query's intent (0-2). Results are re-ordered by that
 score and annotated with `jev_score`, while the original full-text score is kept for
-comparison. `GET /api/jevstats` reports call count, question count, failures, and
-estimated cost, so the re-ranker's spend is auditable down to fractions of a cent.
+comparison. `GET /api/jevstats` reports process-lifetime attempts and attempted
+questions, failures, and a partial cost estimate. An attempt records invocation of
+fetch; it does not establish that the provider received the request. The historical `calls` and
+`questions` counters include only responses with at least one usable score;
+`pendingAttempts` counts requests still in progress; `unpricedAttempts` counts
+completed attempts without such a response. `estimatedCostUsd`
+combines nonnegative finite reported usage costs or a per-question estimate for those scored responses
+and excludes pending and unpriced attempts. If the aggregate exceeds the numeric
+range, it becomes `null` for the rest of the process lifetime. It is not a
+provider billing receipt; failed
+attempts may still incur charges. Missing fetch or a failing `onAttempt` callback can
+increase `failures` without increasing `attempts`; a missing key or a source-change
+check that stops before fetch is not counted as an attempt. The exported
+`jevStats()` JavaScript function also returns `null` for an overflowed estimate,
+so clients should handle the cost as a nullable number. Counters reset when the server restarts.
 
 JevRank is strictly additive and defensive: if the key is missing, the model is
 unreachable, or the request times out (3s cap), search returns the plain full-text
@@ -236,7 +251,7 @@ Every figure regenerates from the latest run JSONs, and the committed `benchmark
 | `GET /api/search?q=` | Search across block bodies (add `&rerank=jev` for intent re-ranking) |
 | `GET /api/answer?q=` | Ask a question, direct / synthesized / none (retrieval confidence gate) |
 | `GET /api/resume?phrase=` | Resolve a resume phrase |
-| `GET /api/jevstats` | JevRank usage counter: calls, questions, failures, estimated cost |
+| `GET /api/jevstats` | JevRank process-lifetime attempts, failures, and partial cost estimate |
 | `GET /api/export` | Deterministic JSON export |
 | `POST /api/ingest` | Seal a new memory (auto fact extraction) |
 | `POST /api/blocks/write` | Seal a new memory with explicit facts (no LLM) |
