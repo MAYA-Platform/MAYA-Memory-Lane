@@ -137,8 +137,13 @@ top full-text candidates and sends **one** batched request to the TypeSafe Jev
 decisions model (`typesafe/jev-1.13` via the configured decisions gateway) asking it to score each
 candidate's relevance to the query's intent (0-2). Results are re-ordered by that
 score and annotated with `jev_score`, while the original full-text score is kept for
-comparison. `GET /api/jevstats` reports call count, question count, failures, and
-estimated cost, so the re-ranker's spend is auditable down to fractions of a cent.
+comparison. `GET /api/jevstats` reports process-lifetime attempts and attempted
+questions, failures, and a partial cost estimate. The historical `calls` and
+`questions` counters include only responses with at least one usable score;
+`unpricedAttempts` counts attempts without such a response. `estimatedCostUsd`
+combines reported usage costs or a per-question estimate for those scored responses
+and excludes unpriced attempts. It is not a provider billing receipt; failed
+attempts may still incur charges. Counters reset when the server restarts.
 
 JevRank is strictly additive and defensive: if the key is missing, the model is
 unreachable, or the request times out (3s cap), search returns the plain full-text
@@ -236,7 +241,7 @@ Every figure regenerates from the latest run JSONs, and the committed `benchmark
 | `GET /api/search?q=` | Search across block bodies (add `&rerank=jev` for intent re-ranking) |
 | `GET /api/answer?q=` | Ask a question, direct / synthesized / none (retrieval confidence gate) |
 | `GET /api/resume?phrase=` | Resolve a resume phrase |
-| `GET /api/jevstats` | JevRank usage counter: calls, questions, failures, estimated cost |
+| `GET /api/jevstats` | JevRank process-lifetime attempts, failures, and partial cost estimate |
 | `GET /api/export` | Deterministic JSON export |
 | `POST /api/ingest` | Seal a new memory (auto fact extraction) |
 | `POST /api/blocks/write` | Seal a new memory with explicit facts (no LLM) |
