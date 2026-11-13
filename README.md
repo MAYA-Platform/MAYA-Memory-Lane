@@ -131,6 +131,8 @@ Answer `cost` is `0` when no external provider call was attempted and `null` whe
 
 Search results include `manifest_hash_status` (`match`, `mismatch`, `missing`, or `invalid`) comparing the bytes used for an excerpt with the manifest hash. The JSON CLI `search` command includes this field, and MCP `ml_search` labels it for each result. A match does not establish the truth of the content, validate the chain, or authenticate the manifest. Existing missing block files are omitted from results. CLI `recent` and `resume` and MCP `ml_recent` and `ml_resume` also label each excerpt; `file_missing`, `read_error`, or `unavailable` indicate no readable block was available.
 
+MCP `ml_recent` and `ml_search` default to five results and accept a positive safe-integer limit. Valid limits above 25 are capped and say so; unsafe integers are rejected. For nonempty results, `ml_recent` reports how many library entries were shown, while `ml_search` reports the number returned and notes that additional matches may exist; it does not claim a total match count. Empty results use a no-results message. Nonpositive, fractional and nonnumeric limits return an error (previously zero defaulted to five and negative values could select unintended results). Positive numeric strings remain accepted for existing clients. This is a record-count cap, not a byte, token or read-memory limit: manifest IDs and titles are not length-bounded, and each selected block is read to build its excerpt. `ml_resume` is not covered by this limit.
+
 `/api/search` accepts an optional `rerank=jev` parameter. When set (and the MCP tools
 do this by default whenever a decisions-provider key resolves), the server takes the
 top full-text candidates and sends **one** batched request to the TypeSafe Jev
