@@ -493,11 +493,14 @@ const routes = {
     if (req.method !== 'POST') {
       return sendJson(res, 405, { ok: false, error: 'method not allowed' });
     }
+    if (!EXTERNAL_LIBRARY) {
+      return sendJson(res, 400, {
+        ok: false,
+        error: 'writes are disabled on the bundled demo libraries; mount a library via MEMORY_LANE_LIBRARY'
+      });
+    }
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    if (!activeLibraryPath) {
-      return sendJson(res, 400, { ok: false, error: 'a library must be mounted to observe' });
-    }
     const body = await readJsonBody(req);
     if (body && body.error) return sendJson(res, 400, { ok: false, error: body.error });
     const { observeMessage } = await import('./lib/observations.js');
