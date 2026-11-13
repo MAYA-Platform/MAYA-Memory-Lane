@@ -17,7 +17,8 @@ Behavior:
   - Scans INBOX for files with a watched extension, ignoring dotfiles/temp.
   - Ingests each via `node tools/ingest.mjs <file> --source inbox --quiet`.
   - On success: moves the file to processed/<date>/.
-  - On failure: leaves the file in place (so it retries next tick) and logs.
+  - On failure: logs an uncertain outcome; a source still in the inbox may be
+    retried on the next tick. Inspect the source and library before retry.
   - Prints nothing when there was nothing to do. Prints a short summary when
     work happened. Prints an error to stdout when a file failed (so the cron
     delivery surfaces it).
@@ -52,6 +53,9 @@ def find_node():
 
 
 def main():
+    # Keep status and filenames printable on legacy consoles without altering files.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="backslashreplace")
     ap = argparse.ArgumentParser(description="Memory Lane inbox watcher")
     ap.add_argument("--inbox", default=str(DEFAULT_INBOX))
     ap.add_argument("--library", default=str(DEFAULT_LIBRARY))
@@ -93,11 +97,17 @@ def main():
             try:
                 r = subprocess.run(
                     [node, str(ingest_js), str(f), "--source", "inbox", "--library", str(library), "--quiet"],
-                    capture_output=True, text=True, timeout=180,
+                    capture_output=True, timeout=180,
                     cwd=str(repo),
                 )
+                try:
+                    stdout = r.stdout.decode("utf-8", errors="strict")
+                    stderr = r.stderr.decode("utf-8", errors="strict")
+                except UnicodeDecodeError:
+                    failures.append({"file": f.name, "error": "ingest output is not valid UTF-8; outcome unconfirmed"})
+                    continue
                 if r.returncode == 0:
-                    out = json.loads(r.stdout.strip().splitlines()[-1])
+                    out = json.loads(stdout.strip().splitlines()[-1])
                     # Archive to processed/<date>/
                     date_dir = inbox / "processed" / datetime.date.today().isoformat()
                     date_dir.mkdir(parents=True, exist_ok=True)
@@ -111,7 +121,7 @@ def main():
                         "facts_count": out.get("facts_count", 0),
                     })
                 else:
-                    failures.append({"file": f.name, "error": (r.stderr or r.stdout or "").strip()[-300:]})
+                    failures.append({"file": f.name, "error": (stderr or stdout).strip()[-300:]})
             except Exception as e:  # noqa: BLE001
                 failures.append({"file": f.name, "error": str(e)[-300:]})
 
@@ -123,7 +133,7 @@ def main():
                 print(f"  - {p['file']} → {p['block_id']} (lib {p['lib_id']}, "
                       f"chain_intact={p['chain_intact']}, facts={p['facts_count']})")
         if failures:
-            print("ML-WATCH ✗ failures (files left in place for retry):")
+            print("ML-WATCH ✗ failures (inspect source and library before retry; remaining inbox files may be retried):")
             for fl in failures:
                 print(f"  - {fl['file']}: {fl['error']}")
 
