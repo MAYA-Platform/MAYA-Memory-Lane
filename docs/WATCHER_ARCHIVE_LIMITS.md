@@ -12,10 +12,13 @@ the later rename, so those failures can still occur after ingestion.
 
 This is a narrow protection for the archive destination. It is not an atomic
 transaction across ingestion and moving the input. Ingestion may already have
-written a record when archival fails, and an input left in the inbox may be
-retried on a later loop. Inspect the library and both paths before retrying.
-The existing watcher may return exit status zero despite individual failures;
-inspect its output rather than treating a zero status as proof of success.
+written a record when archival fails. The watcher stops the current run and
+returns nonzero on the first failure or unconfirmed outcome; other files in the
+same scan remain unprocessed. Inspect the library and both paths before
+restarting. This behavior changes the prior per-file failure exit and loop
+behavior, so update callers that expected a zero exit or continued looping.
+It is not a durable hold: a separate cron or scheduler invocation can retry an
+input left in the inbox without checking whether ingestion already succeeded.
 The watcher does not establish exactly-once processing or protect against a
 source being replaced while it is being ingested. Concurrent attempts on the
 same source can both report success on Windows even though one archive remains.

@@ -53,19 +53,20 @@ class ArchiveNoReplaceTest(unittest.TestCase):
             library.mkdir()
             (repo / 'tools').mkdir(parents=True)
             (library / 'MANIFEST.json').write_text('{}', encoding='utf-8')
-            (repo / 'tools' / 'ingest.mjs').write_text("console.log(JSON.stringify({block_id:'synthetic'}));", encoding='utf-8')
+            (repo / 'tools' / 'ingest.mjs').write_text("console.log(JSON.stringify({ok:true,block_id:'synthetic',lib_id:1}));", encoding='utf-8')
             source = inbox / 'note.txt'
             source.write_bytes(b'new synthetic')
             destination = inbox / 'processed' / datetime.date.today().isoformat() / 'note.txt'
             destination.parent.mkdir(parents=True)
             destination.write_bytes(b'old synthetic')
-            env = {k: os.environ[k] for k in ('PATH', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP') if k in os.environ}
+            env = {k: os.environ[k] for k in ('PATH', 'SYSTEMROOT', 'SYSTEMDRIVE', 'WINDIR') if k in os.environ}
+            env.update(TEMP=str(root), TMP=str(root), USERPROFILE=str(root), LOCALAPPDATA=str(root))
             result = subprocess.run([sys.executable, '-B', str(SPEC.origin), '--inbox', str(inbox), '--library', str(library),
                                      '--repo', str(repo), '--once'], capture_output=True, env=env, timeout=10)
-            self.assertEqual(result.returncode, 0)
+            self.assertEqual(result.returncode, 1)
             self.assertEqual(source.read_bytes(), b'new synthetic')
             self.assertEqual(destination.read_bytes(), b'old synthetic')
-            self.assertIn(b'inspect source and library before retry', result.stdout)
+            self.assertIn(b'inspect source and library before restarting', result.stdout)
 
     def test_existing_target_and_source_are_preserved(self):
         with tempfile.TemporaryDirectory(prefix='watch-archive-') as directory:
