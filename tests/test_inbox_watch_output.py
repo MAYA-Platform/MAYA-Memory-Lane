@@ -17,9 +17,9 @@ def fake_run(command, **kwargs):
     filename = Path(command[2]).name
     class Result:
         returncode = 1 if filename.startswith('failed-') else 0
-        stderr = 'synthetic failure \U0001f680' if returncode else ''
+        stderr = ('synthetic failure \U0001f680' if returncode else '').encode('utf-8')
         stdout = ('' if returncode else 'malformed synthetic receipt' if filename.startswith('uncertain-')
-                  else json.dumps({'block_id': 'synthetic\U0001f680'}))
+                  else json.dumps({'block_id': 'synthetic\U0001f680'})).encode('utf-8')
     return Result()
 subprocess.run = fake_run
 sys.argv = [watcher, '--inbox', inbox, '--library', library, '--repo', repo, '--once']
@@ -73,16 +73,17 @@ class WatchOutputTest(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which('node'), 'Node is required for the synthetic child')
     def test_real_child_utf8_and_malformed_receipts(self):
-        for valid in (True, False):
-            with self.subTest(valid=valid), tempfile.TemporaryDirectory(prefix='memory-watcher-child-') as directory:
+        for case in ('valid', 'invalid_stdout', 'invalid_stderr'):
+            with self.subTest(case=case), tempfile.TemporaryDirectory(prefix='memory-watcher-child-') as directory:
                 root = Path(directory)
                 inbox, library, repo = root / 'inbox', root / 'library', root / 'repo'
                 inbox.mkdir()
                 library.mkdir()
                 (repo / 'tools').mkdir(parents=True)
                 (library / 'MANIFEST.json').write_text('{}', encoding='utf-8')
-                script = ("process.stdout.write(JSON.stringify({block_id:'\\u0401'}));" if valid
-                          else "process.stdout.write(Buffer.from([0xff]));")
+                script = ("process.stdout.write(Buffer.from([0xff]));" if case == 'invalid_stdout' else
+                          "process.stdout.write(JSON.stringify({block_id:'\\u0401'}));" +
+                          ("process.stderr.write(Buffer.from([0xff]));" if case == 'invalid_stderr' else ''))
                 (repo / 'tools' / 'ingest.mjs').write_text(script, encoding='utf-8')
                 source = inbox / 'synthetic.txt'
                 source.write_text('synthetic only', encoding='utf-8')
@@ -92,13 +93,16 @@ class WatchOutputTest(unittest.TestCase):
                                          '--library', str(library), '--repo', str(repo), '--once'],
                                         capture_output=True, env=env, timeout=10)
                 self.assertEqual(result.returncode, 0, result.stderr.decode('cp1252', errors='replace'))
-                if valid:
+                if case == 'valid':
                     self.assertFalse(source.exists())
                     self.assertEqual(len(list((inbox / 'processed').glob('*/synthetic.txt'))), 1)
                     self.assertIn(b'\\u0401', result.stdout)
                 else:
                     self.assertTrue(source.exists())
                     self.assertIn(b'inspect source and library before retry', result.stdout)
+                    self.assertIn(b'ingest output is not valid UTF-8; outcome unconfirmed', result.stdout)
+                    self.assertNotIn(b'Exception in thread', result.stderr)
+                    self.assertNotIn(b'Traceback', result.stderr)
 
 
 if __name__ == '__main__':

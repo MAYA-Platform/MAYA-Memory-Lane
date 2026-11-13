@@ -97,11 +97,17 @@ def main():
             try:
                 r = subprocess.run(
                     [node, str(ingest_js), str(f), "--source", "inbox", "--library", str(library), "--quiet"],
-                    capture_output=True, text=True, encoding="utf-8", errors="strict", timeout=180,
+                    capture_output=True, timeout=180,
                     cwd=str(repo),
                 )
+                try:
+                    stdout = r.stdout.decode("utf-8", errors="strict")
+                    stderr = r.stderr.decode("utf-8", errors="strict")
+                except UnicodeDecodeError:
+                    failures.append({"file": f.name, "error": "ingest output is not valid UTF-8; outcome unconfirmed"})
+                    continue
                 if r.returncode == 0:
-                    out = json.loads(r.stdout.strip().splitlines()[-1])
+                    out = json.loads(stdout.strip().splitlines()[-1])
                     # Archive to processed/<date>/
                     date_dir = inbox / "processed" / datetime.date.today().isoformat()
                     date_dir.mkdir(parents=True, exist_ok=True)
@@ -115,7 +121,7 @@ def main():
                         "facts_count": out.get("facts_count", 0),
                     })
                 else:
-                    failures.append({"file": f.name, "error": (r.stderr or r.stdout or "").strip()[-300:]})
+                    failures.append({"file": f.name, "error": (stderr or stdout).strip()[-300:]})
             except Exception as e:  # noqa: BLE001
                 failures.append({"file": f.name, "error": str(e)[-300:]})
 
