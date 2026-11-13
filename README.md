@@ -141,9 +141,12 @@ comparison. `GET /api/jevstats` reports process-lifetime attempts and attempted
 questions, failures, and a partial cost estimate. An attempt records invocation of
 fetch; it does not establish that the provider received the request. The historical `calls` and
 `questions` counters include only responses with at least one usable score;
-`unpricedAttempts` counts attempts without such a response. `estimatedCostUsd`
+`pendingAttempts` counts requests still in progress; `unpricedAttempts` counts
+completed attempts without such a response. `estimatedCostUsd`
 combines nonnegative finite reported usage costs or a per-question estimate for those scored responses
-and excludes unpriced attempts. It is not a provider billing receipt; failed
+and excludes pending and unpriced attempts. If the aggregate exceeds the numeric
+range, it becomes `null` for the rest of the process lifetime. It is not a
+provider billing receipt; failed
 attempts may still incur charges. Counters reset when the server restarts.
 
 JevRank is strictly additive and defensive: if the key is missing, the model is

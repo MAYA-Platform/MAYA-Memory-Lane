@@ -89,3 +89,54 @@ test('attempt boundary and malformed response data do not misstate telemetry', a
     else process.env.MERGE_API_KEY = previousKey;
   }
 });
+
+test('in-flight attempts remain pending until priced or failed', async () => {
+  const previousFetch = globalThis.fetch;
+  const previousKey = process.env.MERGE_API_KEY;
+  process.env.MERGE_API_KEY = 'synthetic-test-key';
+  const candidates = [{ block_id: 'a', excerpt: 'one' }];
+  const before = jevStats();
+  try {
+    let finish;
+    globalThis.fetch = () => new Promise((resolve) => { finish = resolve; });
+    const pending = jevScoreBatch('q', candidates);
+    assert.equal(jevStats().attempts - before.attempts, 1);
+    assert.equal(jevStats().pendingAttempts - before.pendingAttempts, 1);
+    assert.equal(jevStats().unpricedAttempts, before.unpricedAttempts);
+    finish({ ok: false, status: 503 });
+    assert.equal((await pending).ok, false);
+    assert.equal(jevStats().pendingAttempts, before.pendingAttempts);
+    assert.equal(jevStats().unpricedAttempts - before.unpricedAttempts, 1);
+    const pendingSuccess = jevScoreBatch('q', candidates);
+    assert.equal(jevStats().pendingAttempts - before.pendingAttempts, 1);
+    finish({ ok: true, json: async () => ({ answers: { C0: { score: 1 } } }) });
+    assert.equal((await pendingSuccess).ok, true);
+    assert.equal(jevStats().pendingAttempts, before.pendingAttempts);
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.MERGE_API_KEY;
+    else process.env.MERGE_API_KEY = previousKey;
+  }
+});
+
+test('unrepresentable aggregate remains explicitly unknown', async () => {
+  const previousFetch = globalThis.fetch;
+  const previousKey = process.env.MERGE_API_KEY;
+  process.env.MERGE_API_KEY = 'synthetic-test-key';
+  try {
+    const candidates = [{ block_id: 'a', excerpt: 'one' }];
+    globalThis.fetch = async () => ({ ok: true, json: async () => ({ answers: { C0: { score: 1 } }, usage: { cost: Number.MAX_VALUE } }) });
+    assert.equal((await jevScoreBatch('q', candidates)).ok, true);
+    assert.equal(Number.isFinite(jevStats().estimatedCostUsd), true);
+    assert.equal((await jevScoreBatch('q', candidates)).ok, true);
+    assert.equal(jevStats().estimatedCostUsd, null);
+    assert.equal(JSON.parse(JSON.stringify(jevStats())).estimatedCostUsd, null);
+    assert.equal((await jevScoreBatch('q', candidates)).ok, true);
+    assert.equal(jevStats().estimatedCostUsd, null);
+    assert.equal(jevStats().pendingAttempts, 0);
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.MERGE_API_KEY;
+    else process.env.MERGE_API_KEY = previousKey;
+  }
+});
