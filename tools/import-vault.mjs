@@ -67,7 +67,7 @@ function parseArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--library') opts.library = path.resolve(argv[++i]);
-    else if (a === '--max-kb') opts.maxKb = Number(argv[++i]) || 200;
+    else if (a === '--max-kb') opts.maxKb = Number(argv[++i]);
     else if (a === '--extract') opts.extract = true;
     else if (a === '--source') opts.source = argv[++i];
     else if (a === '--quiet') opts.quiet = true;
@@ -77,28 +77,35 @@ function parseArgs(argv) {
 }
 
 /** Recursively collect candidate note files. */
-function collectFiles(dir, opts, out = [], depth = 0) {
-  if (depth > 12) return out;
+function collectFiles(dir, state, depth = 0) {
+  if (state.truncated) return;
+  if (depth > 12) {
+    state.errors.push(`maximum directory depth exceeded: ${dir}`);
+    return;
+  }
   let entries;
   try {
     entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return out;
+  } catch (err) {
+    state.errors.push(`cannot read directory ${dir}: ${err.message}`);
+    return;
   }
   for (const e of entries) {
     if (e.name.startsWith('.')) continue; // hidden files AND dot-folders
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
-      collectFiles(full, opts, out, depth + 1);
+      collectFiles(full, state, depth + 1);
     } else if (e.isFile() && EXTS.has(path.extname(e.name).toLowerCase())) {
-      const kb = e.size / 1024;
-      if (kb > opts.maxKb) continue;
-      out.push(full);
+      if (state.files.length >= MAX_FILES_DEFAULT) {
+        state.errors.push(`maximum candidate count exceeded (${MAX_FILES_DEFAULT})`);
+        state.truncated = true;
+        return;
+      }
+      state.files.push(full);
     }
-    if (out.length >= MAX_FILES_DEFAULT) break;
+    if (state.truncated) return;
   }
-  return out;
 }
 
 /** Title = first markdown heading, else filename. */
@@ -136,25 +143,36 @@ async function main() {
     console.error('Usage: node tools/import-vault.mjs <vault-folder> [--library <dir>] [--max-kb 200] [--extract]');
     process.exit(2);
   }
+  if (!Number.isFinite(opts.maxKb) || opts.maxKb <= 0) {
+    console.error('--max-kb must be a finite positive number');
+    process.exit(2);
+  }
 
-  const files = collectFiles(opts.vault, opts);
+  const scan = { files: [], errors: [], truncated: false };
+  collectFiles(opts.vault, scan);
+  const files = scan.files;
   if (!opts.quiet) {
     console.log(`vault import: ${files.length} candidate file(s) under ${opts.vault}`);
     console.log(`target library: ${opts.library}`);
+    for (const error of scan.errors) console.error(`  ! ${error}`);
   }
 
   initLibrary(opts.library);
 
   let imported = 0;
   let skipped = 0;
-  let failed = 0;
+  let failed = scan.errors.length;
 
   for (const file of files) {
     let text;
     try {
-      text = fs.readFileSync(file, 'utf8');
-    } catch {
+      if (fs.statSync(file).size > opts.maxKb * 1024) { skipped++; continue; }
+      const bytes = fs.readFileSync(file);
+      if (bytes.length > opts.maxKb * 1024) { skipped++; continue; }
+      text = bytes.toString('utf8');
+    } catch (err) {
       failed++;
+      if (!opts.quiet) console.error(`  ! ${file}: ${err.message}`);
       continue;
     }
     const body = text.trim();
@@ -195,7 +213,7 @@ async function main() {
       console.log(`open the interface and search, or point MEMORY_LANE_LIBRARY at ${opts.library}`);
     }
   }
-  process.exit(0);
+  process.exitCode = failed ? 1 : 0;
 }
 
 main();
