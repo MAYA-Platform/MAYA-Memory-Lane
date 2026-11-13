@@ -173,12 +173,15 @@ async function main() {
         source: opts.source,
         lineage
       });
-      if (result && result.ok !== false) {
+      if (result?.ok && result.skipped) {
+        skipped++;
+        if (!opts.quiet) console.log(`  = ${rel} -> already imported`);
+      } else if (result?.ok) {
         imported++;
         if (!opts.quiet) console.log(`  + ${rel} -> ${result.block_id || 'ok'}`);
       } else {
-        // appendBlock refuses duplicates by dedup key -> treat as skip.
-        skipped++;
+        failed++;
+        if (!opts.quiet) console.error(`  ! ${rel}: ${result?.reason || 'append failed'}`);
       }
     } catch (err) {
       failed++;
