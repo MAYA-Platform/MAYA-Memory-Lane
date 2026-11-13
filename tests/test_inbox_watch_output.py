@@ -27,7 +27,7 @@ runpy.run_path(watcher, run_name='__main__')
 
 
 class WatchOutputTest(unittest.TestCase):
-    def test_restricted_console_reports_moved_and_failed_files(self):
+    def check_console(self, encoding):
         with tempfile.TemporaryDirectory(prefix='memory-watcher-output-') as directory:
             root = Path(directory)
             inbox, library, repo = root / 'inbox', root / 'library', root / 'repo'
@@ -43,7 +43,7 @@ class WatchOutputTest(unittest.TestCase):
             failure.write_text('synthetic failure', encoding='utf-8')
             uncertain.write_text('synthetic uncertain result', encoding='utf-8')
             env = {k: os.environ[k] for k in ('PATH', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP') if k in os.environ}
-            env['PYTHONIOENCODING'] = 'cp1252:strict'
+            env['PYTHONIOENCODING'] = encoding
             result = subprocess.run([sys.executable, '-B', '-c', FAKE_INGEST, str(WATCHER),
                                      str(inbox), str(library), str(repo)],
                                     capture_output=True, env=env, timeout=10)
@@ -59,7 +59,16 @@ class WatchOutputTest(unittest.TestCase):
             self.assertIn(b'inspect source and library before retry', result.stdout)
             self.assertIn(b'may be retried', result.stdout)
             self.assertIn(b'uncertain-', result.stdout)
-            self.assertIn(b'\\U0001f680', result.stdout)
+            if encoding.startswith('cp1252'):
+                self.assertIn(b'\\U0001f680', result.stdout)
+            else:
+                self.assertIn('🚀'.encode('utf-8'), result.stdout)
+
+    def test_restricted_console_reports_moved_and_failed_files(self):
+        self.check_console('cp1252:strict')
+
+    def test_utf8_console_preserves_unicode(self):
+        self.check_console('utf-8:strict')
 
 
 if __name__ == '__main__':
