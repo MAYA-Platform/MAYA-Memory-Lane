@@ -49,11 +49,12 @@ test('if the first selected block disappears, direct answer cites the block actu
   assert.ok(result.evidence.some(e => e.block_id === result.source));
 });
 
-test('a promoted item without a readable ID does not steal another block’s citation', async t => {
+test('a promoted item resolves its block ID to the actual readable record', async t => {
   const lib = fixture(t, 11);
   const initial = search(lib, 'uniquehandoff', { limit: 10 }).matches;
   assert.equal(initial.length, 10);
-  const expected = readBlock(lib, initial[0].lib_id).body.trim().slice(0, 600);
+  const promoted = lib.blocks.find(b => !initial.some(m => m.block_id === b.block_id));
+  const expected = readBlock(lib, promoted.lib_id).body.trim().slice(0, 600);
   let questionCount = 0;
   const result = await fakeJev((i, n) => {
     questionCount = n;
@@ -62,7 +63,7 @@ test('a promoted item without a readable ID does not steal another block’s cit
   assert.equal(questionCount, 6);
   assert.equal(result.mode, 'direct');
   assert.equal(result.answer, expected);
-  assert.equal(result.source, initial[0].block_id);
+  assert.equal(result.source, promoted.block_id);
   assert.ok(result.evidence.some(e => e.block_id === result.source));
 });
 
