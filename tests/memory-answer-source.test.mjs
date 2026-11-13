@@ -31,22 +31,20 @@ async function fakeJev(run, callback) {
   }
 }
 
-test('if the first selected block disappears, direct answer cites the block actually read', async t => {
+test('if one selected block disappears, the answer asks for a fresh search', async t => {
   const lib = fixture(t, 2);
   const initial = search(lib, 'uniquehandoff').matches;
   assert.equal(initial.length, 2);
   const first = lib.blocks.find(b => b.lib_id === initial[0].lib_id);
-  const second = lib.blocks.find(b => b.lib_id === initial[1].lib_id);
-  const expected = readBlock(lib, second.lib_id).body.trim().slice(0, 600);
   let deleted = false;
   const result = await fakeJev((i) => {
     if (!deleted) { fs.unlinkSync(first.filePath); deleted = true; }
     return i === 0 ? 2 : 1;
   }, () => answerQuestion(lib, 'uniquehandoff'));
-  assert.equal(result.mode, 'direct');
-  assert.equal(result.answer, expected);
-  assert.equal(result.source, second.block_id);
-  assert.ok(result.evidence.some(e => e.block_id === result.source));
+  assert.equal(result.mode, 'none');
+  assert.match(result.answer, /Memory changed/);
+  assert.deepEqual(result.evidence, []);
+  assert.equal(result.source, undefined);
 });
 
 test('a promoted item resolves its block ID to the actual readable record', async t => {
@@ -67,7 +65,7 @@ test('a promoted item resolves its block ID to the actual readable record', asyn
   assert.ok(result.evidence.some(e => e.block_id === result.source));
 });
 
-test('a Jev promotion changed during scoring is omitted from answer evidence', async t => {
+test('a Jev promotion changed during scoring requires a fresh search', async t => {
   const lib = fixture(t, 11);
   const initial = search(lib, 'uniquehandoff', {limit: 10}).matches;
   const promoted = lib.blocks.find(b => !initial.some(m => m.block_id === b.block_id));
@@ -80,28 +78,22 @@ test('a Jev promotion changed during scoring is omitted from answer evidence', a
     return i === n - 1 ? 2 : 1;
   }, () => answerQuestion(lib, 'uniquehandoff'));
   assert.equal(edited, true);
-  assert.equal(result.mode, 'direct');
-  assert.notEqual(result.source, promoted.block_id);
-  assert.ok(result.evidence.length > 0);
-  assert.equal(result.evidence.some(e => e.block_id === promoted.block_id), false);
+  assert.equal(result.mode, 'none');
+  assert.match(result.answer, /Memory changed/);
+  assert.deepEqual(result.evidence, []);
+  assert.equal(result.source, undefined);
   assert.doesNotMatch(result.answer, /replacement without/);
 });
 
 
 
-test('an empty body falls back to the selected block excerpt, not an earlier missing block', async t => {
-  const lib = fixture(t, 2);
-  const original = search(lib, 'uniquehandoff').matches;
-  const first = lib.blocks.find(b => b.lib_id === original[0].lib_id);
-  const second = lib.blocks.find(b => b.lib_id === original[1].lib_id);
-  fs.writeFileSync(second.filePath, '---\ntitle: uniquehandoff second\n---\n');
-  const expected = search(lib, 'uniquehandoff').matches.find(m => m.lib_id === second.lib_id).excerpt;
-  let deleted = false;
-  const result = await fakeJev((i) => {
-    if (!deleted) { fs.unlinkSync(first.filePath); deleted = true; }
-    return i === 0 ? 2 : 1;
-  }, () => answerQuestion(lib, 'uniquehandoff'));
+test('an empty body falls back to the selected block excerpt', async t => {
+  const lib = fixture(t, 1);
+  const block = lib.blocks[0];
+  fs.writeFileSync(block.filePath, '---\ntitle: uniquehandoff record\n---\n');
+  const expected = search(lib, 'uniquehandoff').matches[0].excerpt;
+  const result = await answerQuestion(lib, 'uniquehandoff');
   assert.equal(result.mode, 'direct');
-  assert.equal(result.source, second.block_id);
+  assert.equal(result.source, block.block_id);
   assert.equal(result.answer, expected);
 });
