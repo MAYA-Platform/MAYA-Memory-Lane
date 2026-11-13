@@ -136,10 +136,11 @@ decisions model (`typesafe/jev-1.13` via the configured decisions gateway) askin
 candidate's relevance to the query's intent (0-2). Results are re-ordered by that
 score and annotated with `jev_score`, while the original full-text score is kept for
 comparison. `GET /api/jevstats` reports process-lifetime attempts and attempted
-questions, failures, and a partial cost estimate. The historical `calls` and
+questions, failures, and a partial cost estimate. An attempt records invocation of
+fetch; it does not establish that the provider received the request. The historical `calls` and
 `questions` counters include only responses with at least one usable score;
 `unpricedAttempts` counts attempts without such a response. `estimatedCostUsd`
-combines reported usage costs or a per-question estimate for those scored responses
+combines nonnegative finite reported usage costs or a per-question estimate for those scored responses
 and excludes unpriced attempts. It is not a provider billing receipt; failed
 attempts may still incur charges. Counters reset when the server restarts.
 
