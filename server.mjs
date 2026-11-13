@@ -356,7 +356,8 @@ const routes = {
     const generation = activeLibraryGeneration;
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    const result = await searchAsync(lib, q);
+    const result = await searchAsync(lib, q, { signal: req.memorySearchSignal });
+    if (req.memorySearchSignal.aborted) return;
     if (generation !== activeLibraryGeneration) return sendJson(res, 409, { ok: false, error: 'Library changed during search; retry.' });
     // JevRank (opt-in): ?rerank=jev re-scores the top candidates with ONE
     // batched Jev call. Defensive: any Jev problem returns plain full-text
@@ -574,7 +575,8 @@ const routes = {
     const generation = activeLibraryGeneration;
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    const result = await answerQuestion(lib, q);
+    const result = await answerQuestion(lib, q, { signal: req.memorySearchSignal });
+    if (req.memorySearchSignal.aborted) return;
     if (generation !== activeLibraryGeneration) return sendJson(res, 409, { ok: false, error: 'Library changed during answer; retry.' });
     sendJson(res, 200, { ok: true, ...result });
   }
@@ -587,11 +589,14 @@ const server = http.createServer((req, res) => {
   if (pathname.startsWith('/api/')) {
     const handler = routes[pathname];
     if (handler) {
+      const controller = new AbortController();
+      res.once('close', () => controller.abort());
+      req.memorySearchSignal = controller.signal;
       // Async route handlers (write endpoints) return a promise.
       const out = handler(req, res);
       if (out && typeof out.catch === 'function') {
         out.catch((err) => {
-          if (res.headersSent) return;
+          if (res.headersSent || res.destroyed) return;
           if (err && err.code === 'MEMORY_SEARCH_BUSY') res.setHeader('Retry-After', '1');
           sendJson(res, err && err.code === 'MEMORY_SEARCH_BUSY' ? 503 : 500,
             { ok: false, error: String(err && err.message ? err.message : err) });
