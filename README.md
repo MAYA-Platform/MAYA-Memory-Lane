@@ -147,7 +147,11 @@ combines nonnegative finite reported usage costs or a per-question estimate for 
 and excludes pending and unpriced attempts. If the aggregate exceeds the numeric
 range, it becomes `null` for the rest of the process lifetime. It is not a
 provider billing receipt; failed
-attempts may still incur charges. Counters reset when the server restarts.
+attempts may still incur charges. Missing fetch or a failing `onAttempt` callback can
+increase `failures` without increasing `attempts`; a missing key or a source-change
+check that stops before fetch is not counted as an attempt. The exported
+`jevStats()` JavaScript function also returns `null` for an overflowed estimate,
+so clients should handle the cost as a nullable number. Counters reset when the server restarts.
 
 JevRank is strictly additive and defensive: if the key is missing, the model is
 unreachable, or the request times out (3s cap), search returns the plain full-text
