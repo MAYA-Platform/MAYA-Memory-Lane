@@ -65,6 +65,8 @@ Eligible `.md` and `.txt` files become blocks titled from their first heading or
 
 Read or append failures, a directory depth beyond 12, or more than 5,000 candidate files cause a nonzero exit, including in quiet mode. An unsuccessful run may already have imported some notes; it does not roll them back. The candidate limit applies on each run, so rerunning a larger vault will not necessarily reach the remaining files. Import larger vaults in smaller source folders and review the results; changing the source folder changes lineage and can create duplicates of notes previously imported from the parent folder.
 
+The importer checks collected paths for collisions in its legacy 32-bit lineage before writing and stops if it finds one. This check covers only paths collected in the current scan; it cannot identify collisions with paths that are absent, skipped during traversal, present only in older imports, or imported separately from another source root. The hash uses the supplied source path and case, not a canonical file identity. Historical lineage values are retained for compatibility, so review older imports separately.
+
 ## How the chain works
 
 Every session ends as a **micro block**, a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks are consolidated into one **shelf block**, numbered, timestamped, and chained to the shelf block before it by carrying its fingerprint. Blocks are filed into **shelves** (six per shelf), grouped into **volumes**, and tracked in a **manifest**.

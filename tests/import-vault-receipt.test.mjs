@@ -8,6 +8,24 @@ import { fileURLToPath } from 'node:url';
 
 const importer = fileURLToPath(new URL('../tools/import-vault.mjs', import.meta.url));
 
+test('distinct source paths with the same legacy lineage fail before any library write', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-vault-collision-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const vault = path.join(root, 'vault'), library = path.join(root, 'library');
+  fs.mkdirSync(vault);
+  for (const name of ['Aa.md', 'BB.md']) fs.writeFileSync(path.join(vault, name), '# Shared title\n\nSynthetic content.\n');
+  const env = { SystemRoot: process.env.SystemRoot, WINDIR: process.env.WINDIR, PATH: process.env.PATH,
+    TEMP: root, TMP: root, HOME: root, USERPROFILE: root, MEMORY_LANE_JEV_ENABLED: '0' };
+  const run = args => spawnSync(process.execPath, [importer, vault, '--library', library, ...args], { encoding: 'utf8', env });
+  assert.equal(run([]).status, 1);
+  assert.equal(fs.existsSync(library), false);
+  fs.mkdirSync(library);
+  const manifest = path.join(library, 'MANIFEST.json');
+  fs.writeFileSync(manifest, 'SYNTHETIC EXISTING BYTES');
+  assert.equal(run(['--quiet']).status, 1);
+  assert.equal(fs.readFileSync(manifest, 'utf8'), 'SYNTHETIC EXISTING BYTES');
+});
+
 test('vault import reports actual new, duplicate, changed and failed offers', (t) => {
   const root = fs.mkdtempSync(path.join(process.env.TMPDIR || os.tmpdir(), 'ml-vault-receipt-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
