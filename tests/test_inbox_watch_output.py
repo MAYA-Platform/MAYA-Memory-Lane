@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 import subprocess
+import shutil
 import sys
 import tempfile
 import unittest
@@ -69,6 +70,35 @@ class WatchOutputTest(unittest.TestCase):
 
     def test_utf8_console_preserves_unicode(self):
         self.check_console('utf-8:strict')
+
+    @unittest.skipUnless(shutil.which('node'), 'Node is required for the synthetic child')
+    def test_real_child_utf8_and_malformed_receipts(self):
+        for valid in (True, False):
+            with self.subTest(valid=valid), tempfile.TemporaryDirectory(prefix='memory-watcher-child-') as directory:
+                root = Path(directory)
+                inbox, library, repo = root / 'inbox', root / 'library', root / 'repo'
+                inbox.mkdir()
+                library.mkdir()
+                (repo / 'tools').mkdir(parents=True)
+                (library / 'MANIFEST.json').write_text('{}', encoding='utf-8')
+                script = ("process.stdout.write(JSON.stringify({block_id:'\\u0401'}));" if valid
+                          else "process.stdout.write(Buffer.from([0xff]));")
+                (repo / 'tools' / 'ingest.mjs').write_text(script, encoding='utf-8')
+                source = inbox / 'synthetic.txt'
+                source.write_text('synthetic only', encoding='utf-8')
+                env = {k: os.environ[k] for k in ('PATH', 'SYSTEMROOT', 'WINDIR', 'TEMP', 'TMP') if k in os.environ}
+                env.update(PYTHONIOENCODING='cp1252:strict', PYTHONUTF8='0')
+                result = subprocess.run([sys.executable, '-B', str(WATCHER), '--inbox', str(inbox),
+                                         '--library', str(library), '--repo', str(repo), '--once'],
+                                        capture_output=True, env=env, timeout=10)
+                self.assertEqual(result.returncode, 0, result.stderr.decode('cp1252', errors='replace'))
+                if valid:
+                    self.assertFalse(source.exists())
+                    self.assertEqual(len(list((inbox / 'processed').glob('*/synthetic.txt'))), 1)
+                    self.assertIn(b'\\u0401', result.stdout)
+                else:
+                    self.assertTrue(source.exists())
+                    self.assertIn(b'inspect source and library before retry', result.stdout)
 
 
 if __name__ == '__main__':

@@ -97,7 +97,7 @@ def main():
             try:
                 r = subprocess.run(
                     [node, str(ingest_js), str(f), "--source", "inbox", "--library", str(library), "--quiet"],
-                    capture_output=True, text=True, timeout=180,
+                    capture_output=True, text=True, encoding="utf-8", errors="strict", timeout=180,
                     cwd=str(repo),
                 )
                 if r.returncode == 0:
