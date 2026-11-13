@@ -587,14 +587,16 @@ async function doAsk() {
       return;
     }
     const modeLabel = d.mode === 'direct'
-      ? '<span class="ask-mode direct">exact match</span>'
+      ? `<span class="ask-mode direct">${d.note ? 'source excerpt' : 'exact match'}</span>`
       : '<span class="ask-mode synth">synthesized from memory</span>';
     const source = d.source
       ? `<div class="excerpt" style="margin-top:6px;">from <b>${esc(d.source)}</b></div>`
       : (d.evidence && d.evidence.length
-          ? `<div class="excerpt" style="margin-top:6px;">evidence: ${d.evidence.slice(0, 2).map((e) => esc(e.block_id)).join(', ')}</div>`
+          ? `<div class="excerpt" style="margin-top:6px;">evidence: ${d.evidence.map((e) => esc(e.block_id)).join(', ')}</div>`
           : '');
-    box.innerHTML = `<div class="ask-answer">${modeLabel}<div class="answer-text">${esc(d.answer)}</div>${source}</div>`;
+    const note = d.note ? `<div class="excerpt">${esc(d.note)}</div>` : '';
+    const citationNote = d.citation_note ? `<div class="excerpt">${esc(d.citation_note)}</div>` : '';
+    box.innerHTML = `<div class="ask-answer">${modeLabel}<div class="answer-text">${esc(d.answer)}</div>${source}${note}${citationNote}</div>`;
   } catch (e) {
     if (request !== askRequest) return;
     box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
