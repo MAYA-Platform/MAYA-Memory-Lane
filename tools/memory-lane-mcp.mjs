@@ -29,7 +29,7 @@ import path from 'node:path';
 import os from 'node:os';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { loadLibrary, search, resolveResume } from '../lib/memoryLaneCore.js';
+import { loadLibrary, searchAsync, resolveResume } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { excerptBlock } from '../lib/bridgeExcerpt.js';
 import { jevRank, jevAvailable } from '../lib/jevrank.js';
@@ -106,7 +106,7 @@ async function handleToolCall(name, args) {
       // trim to the caller's limit. rerank=jev by default when a key resolves;
       // opt out with rerank:'none'. Defensive: Jev problems keep plain order.
       const fetchLimit = Math.max(limit * 2, 10);
-      let r = search(lib, q, { limit: fetchLimit });
+      let r = await searchAsync(lib, q, { limit: fetchLimit });
       if (!r.count) return { content: [{ type: 'text', text: `No matches for "${q}".` }] };
       let jevNote = '';
       if ((args && args.rerank !== 'none' && jevAvailable() && r.count >= 2)) {

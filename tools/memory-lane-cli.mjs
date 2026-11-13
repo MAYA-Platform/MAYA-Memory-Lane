@@ -18,7 +18,7 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadLibrary, search, resolveResume } from '../lib/memoryLaneCore.js';
+import { loadLibrary, searchAsync, resolveResume } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 import { excerptBlock } from '../lib/bridgeExcerpt.js';
 
@@ -57,7 +57,7 @@ async function main() {
     const query = rest[0] || '';
     const limit = Math.max(1, Math.min(Number(rest[1]) || 5, 25));
     if (!query) { out({ ok: false, error: 'query required' }); process.exit(1); }
-    const r = search(lib, query, { limit });
+    const r = await searchAsync(lib, query, { limit });
     out({
       ok: true,
       count: r.count,

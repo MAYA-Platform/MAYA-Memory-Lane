@@ -231,6 +231,15 @@ Every figure regenerates from the latest run JSONs, and the committed `benchmark
 | `POST /api/ingest` | Seal a new memory (auto fact extraction) |
 | `POST /api/blocks/write` | Seal a new memory with explicit facts (no LLM) |
 
+Search reads the bytes of every block listed in the loaded manifest to detect
+changes, including edits that preserve file size and modification time. HTTP,
+MCP and CLI searches read those files concurrently with a bounded limit; the
+direct JavaScript `search()` API remains synchronous. A search is not an atomic
+snapshot across files: a concurrent edit can appear in the next request, and a
+caller that reuses a loaded library must reload it to discover manifest changes.
+If the active web library is switched while a search or answer is in progress,
+the server returns HTTP 409 and the caller should retry against the new library.
+
 ## Requirements & recommended settings
 
 Memory Lane is deliberately light. The floor and the recommendation are the same machine.
