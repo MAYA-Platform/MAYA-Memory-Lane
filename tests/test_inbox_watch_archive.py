@@ -20,6 +20,31 @@ SPEC.loader.exec_module(watcher)
 
 
 class ArchiveNoReplaceTest(unittest.TestCase):
+    def test_known_archive_collision_stops_before_ingester_runs(self):
+        import datetime
+        with tempfile.TemporaryDirectory(prefix='watch-archive-preexisting-') as directory:
+            root = Path(directory)
+            inbox, library, repo = root / 'inbox', root / 'library', root / 'repo'
+            inbox.mkdir()
+            library.mkdir()
+            (repo / 'tools').mkdir(parents=True)
+            (library / 'MANIFEST.json').write_text('{}', encoding='utf-8')
+            (repo / 'tools' / 'ingest.mjs').write_text('// synthetic stub', encoding='utf-8')
+            source = inbox / 'note.txt'
+            source.write_bytes(b'new synthetic')
+            target = inbox / 'processed' / datetime.date.today().isoformat() / source.name
+            target.parent.mkdir(parents=True)
+            target.write_bytes(b'old synthetic')
+            argv = ['watch', '--inbox', str(inbox), '--library', str(library), '--repo', str(repo), '--once']
+            output = io.StringIO()
+            with patch.object(sys, 'argv', argv), patch.object(watcher, 'supports_archive_noreplace', return_value=True), \
+                    patch.object(watcher.subprocess, 'run') as run, redirect_stdout(output):
+                self.assertEqual(watcher.main(), 1)
+            run.assert_not_called()
+            self.assertEqual(source.read_bytes(), b'new synthetic')
+            self.assertEqual(target.read_bytes(), b'old synthetic')
+            self.assertIn('archive', output.getvalue().lower())
+
     def test_unsupported_platform_stops_before_ingestion(self):
         with tempfile.TemporaryDirectory(prefix='watch-archive-preflight-') as directory:
             root = Path(directory)
