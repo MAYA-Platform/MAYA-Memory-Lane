@@ -16,7 +16,9 @@ Config (env vars):
 Behavior:
   - Scans INBOX for files with a watched extension, ignoring dotfiles/temp.
   - Ingests each via `node tools/ingest.mjs <file> --source inbox --quiet`.
-  - On success: moves the file to processed/<date>/.
+  - On success: moves the file to processed/<date>/ without replacing a name.
+    Archive requires an atomic no-replace rename; unsupported filesystems or
+    platforms leave the source in place for operator reconciliation.
   - On failure: logs an uncertain outcome; a source still in the inbox may be
     retried on the next tick. Inspect the source and library before retry.
   - Prints nothing when there was nothing to do. Prints a short summary when
@@ -25,6 +27,7 @@ Behavior:
 """
 import argparse
 import datetime
+import errno
 import json
 import os
 import shutil
@@ -50,6 +53,27 @@ def find_node():
         if c and Path(c).exists():
             return c
     return "node"
+
+
+def archive_noreplace(source, destination):
+    """Move within a filesystem only when an atomic no-replace rename exists."""
+    if os.name == "nt":
+        # Windows rename raises FileExistsError instead of replacing destination.
+        os.rename(source, destination)
+        return
+    if sys.platform.startswith("linux"):
+        import ctypes
+        libc = ctypes.CDLL(None, use_errno=True)
+        rename = getattr(libc, "renameat2", None)
+        if rename is not None:
+            rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+            rename.restype = ctypes.c_int
+            if rename(-100, os.fsencode(source), -100, os.fsencode(destination), 1) == 0:
+                return
+            code = ctypes.get_errno()
+            raise OSError(code, os.strerror(code))
+    # Do not fall back to a check followed by a replacing move.
+    raise OSError(errno.ENOTSUP, "atomic no-replace archive is unavailable")
 
 
 def main():
@@ -112,7 +136,7 @@ def main():
                     date_dir = inbox / "processed" / datetime.date.today().isoformat()
                     date_dir.mkdir(parents=True, exist_ok=True)
                     dest = date_dir / f.name
-                    shutil.move(str(f), str(dest))
+                    archive_noreplace(f, dest)
                     processed.append({
                         "file": f.name,
                         "block_id": out.get("block_id"),
