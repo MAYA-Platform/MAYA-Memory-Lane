@@ -121,6 +121,8 @@ Memory Lane isn't just a UI, it's an **agent memory layer**. A zero-dependency M
 
 Synthesized answers require the model to return a JSON answer and cite only IDs of blocks included in its evidence. Missing, malformed, or unknown IDs cause a source-excerpt fallback with a note; providers that do not follow this format will fall back more often. A valid ID establishes only that the block was supplied to the model, not that it supports the answer. If a selected block or its manifest entry changes while answering, search again; this is not an atomic snapshot across files.
 
+The answer path rechecks the Jev candidate pool, including expanded siblings, before sending and after a response. The checks are sequential: a change can still occur between validation and transmission or after a check. This does not add an atomic egress boundary, and the separate search-reranking path does not use this answer-specific check.
+
 Answer `cost` is `0` when no external provider call was attempted and `null` when the total charge is unknown. A direct answer can still follow an optional Jev ranking request. Provider billing is authoritative; token counts alone do not establish a charge.
 
 ### Query-time re-ranking (JevRank)

@@ -50,6 +50,32 @@ test('a direct answer after an attempted Jev call has unknown total cost', async
   assert.equal(result.cost, null);
 });
 
+test('a disappeared Jev key with no provider call retains zero cost', async t => {
+  isolate(t);
+  const lib = fixture(t, true);
+  const oldConfig = process.env.MEMORY_LANE_MERGE_CONFIG;
+  process.env.MEMORY_LANE_MERGE_CONFIG = path.join(lib.rootDir, 'missing-config');
+  t.after(() => { if (oldConfig === undefined) delete process.env.MEMORY_LANE_MERGE_CONFIG; else process.env.MEMORY_LANE_MERGE_CONFIG = oldConfig; });
+  const originalRead = fs.readFileSync;
+  let removed = false, calls = 0;
+  process.env.MERGE_API_KEY = 'synthetic-only';
+  fs.readFileSync = function(file, ...args) {
+    if (!removed && String(file) === path.join(lib.rootDir, 'MANIFEST.json')) {
+      removed = true;
+      delete process.env.MERGE_API_KEY;
+    }
+    return originalRead.call(this, file, ...args);
+  };
+  globalThis.fetch = async () => { calls++; throw Error('unexpected provider call'); };
+  try {
+    const result = await answerQuestion(lib, 'uniqueflower');
+    assert.equal(removed, true);
+    assert.equal(calls, 0);
+    assert.equal(result.mode, 'direct');
+    assert.equal(result.cost, 0);
+  } finally { fs.readFileSync = originalRead; }
+});
+
 test('synthesis success, invalid citations, failure and source drift have unknown total cost', async t => {
   for (const scenario of ['success', 'invalid', 'failure', 'source drift']) {
     await t.test(scenario, async t => {

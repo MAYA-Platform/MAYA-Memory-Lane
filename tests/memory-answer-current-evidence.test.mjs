@@ -6,6 +6,96 @@ import path from 'node:path';
 import { appendBlock, loadLibrary, search } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 
+test('wider rank candidate changed before egress prevents Jev call', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-rank-egress-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'MANIFEST.json'), JSON.stringify({ blocks: [] }));
+  for (let i = 0; i < 6; i++) appendBlock(root, {title: `Record ${i}`, body: `uniquehandoff evidence ${i}`, lineage: `distinct${i}`});
+  const library = loadLibrary(root), all = search(library, 'uniquehandoff', {limit: 10}).matches;
+  const target = library.blocks.find(b => b.lib_id === all[3].lib_id);
+  const read = fs.readFileSync, oldFetch = globalThis.fetch, oldKey = process.env.MERGE_API_KEY;
+  const oldConfig = process.env.MEMORY_LANE_MERGE_CONFIG;
+  process.env.MERGE_API_KEY = 'synthetic-only'; process.env.MEMORY_LANE_MERGE_CONFIG = path.join(root, 'missing-config');
+  let changed = false, calls = 0;
+  fs.readFileSync = function(file, ...args) {
+    if (!changed && String(file) === path.join(root, 'MANIFEST.json')) {
+      changed = true;
+      fs.writeFileSync(target.filePath, 'replacement after the wider snapshot');
+    }
+    return read.call(this, file, ...args);
+  };
+  globalThis.fetch = async () => { calls++; return {ok: false, status: 503}; };
+  try {
+    const result = await answerQuestion(library, 'uniquehandoff');
+    assert.equal(changed, true);
+    assert.equal(calls, 0);
+    assert.equal(result.reason, 'source_changed');
+    assert.equal(result.cost, 0);
+  } finally {
+    fs.readFileSync = read; globalThis.fetch = oldFetch;
+    if (oldKey === undefined) delete process.env.MERGE_API_KEY; else process.env.MERGE_API_KEY = oldKey;
+    if (oldConfig === undefined) delete process.env.MEMORY_LANE_MERGE_CONFIG; else process.env.MEMORY_LANE_MERGE_CONFIG = oldConfig;
+  }
+});
+
+test('lineage-expanded candidate changed after capture prevents Jev egress', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-expand-egress-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'MANIFEST.json'), JSON.stringify({ blocks: [] }));
+  for (let i = 0; i < 11; i++) appendBlock(root, {title: `Record ${i}`, body: `uniquehandoff evidence ${i}`, lineage: 'sharedtopic'});
+  const library = loadLibrary(root), wide = search(library, 'uniquehandoff', {limit: 10}).matches;
+  const target = library.blocks.find(block => !wide.some(match => match.block_id === block.block_id));
+  assert.ok(target);
+  const read = fs.readFileSync, oldFetch = globalThis.fetch, oldKey = process.env.MERGE_API_KEY;
+  const oldConfig = process.env.MEMORY_LANE_MERGE_CONFIG;
+  process.env.MERGE_API_KEY = 'synthetic-only'; process.env.MEMORY_LANE_MERGE_CONFIG = path.join(root, 'missing-config');
+  let changed = false, calls = 0;
+  fs.readFileSync = function(file, ...args) {
+    const data = read.call(this, file, ...args);
+    if (!changed && String(file) === target.filePath) {
+      changed = true;
+      fs.writeFileSync(target.filePath, 'replacement after expansion capture');
+    }
+    return data;
+  };
+  globalThis.fetch = async () => { calls++; return {ok: false, status: 503}; };
+  try {
+    const result = await answerQuestion(library, 'uniquehandoff');
+    assert.equal(changed, true);
+    assert.equal(calls, 0);
+    assert.equal(result.reason, 'source_changed');
+    assert.equal(result.cost, 0);
+  } finally {
+    fs.readFileSync = read; globalThis.fetch = oldFetch;
+    if (oldKey === undefined) delete process.env.MERGE_API_KEY; else process.env.MERGE_API_KEY = oldKey;
+    if (oldConfig === undefined) delete process.env.MEMORY_LANE_MERGE_CONFIG; else process.env.MEMORY_LANE_MERGE_CONFIG = oldConfig;
+  }
+});
+
+test('a wider rank candidate changed during a failed provider call rejects the answer', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-rank-failure-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, 'MANIFEST.json'), JSON.stringify({ blocks: [] }));
+  for (let i = 0; i < 6; i++) appendBlock(root, {title: `Record ${i}`, body: `uniquehandoff evidence ${i}`, lineage: `distinct${i}`});
+  const library = loadLibrary(root), all = search(library, 'uniquehandoff', {limit: 10}).matches;
+  const target = library.blocks.find(b => b.lib_id === all[3].lib_id);
+  const oldFetch = globalThis.fetch, oldKey = process.env.MERGE_API_KEY, oldConfig = process.env.MEMORY_LANE_MERGE_CONFIG;
+  process.env.MERGE_API_KEY = 'synthetic-only'; process.env.MEMORY_LANE_MERGE_CONFIG = path.join(root, 'missing-config');
+  let calls = 0;
+  globalThis.fetch = async () => { calls++; fs.appendFileSync(target.filePath, '\nchanged during ranking'); return {ok: false, status: 503}; };
+  try {
+    const result = await answerQuestion(library, 'uniquehandoff');
+    assert.equal(calls, 1);
+    assert.equal(result.reason, 'source_changed');
+    assert.equal(result.cost, null);
+    assert.deepEqual(result.evidence, []);
+  } finally {
+    globalThis.fetch = oldFetch;
+    if (oldKey === undefined) delete process.env.MERGE_API_KEY; else process.env.MERGE_API_KEY = oldKey;
+    if (oldConfig === undefined) delete process.env.MEMORY_LANE_MERGE_CONFIG; else process.env.MEMORY_LANE_MERGE_CONFIG = oldConfig;
+  }
+});
+
 test('initially selected evidence disappearing during wider search is not silently replaced', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-pre-rerank-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
