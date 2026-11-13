@@ -1,5 +1,6 @@
 import errno
 import importlib.util
+import io
 import os
 from pathlib import Path
 import shutil
@@ -10,6 +11,7 @@ import threading
 import unittest
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
+from contextlib import redirect_stdout
 
 
 SPEC = importlib.util.spec_from_file_location('memory_inbox_watch', Path(__file__).resolve().parents[1] / 'tools' / 'inbox-watch.py')
@@ -18,6 +20,29 @@ SPEC.loader.exec_module(watcher)
 
 
 class ArchiveNoReplaceTest(unittest.TestCase):
+    def test_unsupported_platform_stops_before_ingestion(self):
+        with tempfile.TemporaryDirectory(prefix='watch-archive-preflight-') as directory:
+            root = Path(directory)
+            inbox, library, repo = root / 'inbox', root / 'library', root / 'repo'
+            inbox.mkdir()
+            library.mkdir()
+            (repo / 'tools').mkdir(parents=True)
+            (library / 'MANIFEST.json').write_text('{}', encoding='utf-8')
+            (repo / 'tools' / 'ingest.mjs').write_text('// synthetic stub', encoding='utf-8')
+            source = inbox / 'note.txt'
+            source.write_bytes(b'synthetic')
+            argv = ['watch', '--inbox', str(inbox), '--library', str(library), '--repo', str(repo), '--once']
+            output = io.StringIO()
+            with patch.object(sys, 'argv', argv), patch.object(watcher, 'supports_archive_noreplace', return_value=False), \
+                    patch.object(watcher.subprocess, 'run') as run, redirect_stdout(output):
+                with self.assertRaises(SystemExit) as failure:
+                    watcher.main()
+            self.assertEqual(failure.exception.code, 1)
+            run.assert_not_called()
+            self.assertIn('no ingestion started', output.getvalue())
+            self.assertEqual(source.read_bytes(), b'synthetic')
+            self.assertFalse((inbox / 'processed').exists())
+
     @unittest.skipUnless(shutil.which('node'), 'Node is required for the synthetic child')
     def test_existing_daily_archive_is_not_overwritten_after_ingestion(self):
         import datetime

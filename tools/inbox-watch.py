@@ -55,6 +55,23 @@ def find_node():
     return "node"
 
 
+def _linux_renameat2():
+    import ctypes
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        rename = getattr(libc, "renameat2", None)
+        if rename is not None:
+            rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
+            rename.restype = ctypes.c_int
+        return rename
+    except OSError:
+        return None
+
+
+def supports_archive_noreplace():
+    return os.name == "nt" or (sys.platform.startswith("linux") and _linux_renameat2() is not None)
+
+
 def archive_noreplace(source, destination):
     """Move within a filesystem only when an atomic no-replace rename exists."""
     if os.name == "nt":
@@ -63,11 +80,8 @@ def archive_noreplace(source, destination):
         return
     if sys.platform.startswith("linux"):
         import ctypes
-        libc = ctypes.CDLL(None, use_errno=True)
-        rename = getattr(libc, "renameat2", None)
+        rename = _linux_renameat2()
         if rename is not None:
-            rename.argtypes = [ctypes.c_int, ctypes.c_char_p, ctypes.c_int, ctypes.c_char_p, ctypes.c_uint]
-            rename.restype = ctypes.c_int
             if rename(-100, os.fsencode(source), -100, os.fsencode(destination), 1) == 0:
                 return
             code = ctypes.get_errno()
@@ -100,6 +114,9 @@ def main():
         sys.exit(1)
     if not ingest_js.exists():
         print(f"ML-WATCH ✗ ingest CLI not found: {ingest_js}")
+        sys.exit(1)
+    if not supports_archive_noreplace():
+        print("ML-WATCH ✗ atomic no-replace archival is unavailable on this platform; no ingestion started.")
         sys.exit(1)
 
     inbox.mkdir(parents=True, exist_ok=True)

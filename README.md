@@ -83,13 +83,13 @@ That's the whole trust model. You can prove your memory hasn't been altered, and
 
 Memory Lane runs itself. Three surfaces, same chain underneath:
 
-**1. Inbox watcher (drop a file, walk away).** Point the watcher at a folder and it seals everything that lands there:
+**1. Inbox watcher.** Start it explicitly against an authorized folder:
 
 ```bash
 python tools/inbox-watch.py --inbox /path/to/inbox --library /path/to/library --once
 ```
 
-New `.md`, `.txt`, `.json`, or `.log` files are extracted, sealed as chain-linked blocks, and archived to `inbox/processed/<date>/`. Run it on a timer (`npm run watch` loops every 60s, or wire it as a cron job) and the library grows itself. Nothing new in the folder means nothing happens, silent, free.
+Matching `.md`, `.txt`, `.json`, and `.log` files are ingested with model extraction enabled, which can send text to a configured hosted endpoint, then moved into `inbox/processed/<date>/`. Start the watcher only for data and destinations you intend to use. It attempts an atomic no-replace archive on Windows and Linux; known unsupported platforms are rejected before ingestion, while unsupported filesystems or cross-device moves can fail after ingestion. A same-name archive is preserved and the new source remains in the inbox. Retained inputs may be retried automatically; check the library and paths before retrying. Exit status zero does not prove every file succeeded. See [watcher archive limits](docs/WATCHER_ARCHIVE_LIMITS.md).
 
 **2. API (any agent can push a memory).** The server accepts new memories over HTTP:
 
