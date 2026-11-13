@@ -18,28 +18,13 @@
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { loadLibrary, search, resolveResume, readBlock } from '../lib/memoryLaneCore.js';
+import { loadLibrary, search, resolveResume } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
+import { excerptBlock } from '../lib/bridgeExcerpt.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
 const EXCERPT_CHARS = 320;
-
-function excerptBlock(lib, block) {
-  try {
-    const full = readBlock(lib, block.lib_id);
-    if (!full || !full.present || !full.body) return '';
-    const body = full.body;
-    const section = /## (Current State|Established Claims|Decisions)\s*\n([\s\S]*?)(?=\n## |\n# |$)/i.exec(body);
-    const text = section ? section[2].trim() : body.replace(/^#.*$/gm, '').trim();
-    if (!text) return '';
-    if (text.length <= EXCERPT_CHARS) return text;
-    const cut = text.slice(0, EXCERPT_CHARS);
-    return cut.slice(0, cut.lastIndexOf(' ')) + '…';
-  } catch {
-    return '';
-  }
-}
 
 function out(obj) {
   process.stdout.write(JSON.stringify(obj) + '\n');
@@ -62,7 +47,7 @@ async function main() {
         block_id: b.block_id,
         lib_id: b.lib_id,
         title: b.canonical_name || b.block_id,
-        excerpt: excerptBlock(lib, b),
+        ...excerptBlock(lib, b),
       })),
     });
     return;
@@ -96,7 +81,7 @@ async function main() {
         block_id: b.block_id,
         lib_id: b.lib_id,
         title: b.canonical_name || b.block_id,
-        excerpt: excerptBlock(lib, b),
+        ...excerptBlock(lib, b),
       })) : [],
     });
     return;

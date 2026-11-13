@@ -119,7 +119,7 @@ Memory Lane isn't just a UI, it's an **agent memory layer**. A zero-dependency M
 
 ### Query-time re-ranking (JevRank)
 
-Search results include `manifest_hash_status` (`match`, `mismatch`, `missing`, or `invalid`) comparing the bytes used for an excerpt with the manifest hash. The JSON CLI `search` command includes this field, and MCP `ml_search` labels it for each result. A match does not establish the truth of the content, validate the chain, or authenticate the manifest. Existing missing block files are omitted from results.
+Search results include `manifest_hash_status` (`match`, `mismatch`, `missing`, or `invalid`) comparing the bytes used for an excerpt with the manifest hash. The JSON CLI `search` command includes this field, and MCP `ml_search` labels it for each result. A match does not establish the truth of the content, validate the chain, or authenticate the manifest. Existing missing block files are omitted from results. CLI `recent` and `resume` and MCP `ml_recent` and `ml_resume` also label each excerpt; `file_missing`, `read_error`, or `unavailable` indicate no readable block was available.
 
 `/api/search` accepts an optional `rerank=jev` parameter. When set (and the MCP tools
 do this by default whenever a decisions-provider key resolves), the server takes the
