@@ -15,6 +15,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 const name = path.basename(process.argv[2]);
 fs.appendFileSync('effects.log', name + '\n');
+if (process.env.SYNTHETIC_COLLISION) {
+  fs.mkdirSync(path.dirname(process.env.SYNTHETIC_COLLISION), {recursive:true});
+  fs.writeFileSync(process.env.SYNTHETIC_COLLISION, 'racing synthetic');
+}
 if (name.startsWith('bad')) process.stdout.write('malformed synthetic receipt');
 else if (name.startsWith('invalid')) process.stdout.write('{}');
 else process.stdout.write(JSON.stringify({ok:true,block_id:'synthetic',lib_id:1}));
@@ -79,6 +83,19 @@ class WatchFailStopTest(unittest.TestCase):
             self.assertEqual(idle.returncode, 0)
             self.assertEqual(idle.stdout, b'')
 
+    def test_archive_created_during_ingest_remains_an_uncertain_failure(self):
+        with tempfile.TemporaryDirectory(prefix='watch-failstop-race-') as directory:
+            inbox, repo, args, env = self.fixture(Path(directory))
+            source = inbox / 'ok.txt'
+            source.write_bytes(b'new synthetic')
+            dest = inbox / 'processed' / datetime.date.today().isoformat() / 'ok.txt'
+            env['SYNTHETIC_COLLISION'] = str(dest)
+            result = subprocess.run([*args, '--once'], env=env, capture_output=True, timeout=10)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertEqual(source.read_bytes(), b'new synthetic')
+            self.assertEqual(dest.read_bytes(), b'racing synthetic')
+            self.assertEqual((repo / 'effects.log').read_text().splitlines(), ['ok.txt'])
+
     def test_archive_collision_returns_nonzero_and_preserves_files(self):
         with tempfile.TemporaryDirectory(prefix='watch-failstop-collision-') as directory:
             inbox, repo, args, env = self.fixture(Path(directory))
@@ -91,7 +108,7 @@ class WatchFailStopTest(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertEqual(source.read_bytes(), b'new synthetic')
             self.assertEqual(dest.read_bytes(), b'old synthetic')
-            self.assertEqual((repo / 'effects.log').read_text().splitlines(), ['ok.txt'])
+            self.assertFalse((repo / 'effects.log').exists())
 
 
 if __name__ == '__main__':

@@ -19,6 +19,8 @@ Behavior:
   - On success: moves the file to processed/<date>/ without replacing a name.
     Archive requires an atomic no-replace rename; unsupported filesystems or
     platforms leave the source in place for operator reconciliation.
+    A known same-day archive collision stops before ingestion. The precheck
+    cannot prevent a new collision appearing while ingestion is running.
   - On failure: stops the current run with a nonzero exit. Inspect the source
     and library before restarting; separate scheduled invocations may still run.
   - Prints nothing when there was nothing to do. Prints a short summary when
@@ -136,6 +138,11 @@ def main():
                 candidates.append(f)
         for f in candidates:
             try:
+                # Use one destination for both checks, including across midnight.
+                date_dir = inbox / "processed" / datetime.date.today().isoformat()
+                dest = date_dir / f.name
+                if os.path.lexists(dest):
+                    raise FileExistsError("archive destination already exists; ingestion not started")
                 r = subprocess.run(
                     [node, str(ingest_js), str(f), "--source", "inbox", "--library", str(library), "--quiet"],
                     capture_output=True, timeout=180,
@@ -154,9 +161,7 @@ def main():
                             or type(out.get("lib_id")) is not int or out["lib_id"] < 1):
                         raise ValueError("ingest receipt invalid; outcome unconfirmed")
                     # Archive to processed/<date>/
-                    date_dir = inbox / "processed" / datetime.date.today().isoformat()
                     date_dir.mkdir(parents=True, exist_ok=True)
-                    dest = date_dir / f.name
                     archive_noreplace(f, dest)
                     processed.append({
                         "file": f.name,

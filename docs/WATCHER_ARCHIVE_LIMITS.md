@@ -1,7 +1,11 @@
 # Inbox watcher archive limits
 
-The watcher ingests an input before attempting to move it into the dated
-`processed` folder. The archive step uses a no-replace rename on Windows or
+The watcher first checks whether the selected dated `processed` path already
+exists and stops before ingestion if it does. This early check is advisory: a
+destination can appear after the check, while ingestion is in progress. The
+date is chosen when processing that file starts, including across midnight.
+The watcher then ingests the input before attempting to move it. The archive
+step uses a no-replace rename on Windows or
 Linux where the filesystem and runtime support it. If the target name exists,
 the source stays in the inbox and the existing target is preserved. Other
 platforms, unsupported filesystems and cross-filesystem moves fail closed.
