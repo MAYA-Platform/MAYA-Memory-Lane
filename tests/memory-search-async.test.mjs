@@ -237,3 +237,44 @@ test('a failed active search releases the queue for later searches', async () =>
     assert.equal(next.value.count, 1);
   } finally { fs.promises.readFile = originalRead; }
 });
+
+test('aborted waiting search frees its slot without reading its library', async () => {
+  const originalRead = fs.promises.readFile;
+  let unblock;
+  let began;
+  const started = new Promise(resolve => { began = resolve; });
+  const held = new Promise(resolve => { unblock = resolve; });
+  const reads = [];
+  fs.promises.readFile = async file => {
+    reads.push(file);
+    if (file === 'active') { began(); await held; }
+    return Buffer.from('记忆');
+  };
+  const library = filePath => ({ blocks: [{ lib_id: 1, block_id: filePath, filePath }] });
+  const controller = new AbortController();
+  try {
+    const active = searchAsync(library('active'), '记忆');
+    await started;
+    const cancelled = searchAsync(library('cancelled'), '记忆', { signal: controller.signal });
+    const rejection = assert.rejects(cancelled, { code: 'ABORT_ERR' });
+    const waiting = ['one', 'two', 'three'].map(name => searchAsync(library(name), '记忆'));
+    await assert.rejects(searchAsync(library('full'), '记忆'), { code: 'MEMORY_SEARCH_BUSY' });
+    controller.abort();
+    await rejection;
+    const replacement = searchAsync(library('replacement'), '记忆');
+    unblock();
+    await Promise.all([active, ...waiting, replacement]);
+    assert.deepEqual(reads, ['active', 'one', 'two', 'three', 'replacement']);
+  } finally {
+    unblock();
+    fs.promises.readFile = originalRead;
+  }
+});
+
+test('a previously aborted search does not take a search slot', async () => {
+  const controller = new AbortController();
+  controller.abort();
+  const library = { blocks: [] };
+  await assert.rejects(searchAsync(library, '记忆', { signal: controller.signal }), { code: 'ABORT_ERR' });
+  assert.equal((await searchAsync(library, '记忆')).count, 0);
+});
