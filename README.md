@@ -61,7 +61,9 @@ An existing vault is its own format, so Memory Lane imports it rather than openi
 node tools/import-vault.mjs /path/to/your/vault --library /path/to/library
 ```
 
-Every `.md` and `.txt` file becomes one block, titled from its first heading or filename. Re-running skips what is already imported, so it is safe to run again as the vault grows. The full text is always indexed for search, and fact extraction stays off by default here (add `--extract` to turn it on). Dot-folders like `.obsidian` and `.git` are skipped.
+Eligible `.md` and `.txt` files become blocks titled from their first heading or filename. Re-running skips content already imported. Hidden files and folders, files over the size limit (200 KiB by default, adjustable with `--max-kb`), and very short notes are skipped. The importer reports new, skipped, and failed counts unless `--quiet` is used.
+
+Read or append failures, a directory depth beyond 12, or more than 5,000 candidate files cause a nonzero exit, including in quiet mode. An unsuccessful run may already have imported some notes; it does not roll them back. The candidate limit applies on each run, so rerunning a larger vault will not necessarily reach the remaining files. Import larger vaults in smaller source folders and review the results; changing the source folder changes lineage and can create duplicates of notes previously imported from the parent folder.
 
 ## How the chain works
 
