@@ -184,6 +184,42 @@ test('manifest drift rejects synthesis and fallback without blocking unrelated a
   }
 });
 
+test('MCP and CLI distinguish changed memory from absent memory', async t => {
+  const lib = makeFixture(t);
+  const file = lib.blocks[0].filePath;
+  const provider = http.createServer((_req, res) => {
+    fs.appendFileSync(file, '\nchanged during synthesis');
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ choices: [{ message: { content: '{}' } }] }));
+  });
+  provider.listen(0, '127.0.0.1');
+  await once(provider, 'listening');
+  t.after(() => provider.close());
+  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+  const env = { ...process.env, MEMORY_LANE_LIBRARY: lib.rootDir, MEMORY_LANE_API_KEY: 'synthetic-only',
+    MEMORY_LANE_BASE_URL: `http://127.0.0.1:${provider.address().port}`, MERGE_API_KEY: '',
+    MEMORY_LANE_MERGE_CONFIG: path.join(lib.rootDir, 'missing-config') };
+  async function run(args, input = '') {
+    const child = spawn(process.execPath, args, { cwd: root, env, stdio: ['pipe', 'pipe', 'pipe'] });
+    let out = '', err = '';
+    child.stdout.on('data', chunk => { out += chunk; });
+    child.stderr.on('data', chunk => { err += chunk; });
+    child.stdin.end(input);
+    const [code] = await once(child, 'close');
+    assert.equal(code, 0, err);
+    return out;
+  }
+  const cli = JSON.parse(await run(['tools/memory-lane-cli.mjs', 'answer', 'uniqueflower penguin']));
+  assert.equal(cli.reason, 'source_changed');
+  assert.match(cli.answer, /Memory changed/);
+  const request = { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'ml_answer', arguments: { question: 'uniqueflower penguin' } } };
+  const response = JSON.parse((await run(['tools/memory-lane-mcp.mjs'], JSON.stringify(request) + '\n')).trim());
+  const text = response.result.content[0].text;
+  assert.match(text, /\[memory changed\]/);
+  assert.doesNotMatch(text, /\[no memory\]/);
+  assert.match(text, /Search again/);
+});
+
 test('manifest changes during ranking are caught before direct or no-key fallback', async t => {
   for (const query of ['uniqueflower', 'uniqueflower penguin']) {
     const lib = makeFixture(t);
