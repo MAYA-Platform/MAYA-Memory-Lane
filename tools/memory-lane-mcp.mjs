@@ -95,7 +95,7 @@ function esc(s) {
 }
 
 function resultLimit(raw) {
-  if (raw == null) return { limit: 5, capped: false };
+  if (raw === undefined) return { limit: 5, capped: false };
   // Numeric strings previously worked through Number(); preserve them for clients
   // even though the advertised schema requests a number.
   if ((typeof raw !== 'number' && typeof raw !== 'string') ||

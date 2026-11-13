@@ -43,7 +43,7 @@ test('recent defaults remain five, valid requests preserve ordering, and oversiz
 
 test('recent and search reject nonpositive, fractional, nonnumeric and nonfinite limits', t => {
   const root = fixture(t);
-  const invalid = [-1, 0, 1.5, '', 'not-a-number', 'Infinity', true, [], 1e30];
+  const invalid = [null, -1, 0, 1.5, '', 'not-a-number', 'Infinity', true, [], 1e30];
   const requests = invalid.flatMap(limit => [
     { name: 'ml_recent', arguments: { limit } },
     { name: 'ml_search', arguments: { query: 'uniquehandoversample', limit, rerank: 'none' } },
