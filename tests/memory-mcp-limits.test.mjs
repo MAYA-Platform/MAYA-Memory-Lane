@@ -34,9 +34,9 @@ test('recent defaults remain five, valid requests preserve ordering, and oversiz
     { name: 'ml_recent', arguments: { limit: 10000 } },
   ]);
   assert.deepEqual(result.map(rows), [5, 2, 25]);
-  assert.match(result[0].content[0].text, /Showing 5 of 30/);
+  assert.match(result[0].content[0].text, /Showing 5 memory blocks\./);
   assert.match(result[2].content[0].text, /maximum 25/);
-  assert.match(result[2].content[0].text, /Showing 25 of 30/);
+  assert.match(result[2].content[0].text, /Showing 25 memory blocks\./);
   const first = result[0].content[0].text.split('\n').find(line => line.startsWith('• '));
   assert.equal(result[1].content[0].text.split('\n').find(line => line.startsWith('• ')), first);
 });

@@ -164,7 +164,7 @@ async function handleToolCall(name, args) {
         const title = `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || b.block_id)} [manifest hash: ${manifest_hash_status}]`;
         return excerpt ? `${title}\n  ${esc(excerpt)}` : title;
       });
-      return { content: [{ type: 'text', text: `Most recent memory blocks:\n${lines.join('\n')}\nShowing ${recent.length} of ${lib.blocks.length} memory blocks.${capNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
+      return { content: [{ type: 'text', text: `Most recent memory blocks:\n${lines.join('\n')}\nShowing ${recent.length} memory blocks.${capNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
     }
     case 'ml_resume': {
       const p = String((args && args.phrase) || '');
