@@ -62,5 +62,7 @@ test('search preserves default and positive numeric-string compatibility, and di
     { name: 'ml_search', arguments: { query: 'uniquehandoversample', limit: 10000, rerank: 'none' } },
   ]);
   assert.deepEqual(result.map(rows), [5, 2, 25]);
+  assert.match(result[0].content[0].text, /5 result\(s\) returned.*additional matches may exist/);
+  assert.match(result[1].content[0].text, /2 result\(s\) returned.*additional matches may exist/);
   assert.match(result[2].content[0].text, /maximum 25/);
 });

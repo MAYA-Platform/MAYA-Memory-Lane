@@ -139,7 +139,7 @@ async function handleToolCall(name, args) {
           ? m.manifest_hash_status : 'unknown';
         return `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))} [manifest hash: ${status}]${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}`;
       });
-      return { content: [{ type: 'text', text: `${matches.length} match(es) for "${q}":\n${lines.join('\n')}${jevNote}${capNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
+      return { content: [{ type: 'text', text: `${matches.length} result(s) returned for "${q}"; additional matches may exist:\n${lines.join('\n')}${jevNote}${capNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
     }
     case 'ml_answer': {
       const q = String((args && args.question) || '');
