@@ -15,7 +15,7 @@
  *                                     (?rerank=jev adds JevRank re-scoring)
  *   GET /api/health                -> capability probe (jev: true|false)
  *                                     + cached chain verdict (intact/status)
- *   GET /api/jevstats              -> JevRank cost receipt (calls + $)
+ *   GET /api/jevstats              -> JevRank process-lifetime usage and estimate
  *   GET /api/resume?phrase=        -> resolve a resume phrase
  *   GET /api/export                -> deterministic JSON export of the library
  *   POST /api/ingest               -> seal a new memory (auto fact extraction)
@@ -400,7 +400,7 @@ const routes = {
   },
 
   '/api/jevstats': (req, res) => {
-    // Cost receipt: lifetime Jev call counter since server start. Proves pennies.
+    // Process-lifetime counters and a partial estimate; provider billing is authoritative.
     sendJson(res, 200, { ok: true, ...jevStats() });
   },
 
