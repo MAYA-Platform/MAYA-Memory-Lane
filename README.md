@@ -162,12 +162,14 @@ records. Verification recomputes fingerprints and walks recorded links:
 
 - **Intact:** recorded fingerprints and the links actually checked match. This
   does not prove that every expected link or record is present.
-- **Unverifiable:** a reference lacks the recorded fingerprint needed to compare.
+- **Unverifiable:** a reference lacks the recorded fingerprint needed to compare,
+  or a predecessor fingerprint is present without an ID to identify the record.
 - **Needs attention:** a mismatch or missing referenced record needs inspection.
 
-The verifier treats an entry with no predecessor ID as having no link to check,
-even if a predecessor was expected or a predecessor hash remains. Removing that
-ID can therefore leave an `intact` verdict. This is limited checking against the
+The verifier treats an entry with neither predecessor ID nor predecessor hash as
+having no link to check, even if a predecessor was expected. Removing both fields
+can therefore leave an `intact` verdict. A fingerprint without an ID is reported
+as unverifiable; this does not establish that any other links or records are complete. This is limited checking against the
 files you hold, not chain completeness, an external witness, or a guarantee that
 the contents were accurate when written.
 
