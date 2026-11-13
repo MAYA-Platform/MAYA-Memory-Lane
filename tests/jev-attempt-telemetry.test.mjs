@@ -53,3 +53,39 @@ test('attempt telemetry distinguishes unpriced requests from scored responses', 
     else process.env.MERGE_API_KEY = previousKey;
   }
 });
+
+test('attempt boundary and malformed response data do not misstate telemetry', async () => {
+  const previousFetch = globalThis.fetch;
+  const previousKey = process.env.MERGE_API_KEY;
+  process.env.MERGE_API_KEY = 'synthetic-test-key';
+  const candidates = [{ block_id: 'a', excerpt: 'one' }, { block_id: 'b', excerpt: 'two' }];
+  const before = jevStats();
+  try {
+    globalThis.fetch = undefined;
+    let callbackCalled = false;
+    assert.equal((await jevScoreBatch('q', candidates, { onAttempt: () => { callbackCalled = true; } })).reason, 'fetch unavailable');
+    assert.equal(callbackCalled, false);
+    assert.equal(jevStats().attempts, before.attempts);
+    assert.equal(jevStats().unpricedAttempts, before.unpricedAttempts);
+    globalThis.fetch = async () => { throw new Error('unexpected fetch'); };
+    assert.equal((await jevScoreBatch('q', candidates, { onAttempt: () => { throw null; } })).reason, 'onAttempt failed: null');
+    assert.equal(jevStats().attempts, before.attempts);
+
+    globalThis.fetch = async () => { throw null; };
+    assert.equal((await jevScoreBatch('q', candidates)).reason, 'fetch failed: null');
+    globalThis.fetch = async () => ({ ok: true, json: async () => { throw null; } });
+    assert.equal((await jevScoreBatch('q', candidates)).reason, 'bad JSON from jev: null');
+    assert.equal(jevStats().attempts - before.attempts, 2);
+    assert.equal(jevStats().unpricedAttempts - before.unpricedAttempts, 2);
+
+    for (const cost of [-1, Infinity, NaN]) {
+      globalThis.fetch = async () => ({ ok: true, json: async () => ({ answers: { C0: { score: 1 }, C1: { score: 2 } }, usage: { cost } }) });
+      assert.equal((await jevScoreBatch('q', candidates)).ok, true);
+    }
+    assert.equal(Number((jevStats().estimatedCostUsd - before.estimatedCostUsd).toFixed(8)), 0.00009);
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousKey === undefined) delete process.env.MERGE_API_KEY;
+    else process.env.MERGE_API_KEY = previousKey;
+  }
+});
