@@ -388,7 +388,7 @@
     <div class="lane" id="lane"><div class="empty">Loading…</div></div>
 
     <h2>Chain Integrity</h2>
-    <p class="empty" style="margin-bottom:12px;">Verification checks recorded hashes and links where available. Matching hashes do not authenticate the source, establish truth, or prevent a coordinated rewrite of records and hashes.</p>
+    <p class="empty" style="margin-bottom:12px;">Verification checks recorded hashes and links where available. Unrecorded predecessor links can go undetected, so these checks do not establish a complete history. Matching hashes do not authenticate the source, establish truth, or prevent a coordinated rewrite of records and hashes.</p>
     <div id="chainView"><div class="empty">Loading…</div></div>
   </div>
 
@@ -469,7 +469,7 @@
       <text x="510" y="162" text-anchor="middle" fill="#52d273" font-size="9" font-family="monospace">verify</text>
     </svg>
     <div class="flow-caption">
-      <b>Memory Lane stores linked records with fingerprints.</b> This diagram illustrates sealing, optional aggregation, storage and verification; it does not mean every conversation is saved or compacted automatically. Verification compares available records and hashes. A match does not establish truth or authenticity, and coordinated changes to records and hashes may go undetected. Your configured storage and model provider determine where data is kept or sent.
+      <b>Memory Lane stores linked records with fingerprints.</b> This diagram illustrates sealing, optional aggregation, storage and verification; it does not mean every conversation is saved or compacted automatically. Verification compares available records and hashes. Missing predecessor links may go undetected, so a match does not establish complete history, truth, or authenticity; coordinated changes to records and hashes may also go undetected. Your configured storage and model provider determine where data is kept or sent.
     </div>
   </div>
 
@@ -548,7 +548,7 @@ async function loadStatus() {
         (chain.unchecked === undefined || chain.unchecked === 0);
       if (chain.status === 'issues' || hasHardIssues) setVerdict('bad', `Cached chain checks found issues: ${count} records passed`);
       else if (chain.intact === true && chain.status === 'intact' && matchesLibrary && chain.okCount === chain.total && consistentDetails)
-        setVerdict('good', `Cached chain checks passed: ${count} records`);
+        setVerdict('good', `Cached checks passed for ${count} records. Unrecorded predecessor links may go undetected; history completeness is not established.`);
       else if (chain.status === 'unchecked') setVerdict('neutral', `Cached chain checks incomplete: ${count} records passed`);
       else setVerdict('neutral', `Chain verification incomplete or unavailable: ${count} records passed`);
       showPopulated();
