@@ -80,6 +80,7 @@ test('Jev expansion reports hash status from the promoted excerpt bytes', async 
   globalThis.fetch = async (_url, options) => {
     const keys = Object.keys(JSON.parse(options.body).questions);
     assert.equal(keys.length, 3);
+    fs.writeFileSync(library.blocks[2].filePath, 'replacement after Jev captured the excerpt');
     return { ok: true, json: async () => ({ answers: Object.fromEntries(
       keys.map((key, index) => [key, { score: index === 2 ? 2 : 1 }])) }) };
   };
@@ -88,6 +89,8 @@ test('Jev expansion reports hash status from the promoted excerpt bytes', async 
     const promoted = ranked.matches.find(m => m.block_id === target.block_id);
     assert.equal(promoted.via, 'jev-lineage');
     assert.equal(promoted.manifest_hash_status, 'mismatch');
+    assert.match(promoted.excerpt, /uniquehandoff/);
+    assert.doesNotMatch(promoted.excerpt, /replacement after Jev/);
   } finally {
     globalThis.fetch = oldFetch;
     if (oldKey === undefined) delete process.env.MERGE_API_KEY; else process.env.MERGE_API_KEY = oldKey;

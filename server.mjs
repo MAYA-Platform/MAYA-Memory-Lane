@@ -58,7 +58,7 @@ import {
   loadLibrary,
   readBlock,
   verifyChain,
-  search,
+  searchAsync,
   resolveResume,
   exportLibrary,
   libraryStats,
@@ -79,6 +79,7 @@ const SAMPLE_LIBRARY_PATH = path.join(ROOT, 'sample-library');
 let activeLibraryPath = process.env.MEMORY_LANE_LIBRARY
   ? path.resolve(process.env.MEMORY_LANE_LIBRARY)
   : DEFAULT_LIBRARY_PATH;
+let activeLibraryGeneration = 0;
 const EXTERNAL_LIBRARY = Boolean(process.env.MEMORY_LANE_LIBRARY);
 const UI_PATH = path.join(ROOT, 'public', 'memory-lane.html');
 const IMAGES_DIR = path.join(ROOT, 'public', 'images');
@@ -352,15 +353,18 @@ const routes = {
   '/api/search': async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const q = url.searchParams.get('q') || '';
+    const generation = activeLibraryGeneration;
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    const result = search(lib, q);
+    const result = await searchAsync(lib, q);
+    if (generation !== activeLibraryGeneration) return sendJson(res, 409, { ok: false, error: 'Library changed during search; retry.' });
     // JevRank (opt-in): ?rerank=jev re-scores the top candidates with ONE
     // batched Jev call. Defensive: any Jev problem returns plain full-text
     // results unchanged — the shim can never break search.
     if (url.searchParams.get('rerank') === 'jev') {
       const t0 = Date.now();
       const ranked = await jevRank(lib, q, result.matches, { topN: 10 });
+      if (generation !== activeLibraryGeneration) return sendJson(res, 409, { ok: false, error: 'Library changed during search; retry.' });
       if (ranked.jev && ranked.jev.applied) ranked.jev.latency_ms = Date.now() - t0;
       sendJson(res, 200, { ok: true, query: q, count: ranked.matches.length, matches: ranked.matches, jev: ranked.jev });
       return;
@@ -428,6 +432,7 @@ const routes = {
       return sendJson(res, 400, { ok: false, error: 'an external library is configured; sample switching is disabled' });
     }
     activeLibraryPath = SAMPLE_LIBRARY_PATH;
+    activeLibraryGeneration++;
     verifyActiveLibraryNow(); // switch is synchronous + cheap (7 blocks): status stays verified
     sendJson(res, 200, { ok: true, mode: 'sample', library: libraryLabel() });
   },
@@ -441,6 +446,7 @@ const routes = {
       return sendJson(res, 400, { ok: false, error: 'an external library is configured; sample switching is disabled' });
     }
     activeLibraryPath = DEFAULT_LIBRARY_PATH;
+    activeLibraryGeneration++;
     verifyActiveLibraryNow(); // switch is synchronous + cheap (0 blocks): status stays verified
     sendJson(res, 200, { ok: true, mode: 'empty', library: libraryLabel() });
   },
@@ -565,9 +571,11 @@ const routes = {
     if (!q.trim()) {
       return sendJson(res, 400, { ok: false, error: 'q is required' });
     }
+    const generation = activeLibraryGeneration;
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
     const result = await answerQuestion(lib, q);
+    if (generation !== activeLibraryGeneration) return sendJson(res, 409, { ok: false, error: 'Library changed during answer; retry.' });
     sendJson(res, 200, { ok: true, ...result });
   }
 };
@@ -584,7 +592,9 @@ const server = http.createServer((req, res) => {
       if (out && typeof out.catch === 'function') {
         out.catch((err) => {
           if (res.headersSent) return;
-          sendJson(res, 500, { ok: false, error: String(err && err.message ? err.message : err) });
+          if (err && err.code === 'MEMORY_SEARCH_BUSY') res.setHeader('Retry-After', '1');
+          sendJson(res, err && err.code === 'MEMORY_SEARCH_BUSY' ? 503 : 500,
+            { ok: false, error: String(err && err.message ? err.message : err) });
         });
       }
       return;

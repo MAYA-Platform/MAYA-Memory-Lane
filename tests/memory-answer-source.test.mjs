@@ -67,6 +67,26 @@ test('a promoted item resolves its block ID to the actual readable record', asyn
   assert.ok(result.evidence.some(e => e.block_id === result.source));
 });
 
+test('a Jev promotion changed during scoring is omitted from answer evidence', async t => {
+  const lib = fixture(t, 11);
+  const initial = search(lib, 'uniquehandoff', {limit: 10}).matches;
+  const promoted = lib.blocks.find(b => !initial.some(m => m.block_id === b.block_id));
+  let edited = false;
+  const result = await fakeJev((i, n) => {
+    if (!edited) {
+      fs.writeFileSync(promoted.filePath, 'replacement without the query');
+      edited = true;
+    }
+    return i === n - 1 ? 2 : 1;
+  }, () => answerQuestion(lib, 'uniquehandoff'));
+  assert.equal(edited, true);
+  assert.equal(result.mode, 'direct');
+  assert.notEqual(result.source, promoted.block_id);
+  assert.ok(result.evidence.length > 0);
+  assert.equal(result.evidence.some(e => e.block_id === promoted.block_id), false);
+  assert.doesNotMatch(result.answer, /replacement without/);
+});
+
 
 
 test('an empty body falls back to the selected block excerpt, not an earlier missing block', async t => {
