@@ -13,19 +13,20 @@ are different ways to use that same library.
 [Try the demo](#try-the-demo) · [Save your first memory](#save-your-first-memory) ·
 [Connect an agent](#agents-can-read-it-mcp-bridge) · [Limits and privacy](#limits-and-privacy)
 
-![Memory Lane interface showing the bundled sample library, record list, and chain status.](docs/images/memory-lane-public.png)
+![Historical pre-redesign Memory Lane interface showing the bundled sample library, record list, and chain status.](docs/images/memory-lane-public.png)
 
-*Fabricated sample data, bundled with the repository. A fresh start opens the
-empty demo library; the sample loads on your own machine when you select it.*
+*Historical pre-redesign screenshot with fabricated sample data bundled with the
+repository. A fresh start opens the empty demo library; the sample loads on your
+own machine when you select it.*
 
 ## The idea in one minute
 
 1. **Remember something.** Save a note, import a notes folder, or connect an
    ingestion script to your agent's session closeout.
 2. **Keep the original.** Each appended record is stored as Markdown, with a
-   SHA-256 fingerprint and a link to the preceding record in the manifest.
+   SHA-256 fingerprint and a link to the preceding record when one exists in the manifest.
 3. **Come back with context.** Search, open the source record, or ask an agent
-   connected to the library to retrieve it. Verify the chain and export a JSON
+   connected to the library to retrieve it. Inspect chain-check results and export a JSON
    bundle when needed.
 
 This is storage and retrieval, not automatic model training. Installing the
@@ -38,7 +39,8 @@ prove that a particular agent's live deployment is using it.
 
 **Text equivalent:** notes and session text enter through the importer, CLI, or
 HTTP API. Ingestion appends a record to a local library. The web UI, JSON CLI,
-and MCP tools read that library for search, recent context, resume, and export.
+and MCP tools offer different ways to retrieve records. Export is available
+through the web UI and JSON CLI; the MCP bridge does not provide an export tool.
 Optional extraction, answer synthesis, ranking, and embeddings can involve a
 model service. The inbox watcher needs to be started separately.
 
@@ -72,12 +74,14 @@ This cross-platform example creates a separate library in the parent directory
 and saves one record without calling a model. Run it from the repository folder:
 
 ```bash
-node -e "require('node:fs').cpSync('empty-library', '../my-memory-lane', { recursive: true, errorOnExist: true, force: false })"
+node -e "const f = require('node:fs'); const d = '../my-memory-lane'; f.mkdirSync(d); f.cpSync('empty-library', d, { recursive: true, errorOnExist: true, force: false })"
 node tools/ingest.mjs --library ../my-memory-lane --no-extract --text "Project Cedar: we decided to launch the demo on Friday." --title "Demo decision"
 ```
 
-Use a new destination name if that folder already exists. Then stop the demo
-server with Ctrl+C and open your library:
+The first command refuses to use an existing destination directory. If the copy
+fails after creating it, it can leave a partial directory; inspect it and choose
+a different new name before retrying. Do not run concurrent writers against the
+destination during setup. Then stop the demo server with Ctrl+C and open your library:
 
 **macOS / Linux / Bash**
 
@@ -104,10 +108,12 @@ repository. Export is useful, but is not a substitute for a tested backup.
   embeddings can send queries or record content to their configured services.
   Review provider settings before handling private data. These services may
   charge separately; a free local code path does not make every feature free.
-- **Fingerprints are not encryption or proof of truth.** Verification can detect
-  mismatches against the manifest. Someone who can replace the records and
-  manifest can rewrite that reference too. Protect and back up both. A resume
-  phrase is a lookup aid, not a password or access-control mechanism.
+- **Fingerprints are not encryption or proof of truth.** Verification checks
+  recorded fingerprints and links against the supplied manifest; it does not
+  prove chain completeness. A removed predecessor ID can go unchecked, and a
+  party able to replace records and the manifest can rewrite that reference.
+  Protect and back up both. A resume phrase is a lookup aid, not a password or
+  access-control mechanism.
 - **Answers still need checking.** Search can miss a relevant record. A model can
   misread retrieved evidence; valid source IDs do not prove the answer is true.
   Open the cited source before relying on an important answer.
@@ -136,7 +142,7 @@ folder is not this format: import it into a separate destination instead.
 
 ### Bringing an existing notes folder in (Obsidian vault, docs tree)
 
-An existing vault is its own format, so Memory Lane imports it rather than opening it in place. One command walks the folder and seals every markdown note as a searchable, chain-linked block in a fresh (or existing) library:
+An existing vault is its own format, so Memory Lane imports it rather than opening it in place. One command walks the folder and imports eligible notes as searchable blocks in a fresh (or existing) library:
 
 ```bash
 node tools/import-vault.mjs /path/to/your/vault --library /path/to/library
@@ -154,24 +160,30 @@ The importer checks collected paths for collisions in its legacy 32-bit lineage 
 it to the preceding record, and updates the manifests. Shelf folders group six
 records. Verification recomputes fingerprints and walks recorded links:
 
-- **Intact:** recorded fingerprints and checked links match.
+- **Intact:** recorded fingerprints and the links actually checked match. This
+  does not prove that every expected link or record is present.
 - **Unverifiable:** a reference lacks the recorded fingerprint needed to compare.
 - **Needs attention:** a mismatch or missing referenced record needs inspection.
 
-This is integrity checking against the files you hold, not an external witness
-or a guarantee that the contents were accurate when written.
+The verifier treats an entry with no predecessor ID as having no link to check,
+even if a predecessor was expected or a predecessor hash remains. Removing that
+ID can therefore leave an `intact` verdict. This is limited checking against the
+files you hold, not chain completeness, an external witness, or a guarantee that
+the contents were accurate when written.
 
 ## Automatic ingestion
 
 Ingestion must be connected to a source or started explicitly. Three entry points use the same append path:
 
-**1. Inbox watcher (drop a file, walk away).** Point the watcher at a folder and it seals everything that lands there:
+**1. Inbox watcher.** Start the watcher explicitly against a folder you are authorized to use:
 
 ```bash
 python tools/inbox-watch.py --inbox /path/to/inbox --library /path/to/library --once
 ```
 
-New `.md`, `.txt`, `.json`, or `.log` files are extracted, sealed as chain-linked blocks, and archived to `inbox/processed/<date>/`. Run it on a timer (`python tools/inbox-watch.py --inbox /path/to/inbox --library /path/to/library --loop 60`, or use cron; `npm run watch` uses the `ML_INBOX` and `ML_LIBRARY` environment variables) and the library grows itself. When there are no new files, there is nothing to ingest. Extraction settings determine whether a model is contacted for new records.
+The watcher attempts ingestion for matching `.md`, `.txt`, `.json`, and `.log` files. It invokes the ingestion CLI **with extraction enabled**; a configured hosted endpoint can receive input text, while the default fallback attempts Ollama locally; `OLLAMA_URL` can point to a different host. Review the endpoint, credentials, and data before starting it. The watcher has no `--no-extract` option; for a local no-extraction workflow, use the ingestion CLI with `--no-extract` instead.
+
+After a successful ingestion response, the watcher **moves the original file** into `inbox/processed/<date>/`; it does not leave a copy at the original path. It does not check whether the destination name already exists: moving a same-name file on the same date can overwrite an earlier processed file. Use unique filenames, a dedicated inbox, and an independent backup. An error or interrupted run can leave the record and file in different states. A file left in the inbox is retried on the next loop, so stop the watcher and inspect both the record and source before retrying. Run it repeatedly only when intended (`--loop 60`, cron, or `npm run watch` with `ML_INBOX` and `ML_LIBRARY`); it is not started merely by opening the app.
 
 **2. API (any agent can push a memory).** With an external library mounted, the server accepts new memories over HTTP:
 
@@ -280,12 +292,15 @@ cd benchmarks
 # Read runner requirements and provider configuration before running.
 python harness/run_all_lanes.py --all
 python harness/run_lane_a_langmem.py
-python harness/run_lane_a_mem0.py --clean
+python harness/run_lane_a_mem0.py
 python harness/generate_sbs_report.py
 ```
 
 These Python/provider workflows are separate from the dependency-free Node
-application. Some require credentials, model services, or extra infrastructure.
+application. Some require credentials, paid model services, or extra infrastructure;
+review their settings and potential costs before running. Use a fresh, isolated
+benchmark dataset and storage. The Mem0 runner's optional `--clean` flag deletes
+`benchmarks/libraries/mem0-chroma` when it exists; the command above omits it.
 The protocol and first report were committed together; do not treat that as an
 independently witnessed preregistration.
 
@@ -299,7 +314,7 @@ independently witnessed preregistration.
 | `GET /api/status` | Library stats + chain verdict |
 | `GET /api/blocks` | Block list (manifest order) |
 | `GET /api/blocks/:libId` | One block (frontmatter + body) |
-| `GET /api/chain` | Full chain verification walk |
+| `GET /api/chain` | Recorded fingerprint and predecessor-link checks |
 | `GET /api/search?q=` | Search across block bodies (add `&rerank=jev` for intent re-ranking) |
 | `GET /api/answer?q=` | Ask a question, direct / synthesized / none (retrieval confidence gate) |
 | `GET /api/resume?phrase=` | Resolve a resume phrase |
