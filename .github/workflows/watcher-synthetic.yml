@@ -31,3 +31,5 @@ jobs:
         run: python -B -m unittest discover -s tests -p test_inbox_watch_archive.py
       - name: Output and receipt encoding
         run: python -B -m unittest discover -s tests -p test_inbox_watch_output.py
+      - name: Failure and uncertain outcome handling
+        run: python -B -m unittest discover -s tests -p test_inbox_watch_failstop.py

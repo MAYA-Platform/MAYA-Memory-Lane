@@ -19,8 +19,8 @@ Behavior:
   - On success: moves the file to processed/<date>/ without replacing a name.
     Archive requires an atomic no-replace rename; unsupported filesystems or
     platforms leave the source in place for operator reconciliation.
-  - On failure: logs an uncertain outcome; a source still in the inbox may be
-    retried on the next tick. Inspect the source and library before retry.
+  - On failure: stops the current run with a nonzero exit. Inspect the source
+    and library before restarting; separate scheduled invocations may still run.
   - Prints nothing when there was nothing to do. Prints a short summary when
     work happened. Prints an error to stdout when a file failed (so the cron
     delivery surfaces it).
@@ -146,9 +146,13 @@ def main():
                     stderr = r.stderr.decode("utf-8", errors="strict")
                 except UnicodeDecodeError:
                     failures.append({"file": f.name, "error": "ingest output is not valid UTF-8; outcome unconfirmed"})
-                    continue
+                    break
                 if r.returncode == 0:
                     out = json.loads(stdout.strip().splitlines()[-1])
+                    if (not isinstance(out, dict) or out.get("ok") is not True
+                            or not isinstance(out.get("block_id"), str) or not out["block_id"].strip()
+                            or type(out.get("lib_id")) is not int or out["lib_id"] < 1):
+                        raise ValueError("ingest receipt invalid; outcome unconfirmed")
                     # Archive to processed/<date>/
                     date_dir = inbox / "processed" / datetime.date.today().isoformat()
                     date_dir.mkdir(parents=True, exist_ok=True)
@@ -163,32 +167,40 @@ def main():
                     })
                 else:
                     failures.append({"file": f.name, "error": (stderr or stdout).strip()[-300:]})
+                    break
             except Exception as e:  # noqa: BLE001
                 failures.append({"file": f.name, "error": str(e)[-300:]})
+                break
 
         if not processed and not failures:
-            return  # silent — nothing to do
+            return 0  # silent — nothing to do
         if processed:
             print(f"ML-WATCH ✓ ingested {len(processed)} file(s):")
             for p in processed:
                 print(f"  - {p['file']} → {p['block_id']} (lib {p['lib_id']}, "
                       f"chain_intact={p['chain_intact']}, facts={p['facts_count']})")
         if failures:
-            print("ML-WATCH ✗ failures (inspect source and library before retry; remaining inbox files may be retried):")
+            print("ML-WATCH ✗ stopped (inspect source and library before restarting; separate scheduled runs may retry):")
             for fl in failures:
                 print(f"  - {fl['file']}: {fl['error']}")
+            return 1
+        return 0
 
     if args.once:
-        run_once()
-        return
+        return run_once()
 
-    run_once()
+    result = run_once()
+    if result:
+        return result
     if args.loop:
         import time
         while True:
             time.sleep(args.loop)
-            run_once()
+            result = run_once()
+            if result:
+                return result
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
