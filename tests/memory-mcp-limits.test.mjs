@@ -6,11 +6,11 @@ import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { appendBlock } from '../lib/memoryLaneCore.js';
 
-function fixture(t) {
+function fixture(t, count = 30) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-mcp-limit-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, 'MANIFEST.json'), JSON.stringify({ blocks: [] }));
-  for (let i = 0; i < 30; i++) appendBlock(root, { title: `Entry ${i}`, body: 'uniquehandoversample', lineage: `record${i}` });
+  for (let i = 0; i < count; i++) appendBlock(root, { title: `Entry ${i}`, body: 'uniquehandoversample', lineage: `record${i}` });
   return root;
 }
 
@@ -65,4 +65,22 @@ test('search preserves default and positive numeric-string compatibility, and di
   assert.match(result[0].content[0].text, /5 result\(s\) returned.*additional matches may exist/);
   assert.match(result[1].content[0].text, /2 result\(s\) returned.*additional matches may exist/);
   assert.match(result[2].content[0].text, /maximum 25/);
+});
+
+test('limit boundary and empty results are explicit for both tools', t => {
+  const root = fixture(t);
+  const result = calls(root, ['ml_recent', 'ml_search'].flatMap(name => [25, 26].map(limit => ({
+    name, arguments: name === 'ml_search' ? { query: 'uniquehandoversample', limit, rerank: 'none' } : { limit },
+  }))));
+  assert.deepEqual(result.map(rows), [25, 25, 25, 25]);
+  assert.doesNotMatch(result[0].content[0].text, /capped/);
+  assert.match(result[1].content[0].text, /capped/);
+  assert.doesNotMatch(result[2].content[0].text, /capped/);
+  assert.match(result[3].content[0].text, /capped/);
+  const empty = calls(fixture(t, 0), [
+    { name: 'ml_recent', arguments: {} },
+    { name: 'ml_search', arguments: { query: 'uniquehandoversample', rerank: 'none' } },
+  ]);
+  assert.match(empty[0].content[0].text, /Library is empty/);
+  assert.match(empty[1].content[0].text, /No matches/);
 });
