@@ -95,7 +95,9 @@ test('status distinguishes passed, failed, and unavailable cached chain checks',
   vm.runInContext(script, context);
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(element('verdict').className, 'verdict good');
-  assert.match(element('verdictText').textContent, /checks passed: 7\/7/);
+  assert.match(element('verdictText').textContent, /checks passed for 7\/7 records/);
+  assert.match(element('verdictText').textContent, /predecessor links may go undetected/);
+  assert.match(element('verdictText').textContent, /history completeness is not established/);
   chain = { intact: false, status: 'issues', total: 7, okCount: 3 };
   await vm.runInContext('loadStatus()', context);
   assert.equal(element('verdict').className, 'verdict bad');
