@@ -43,4 +43,11 @@ test('search and answer do not return old-library results after a library switch
     assert.equal('matches' in body, false);
     assert.equal('answer' in body, false);
   }
+  assert.equal((await fetch(`${base}/api/load-sample`, {method: 'POST'})).status, 200);
+  const burst = await Promise.all(Array.from({length: 6}, () => fetch(`${base}/api/search?q=memory`)));
+  assert.equal(burst.filter(response => response.status === 200).length, 5);
+  const busy = burst.find(response => response.status === 503);
+  assert.ok(busy);
+  assert.equal(busy.headers.get('retry-after'), '1');
+  assert.match((await busy.json()).error, /busy.*retry/i);
 });

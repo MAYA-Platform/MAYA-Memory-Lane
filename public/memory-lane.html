@@ -383,6 +383,8 @@
 <script>
 const $ = (id) => document.getElementById(id);
 const state = { blocks: [], mode: 'empty' };
+let searchRequest = 0;
+let askRequest = 0;
 
 async function j(url, opts) {
   const r = await fetch(url, opts);
@@ -530,10 +532,12 @@ async function doResume() {
   const phrase = $('resumeInput').value.trim();
   const box = $('searchResults');
   if (!phrase) return;
+  const request = ++searchRequest;
   box.classList.remove('hidden');
   box.innerHTML = '<div class="empty">Looking up “' + esc(phrase) + '”…</div>';
   try {
     const d = await j('/api/resume?phrase=' + encodeURIComponent(phrase));
+    if (request !== searchRequest) return;
     if (d.found && d.blocks && d.blocks.length) {
       box.innerHTML = '<div class="empty" style="margin-bottom:8px;">Resume phrase found: ' + d.blocks.length + ' block(s). Scroll to the timeline below.</div>' +
         d.blocks.map((b) => `<div class="result" role="button" tabindex="0" aria-label="Go to block ${b.lib_id}" onclick="scrollToBlock(${b.lib_id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();scrollToBlock(${b.lib_id});}"><span class="rid">#${String(b.lib_id).padStart(3,'0')}</span> ${esc(b.block_id)}</div>`).join('');
@@ -541,6 +545,7 @@ async function doResume() {
       box.innerHTML = '<div class="empty">No block matches that resume phrase.</div>';
     }
   } catch (e) {
+    if (request !== searchRequest) return;
     box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
   }
 }
@@ -549,10 +554,12 @@ async function doSearch() {
   const q = $('searchInput').value.trim();
   const box = $('searchResults');
   if (!q) return;
+  const request = ++searchRequest;
   box.classList.remove('hidden');
   box.innerHTML = '<div class="empty">Searching for “' + esc(q) + '”…</div>';
   try {
     const d = await j('/api/search?q=' + encodeURIComponent(q));
+    if (request !== searchRequest) return;
     if (!d.matches.length) {
       box.innerHTML = '<div class="empty">No matches for “' + esc(q) + '”.</div>';
       return;
@@ -560,6 +567,7 @@ async function doSearch() {
     box.innerHTML = '<div class="empty" style="margin-bottom:8px;">' + d.count + ' match(es) for “' + esc(q) + '”</div>' +
       d.matches.map((m) => `<div class="result" role="button" tabindex="0" aria-label="Go to block ${m.lib_id}" onclick="scrollToBlock(${m.lib_id})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();scrollToBlock(${m.lib_id});}"><span class="rid">#${String(m.lib_id).padStart(3,'0')}</span> ${esc(m.block_id)}<div class="excerpt">${esc(m.excerpt)}</div></div>`).join('');
   } catch (e) {
+    if (request !== searchRequest) return;
     box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
   }
 }
@@ -568,12 +576,14 @@ async function doAsk() {
   const q = $('askInput').value.trim();
   const box = $('askResults');
   if (!q) return;
+  const request = ++askRequest;
   box.classList.remove('hidden');
   box.innerHTML = '<div class="empty">Asking your memory “' + esc(q) + '”…</div>';
   try {
     const d = await j('/api/answer?q=' + encodeURIComponent(q));
+    if (request !== askRequest) return;
     if (d.mode === 'none') {
-      box.innerHTML = '<div class="empty">No memory found for “' + esc(q) + '”. Try different wording, or seal the memory first.</div>';
+      box.innerHTML = '<div class="empty">' + esc(d.answer || 'No memory found.') + '</div>';
       return;
     }
     const modeLabel = d.mode === 'direct'
@@ -586,11 +596,14 @@ async function doAsk() {
           : '');
     box.innerHTML = `<div class="ask-answer">${modeLabel}<div class="answer-text">${esc(d.answer)}</div>${source}</div>`;
   } catch (e) {
+    if (request !== askRequest) return;
     box.innerHTML = '<div class="empty">Failed: ' + esc(e.message) + '</div>';
   }
 }
 
 async function reloadAll() {
+  ++searchRequest;
+  ++askRequest;
   await loadStatus();
   await loadBlocks();
   await loadChain();

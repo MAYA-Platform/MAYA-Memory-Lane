@@ -6,7 +6,7 @@ import path from 'node:path';
 import { appendBlock, loadLibrary, search } from '../lib/memoryLaneCore.js';
 import { answerQuestion } from '../lib/answer.js';
 
-test('fallback uses current readable evidence after ranking', async t => {
+test('changed candidates are not used as evidence after ranking', async t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-evidence-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, 'MANIFEST.json'), JSON.stringify({ blocks: [] }));
@@ -29,11 +29,10 @@ test('fallback uses current readable evidence after ranking', async t => {
   };
   t.after(() => {globalThis.fetch = originalFetch; if (oldKey === undefined) delete process.env.MERGE_API_KEY; else process.env.MERGE_API_KEY = oldKey; if (oldMemoryKey === undefined) delete process.env.MEMORY_LANE_API_KEY; else process.env.MEMORY_LANE_API_KEY = oldMemoryKey;});
   const answer = await answerQuestion(library, 'uniqueword');
-  assert.equal(answer.source, second.block_id);
-  assert.match(answer.answer, /Fresh replacement/);
-  assert.equal(answer.evidence.length, 1);
-  assert.equal(answer.evidence[0].manifest_hash_status, 'mismatch');
-  assert.match(answer.note, /synthesis failed/);
+  assert.equal(answer.mode, 'none');
+  assert.match(answer.answer, /Memory changed/);
+  assert.deepEqual(answer.evidence, []);
+  assert.equal(answer.source, undefined);
 });
 
 test('no surviving blocks returns no answer or synthesis call', async t => {

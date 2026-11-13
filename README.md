@@ -233,10 +233,22 @@ Every figure regenerates from the latest run JSONs, and the committed `benchmark
 
 Search reads the bytes of every block listed in the loaded manifest to detect
 changes, including edits that preserve file size and modification time. HTTP,
-MCP and CLI searches read those files concurrently with a bounded limit; the
-direct JavaScript `search()` API remains synchronous. A search is not an atomic
-snapshot across files: a concurrent edit can appear in the next request, and a
-caller that reuses a loaded library must reload it to discover manifest changes.
+MCP and CLI searches use up to 16 simultaneous file reads. To bound memory,
+only one async search in the process captures a corpus at a time; up to four
+later searches wait and read fresh bytes when admitted. Further requests receive
+an explicit busy error (HTTP 503). A disconnected HTTP request is not yet
+canceled and may still occupy a queue slot. The direct JavaScript `search()` API
+remains synchronous and is not subject to this async queue.
+
+Each search excerpt and its manifest-hash status describe the bytes captured
+for that result, even if a file changes before the response arrives. A search
+is not an atomic snapshot across files: files may be captured at different times,
+and a concurrent edit can appear in the next request. The optional Jev lineage
+expansion reads additional records at expansion time. For answers, candidates
+whose source or metadata changed after selection are omitted; if none survive,
+retry the question. Hash agreement does not establish source truth or chain
+authenticity. A caller that reuses a loaded library must reload it to discover
+manifest changes.
 If the active web library is switched while a search or answer is in progress,
 the server returns HTTP 409 and the caller should retry against the new library.
 

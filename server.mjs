@@ -592,7 +592,9 @@ const server = http.createServer((req, res) => {
       if (out && typeof out.catch === 'function') {
         out.catch((err) => {
           if (res.headersSent) return;
-          sendJson(res, 500, { ok: false, error: String(err && err.message ? err.message : err) });
+          if (err && err.code === 'MEMORY_SEARCH_BUSY') res.setHeader('Retry-After', '1');
+          sendJson(res, err && err.code === 'MEMORY_SEARCH_BUSY' ? 503 : 500,
+            { ok: false, error: String(err && err.message ? err.message : err) });
         });
       }
       return;
