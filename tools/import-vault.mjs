@@ -55,6 +55,11 @@ function sha256ish(text) {
   return String(h);
 }
 
+function sourceLineage(vault, file) {
+  const rel = path.relative(vault, file).replace(/\\/g, '/');
+  return 'vault_' + sha256ish(vault + '|' + rel);
+}
+
 function parseArgs(argv) {
   const opts = {
     vault: null,
@@ -151,6 +156,16 @@ async function main() {
   const scan = { files: [], errors: [], truncated: false };
   collectFiles(opts.vault, scan);
   const files = scan.files;
+  const lineages = new Set();
+  for (const file of files) {
+    const lineage = sourceLineage(opts.vault, file);
+    if (lineages.has(lineage)) {
+      console.error('vault import blocked: source paths share a legacy lineage; no library changes made');
+      process.exitCode = 1;
+      return;
+    }
+    lineages.add(lineage);
+  }
   if (!opts.quiet) {
     console.log(`vault import: ${files.length} candidate file(s) under ${opts.vault}`);
     console.log(`target library: ${opts.library}`);
@@ -181,7 +196,7 @@ async function main() {
     // Deterministic lineage per source vault keeps the chain grouped and
     // makes re-runs dedupe cleanly (dedup key includes lineage).
     const rel = path.relative(opts.vault, file).replace(/\\/g, '/');
-    const lineage = 'vault_' + sha256ish(opts.vault + '|' + rel);
+    const lineage = sourceLineage(opts.vault, file);
 
     try {
       const result = appendBlock(opts.library, {
