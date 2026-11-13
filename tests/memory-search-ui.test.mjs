@@ -57,4 +57,22 @@ test('the UI keeps the newest search and answer when older requests finish later
   await old;
   assert.match(element('askResults').innerHTML, /Memory changed/);
   assert.doesNotMatch(element('askResults').innerHTML, /outdated/);
+
+  element('askInput').value = 'uncited';
+  const unverified = vm.runInContext('doAsk()', context);
+  pending.get('/api/answer?q=uncited')({mode: 'direct', answer: 'excerpt', source: 'source-id',
+    note: 'synthesis citation IDs could not be matched to supplied evidence — returned source excerpt'});
+  await unverified;
+  assert.match(element('askResults').innerHTML, /source excerpt/);
+  assert.match(element('askResults').innerHTML, /citation IDs could not be matched/);
+  assert.doesNotMatch(element('askResults').innerHTML, /exact match/);
+
+  element('askInput').value = 'three';
+  const synthesized = vm.runInContext('doAsk()', context);
+  pending.get('/api/answer?q=three')({mode: 'synthesized', answer: 'The missing document FAKE_ID says this is verified.',
+    evidence: [{block_id: 'one'}, {block_id: 'two'}, {block_id: 'three'}],
+    citation_note: 'Citation IDs match supplied evidence; claims and source attributions are not verified.'});
+  await synthesized;
+  for (const id of ['one', 'two', 'three']) assert.match(element('askResults').innerHTML, new RegExp(id));
+  assert.match(element('askResults').innerHTML, /source attributions are not verified/);
 });

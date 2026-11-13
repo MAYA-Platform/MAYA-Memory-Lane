@@ -130,10 +130,12 @@ async function handleToolCall(name, args) {
       const q = String((args && args.question) || '');
       if (!q) return { isError: true, content: [{ type: 'text', text: 'question is required' }] };
       const r = await answerQuestion(lib, q);
-      const modeTag = r.mode === 'direct' ? '[exact match]' : r.mode === 'synthesized' ? '[synthesized from memory]' : '[no memory]';
+      const modeTag = r.mode === 'direct' ? (r.note ? '[source excerpt]' : '[exact match]') : r.mode === 'synthesized' ? '[synthesized from memory]' : '[no memory]';
       const jevTag = r.jev && r.jev.scored ? ` [jev-ranked ${r.jev.scored}]` : '';
-      const source = r.source ? `\nSource: ${r.source}` : (r.evidence && r.evidence.length ? `\nEvidence: ${r.evidence.slice(0, 2).map((e) => e.block_id).join(', ')}` : '');
-      return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}` }] };
+      const source = r.source ? `\nSource: ${r.source}` : (r.evidence && r.evidence.length ? `\nEvidence: ${r.evidence.map((e) => e.block_id).join(', ')}` : '');
+      const note = r.note ? `\nNote: ${esc(r.note)}` : '';
+      const citationNote = r.citation_note ? `\n${esc(r.citation_note)}` : '';
+      return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}${note}${citationNote}` }] };
     }
     case 'ml_recent': {
       const limit = Number((args && args.limit) || 5);

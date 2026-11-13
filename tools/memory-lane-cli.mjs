@@ -97,6 +97,10 @@ async function main() {
       answer: r.answer,
       source: r.source || null,
       evidence: r.evidence || [],
+      ...('cost' in r ? { cost: r.cost } : {}),
+      ...(r.citations ? { citations: r.citations } : {}),
+      ...(r.citation_note ? { citation_note: r.citation_note } : {}),
+      ...(r.note ? { note: r.note } : {}),
     });
     return;
   }

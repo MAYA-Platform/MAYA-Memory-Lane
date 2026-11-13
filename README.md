@@ -119,6 +119,10 @@ Memory Lane isn't just a UI, it's an **agent memory layer**. A zero-dependency M
 | `ml_recent(limit)` | Digest of the most recent blocks (call at session start) |
 | `ml_resume(phrase)` | Resolve a resume phrase to blocks |
 
+Synthesized answers require the model to return a JSON answer and cite only IDs of blocks included in its evidence. Missing, malformed, or unknown IDs cause a source-excerpt fallback with a note; providers that do not follow this format will fall back more often. A valid ID establishes only that the block was supplied to the model, not that it supports the answer. If a selected block or its manifest entry changes while answering, search again; this is not an atomic snapshot across files.
+
+Answer `cost` is `0` when no external provider call was attempted and `null` when the total charge is unknown. A direct answer can still follow an optional Jev ranking request. Provider billing is authoritative; token counts alone do not establish a charge.
+
 ### Query-time re-ranking (JevRank)
 
 Search results include `manifest_hash_status` (`match`, `mismatch`, `missing`, or `invalid`) comparing the bytes used for an excerpt with the manifest hash. The JSON CLI `search` command includes this field, and MCP `ml_search` labels it for each result. A match does not establish the truth of the content, validate the chain, or authenticate the manifest. Existing missing block files are omitted from results. CLI `recent` and `resume` and MCP `ml_recent` and `ml_resume` also label each excerpt; `file_missing`, `read_error`, or `unavailable` indicate no readable block was available.
