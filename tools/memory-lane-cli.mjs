@@ -3,10 +3,8 @@
  * Memory Lane — JSON CLI bridge for the Hermes MemoryProvider plugin.
  *
  * Exposes the Memory Lane core lib (FTS5 search, resume, recent, answer) as a
- * tiny line-dispatched CLI the Python MemoryProvider shells out to. Keeps the
- * exact same retrieval path as the MCP server (61% recall FTS5 + chain-verified
- * blocks) without the Python provider needing to reimplement the on-disk format
- * or the BM25 index.
+ * tiny line-dispatched CLI the Python MemoryProvider shells out to. It shares
+ * the MCP server’s FTS5 search over local blocks.
  *
  * Usage:
  *   node memory-lane-cli.mjs recent <n>
@@ -81,6 +79,7 @@ async function main() {
       matches: (r.matches || []).map((m) => ({
         block_id: m.block_id,
         excerpt: (m.excerpt || '').slice(0, EXCERPT_CHARS),
+        manifest_hash_status: m.manifest_hash_status,
       })),
     });
     return;

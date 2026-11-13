@@ -142,8 +142,12 @@ async function handleToolCall(name, args) {
         } catch { /* plain order */ }
       }
       const matches = r.matches.slice(0, limit);
-      const lines = matches.map((m) => `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))}${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}`);
-      return { content: [{ type: 'text', text: `${matches.length} match(es) for "${q}":\n${lines.join('\n')}${jevNote}` }] };
+      const lines = matches.map((m) => {
+        const status = ['match', 'mismatch', 'missing', 'invalid'].includes(m.manifest_hash_status)
+          ? m.manifest_hash_status : 'unknown';
+        return `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))} [manifest hash: ${status}]${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}`;
+      });
+      return { content: [{ type: 'text', text: `${matches.length} match(es) for "${q}":\n${lines.join('\n')}${jevNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
     }
     case 'ml_answer': {
       const q = String((args && args.question) || '');
