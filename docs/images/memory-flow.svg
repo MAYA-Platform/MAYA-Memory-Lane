@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 1020" role="img" aria-labelledby="title desc">
+<title id="title">Memory Lane: from records to useful context</title>
+<desc id="desc">Notes and sessions enter import, CLI or HTTP ingestion, then become records in a local Markdown and JSON library. Search and verification read that library; the web interface and agent tools return context. Optional model features may send content to configured providers and incur charges.</desc>
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#665334"/></marker></defs>
+<rect width="560" height="1020" rx="20" fill="#f7f3e9"/>
+<g font-family="Arial, Helvetica, sans-serif" fill="#222b29" text-anchor="middle">
+<text text-anchor="middle" font-family="Arial" x="280" y="48" font-size="28" font-weight="700">A record you can return to</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="80" font-size="21">MAYA Memory Lane</text>
+<g fill="#fffdf8" stroke="#88744f" stroke-width="2">
+<rect x="30" y="115" width="500" height="120" rx="12"/>
+<rect x="30" y="280" width="500" height="120" rx="12"/>
+<rect x="30" y="445" width="500" height="145" rx="12"/>
+<rect x="30" y="635" width="500" height="120" rx="12"/>
+</g>
+<g stroke="#665334" stroke-width="3" marker-end="url(#arrow)"><path d="M280 239 V267"/><path d="M280 404 V432"/><path d="M280 594 V622"/></g>
+<text text-anchor="middle" font-family="Arial" x="280" y="155" font-size="25" font-weight="700">1. Bring the context</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="190" font-size="23">Notes and session text</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="220" font-size="21">Import · CLI · HTTP ingestion</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="322" font-size="25" font-weight="700">2. Keep the record locally</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="357" font-size="23">Markdown + JSON manifests</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="386" font-size="21">Fingerprints and previous-record links</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="485" font-size="25" font-weight="700">3. Find and inspect</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="520" font-size="23">Search · recent context · resume</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="553" font-size="23">Verify fingerprints · export</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="580" font-size="20">Check the source before relying on it</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="676" font-size="25" font-weight="700">4. Continue with context</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="713" font-size="23">Browser · JSON CLI · MCP tools</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="741" font-size="21">Agent integration is configured separately</text>
+<rect x="30" y="798" width="500" height="184" rx="12" fill="#e9e4d8" stroke="#665334" stroke-width="2" stroke-dasharray="8 5"/>
+<text text-anchor="middle" font-family="Arial" x="280" y="835" font-size="24" font-weight="700">Optional model features</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="871" font-size="22">Extraction · answers · ranking</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="902" font-size="22">Embeddings in supported integrations</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="937" font-size="21">May send content to configured providers.</text>
+<text text-anchor="middle" font-family="Arial" x="280" y="965" font-size="21">Review privacy settings and possible costs.</text>
+</g></svg>

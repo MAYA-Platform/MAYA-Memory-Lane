@@ -16,7 +16,8 @@ For non-sensitive bugs, open a normal GitHub issue with reproduction steps, expe
 - Keep all tests on data and systems you own or are authorized to inspect.
 - Do not upload live credentials, customer data, or private repositories to public issues.
 - The server binds to `127.0.0.1` by default and is designed to run locally. Do not expose its loopback development server directly to the internet.
-- The library reader is read-only. It never writes to, mutates, or reorganizes library files. It is a window over the files, not a replacement for them.
-- Memory Lane is a tamper-evident *record* system, not an encryption layer. It detects changes to your records. It does not hide them. Protect your library directory with normal filesystem permissions and back it up like any other valuable data.
+- Memory Lane includes both reading and writing operations. Ingestion and append operations write library records and manifests; the separately started inbox watcher moves successfully ingested source files into a processed folder. It does not check for an existing same-name destination and may overwrite an earlier processed file. Use unique filenames, review the selected action, and protect source files with independent backups.
+- Hash and recorded-link checks can reveal some changes relative to the supplied manifest. They do not prove that every expected record or link is present, authenticate a manifest, or detect coordinated replacement of records and manifest. A missing predecessor ID may go unchecked. Memory Lane does not encrypt or hide records; use filesystem permissions and tested backups.
+- Ingestion can send text to the configured extraction model. The inbox watcher enables extraction and can reach a hosted endpoint when configured; its Ollama fallback is local by default, but `OLLAMA_URL` can select another host. Review model and network configuration before processing private material. To avoid extraction, use the ingestion CLI's `--no-extract` option; the watcher does not expose that option.
 
 We will acknowledge a valid private report as quickly as practical, investigate it, and publish a fix or mitigation when appropriate.
