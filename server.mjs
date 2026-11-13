@@ -83,6 +83,28 @@ const EXTERNAL_LIBRARY = Boolean(process.env.MEMORY_LANE_LIBRARY);
 const UI_PATH = path.join(ROOT, 'public', 'memory-lane.html');
 const IMAGES_DIR = path.join(ROOT, 'public', 'images');
 
+function hasWritableMountedLibrary() {
+  if (!EXTERNAL_LIBRARY) return false;
+  try {
+    const mounted = fs.realpathSync(activeLibraryPath);
+    for (const demo of [DEFAULT_LIBRARY_PATH, SAMPLE_LIBRARY_PATH]) {
+      let bundled;
+      try { bundled = fs.realpathSync(demo); } catch (err) {
+        if (err.code === 'ENOENT') continue;
+        throw err;
+      }
+      const relative = path.relative(bundled, mounted);
+      if (relative === '' || (relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative))) {
+        return false;
+      }
+    }
+    return true;
+  } catch {
+    // An inaccessible mount must not silently become a writable library.
+    return false;
+  }
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -440,7 +462,7 @@ const routes = {
     if (!text) {
       return sendJson(res, 400, { ok: false, error: 'text is required' });
     }
-    if (!EXTERNAL_LIBRARY) {
+    if (!hasWritableMountedLibrary()) {
       // Guard: never write into the bundled demo libraries. A real library
       // must be mounted via MEMORY_LANE_LIBRARY to accept writes.
       return sendJson(res, 400, {
@@ -493,11 +515,14 @@ const routes = {
     if (req.method !== 'POST') {
       return sendJson(res, 405, { ok: false, error: 'method not allowed' });
     }
+    if (!hasWritableMountedLibrary()) {
+      return sendJson(res, 400, {
+        ok: false,
+        error: 'writes are disabled on the bundled demo libraries; mount a library via MEMORY_LANE_LIBRARY'
+      });
+    }
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    if (!activeLibraryPath) {
-      return sendJson(res, 400, { ok: false, error: 'a library must be mounted to observe' });
-    }
     const body = await readJsonBody(req);
     if (body && body.error) return sendJson(res, 400, { ok: false, error: body.error });
     const { observeMessage } = await import('./lib/observations.js');
