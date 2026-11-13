@@ -215,6 +215,110 @@
     .chain-row { flex-wrap: wrap; row-gap: 4px; }
     .chain-row .csha { display: none; }
   }
+  /* Company visual language: warm glass, fine rules and dimensional frames. */
+  :root {
+    --bg: #100f0e;
+    --panel: #1e1c1a;
+    --panel-2: #25211d;
+    --border: #4b4038;
+    --text: #f2ebe0;
+    --muted: #c1b5a8;
+    --gold: #e8bd89;
+    --amber: #e4a167;
+    --green: #a6dfbc;
+    --green-deep: #153128;
+    --red: #ffc0b4;
+    --red-deep: #422a27;
+    --blue: #b2d8ef;
+    --blue-deep: #1a303d;
+  }
+  body {
+    background: radial-gradient(ellipse at 80% 0%, #60463355, transparent 36rem),
+      radial-gradient(ellipse at 0% 34rem, #32424a44, transparent 35rem), var(--bg);
+  }
+  .wrap { max-width: 1180px; padding: 48px 28px 80px; }
+  .brand { gap: 22px; margin-bottom: 30px; }
+  .brand > div:last-child { min-width: 0; }
+  .brand h1 { font-size: clamp(2rem, 4.4vw, 3.6rem); line-height: 1.08; letter-spacing: -.045em; font-weight: 600; }
+  .tagline { font-size: 15px; margin-top: 9px; }
+  .orb, .empty-state .orb-lg {
+    position: relative; border-radius: 3px; flex: none;
+    background: linear-gradient(135deg, #f7d3a137, #dda36b10 48%, #91c0c721);
+    border: 1px solid #e7b67f; box-shadow: 0 0 30px #d4945833, inset 0 0 25px #e4a1671a;
+    transform: rotate(45deg); margin: 10px 13px 10px 8px;
+  }
+  .orb::before, .empty-state .orb-lg::before {
+    content: ''; position: absolute; inset: 7px; border: 1px solid #f8d9b6aa;
+    transform: translate(5px, -5px); box-shadow: -5px 5px 0 -4px #f8d9b6aa;
+  }
+  .orb::after, .empty-state .orb-lg::after {
+    content: ''; position: absolute; inset: 34%; border: 1px solid #a9cfcd99;
+    background: #ebc79838;
+  }
+  .empty-state .orb-lg { width: 64px; height: 64px; margin: 12px auto 32px; }
+  .status-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0 0 24px; }
+  .status-strip .stat:last-child { grid-column: span 3; }
+  .cache-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin: -8px 0 24px; }
+  .stat, .control, .empty-state, .result, .ask-answer, .card, .chain-row, .flow-wrap {
+    background: linear-gradient(135deg, #ffffff0c, #ffffff03), #1b1a19ec;
+    border-color: var(--border); box-shadow: inset 0 1px #ffffff0d, 0 10px 30px #0002;
+  }
+  .stat { padding: 16px 18px; border-radius: 5px; min-width: 0; }
+  .stat .label, .control .label { color: #d3b998; letter-spacing: .12em; }
+  .stat .value { color: var(--text); font-size: 24px; }
+  .verdict { border-radius: 5px; padding: 14px 18px; }
+  .verdict.neutral { background: #20353de8; border-color: #587586; color: #e0eef4; }
+  .verdict.good { background: #1b392de8; border-color: #5d9571; color: #c6ebd0; }
+  .verdict.bad { background: #462c29e8; border-color: #bd7971; color: #ffe0d9; }
+  .empty-state { border-style: solid; border-radius: 6px; padding: 52px 24px 56px; }
+  .empty-state h3 { font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 600; }
+  .empty-state p { line-height: 1.75; }
+  .controls { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .control { border-radius: 5px; padding: 18px; min-width: 0; }
+  .row { min-width: 0; }
+  input[type="text"] { min-width: 0; background: #100f0ee8; border-color: #67574a; font-family: var(--sans); }
+  input[type="text"]:focus-visible, button:focus-visible, [role="button"]:focus-visible {
+    outline: 3px solid #ffce94; outline-offset: 3px;
+  }
+  button { background: #e8b57f; color: #24150d; border-radius: 4px; min-height: 42px; }
+  button.ghost { color: #e0caba; border-color: #826b59; }
+  button.ghost:hover { color: #fff; }
+  .hint, .empty-state .note { font-family: var(--sans); line-height: 1.6; }
+  h2 { color: #e5bd93; font-size: 13px; letter-spacing: .15em; margin-top: 44px; border-color: #6a5342; }
+  .card, .chain-row, .result, .ask-answer { border-radius: 5px; }
+  .card .badges { flex-wrap: wrap; }
+  .chain-row .cbid, .result .rid { overflow-wrap: anywhere; }
+  .flow-wrap { border-radius: 5px; padding: 24px; }
+  .flow-wrap:focus-visible { outline: 3px solid #ffce94; outline-offset: 3px; }
+  .flow-caption { line-height: 1.8; }
+  .export-bar { flex-wrap: wrap; }
+  .export-bar .hint { flex-basis: 100%; }
+  footer { border-color: #6a5342; }
+  @media (max-width: 900px) {
+    .controls { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 720px) {
+    .wrap { padding: 32px 20px 60px; }
+    .brand { flex-wrap: nowrap; align-items: center; gap: 12px; }
+    .status-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .stat { padding: 12px 10px; }
+    .stat .label { font-size: 10px; letter-spacing: .06em; }
+    .flow-wrap { padding: 16px; }
+    .flow-wrap::before { content: "Scroll sideways to explore the diagram"; display: block; position: sticky; left: 0; width: max-content; max-width: 100%; color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+    .chain-row .csha { display: inline; overflow-wrap: anywhere; }
+    .export-bar button { flex: 1 1 auto; }
+  }
+  @media (max-width: 360px) {
+    .wrap { padding-inline: 16px; }
+    .brand h1 { font-size: 1.9rem; }
+    .status-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .status-strip .stat:last-child { grid-column: span 2; }
+    .control .row { flex-wrap: wrap; }
+    .control .row input { flex-basis: 100%; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0s !important; animation-duration: 0s !important; }
+  }
 </style>
 </head>
 <body>
@@ -236,11 +340,13 @@
     <div class="stat"><div class="label">Library</div><div class="value" style="font-size:14px; word-break:break-all;" id="sLibrary">—</div></div>
   </div>
 
+  <p class="cache-note">The status above uses a cached result, which can be stale, including after a background check fails. For a populated library, Chain Integrity below is checked when this page loads or Refresh is selected.</p>
+
   <!-- Empty-state hero (shown on first run) -->
   <div class="empty-state" id="emptyState">
     <div class="orb-lg"></div>
     <h3>Your memory <span class="gold">lane</span> is empty</h3>
-    <p>This is where your records will live. Every session you seal becomes a block on your lane, a sealed record with a fingerprint, chained to the one before it.</p>
+    <p>This is where your records can live. Sealed records can carry fingerprints and links to earlier records.</p>
     <div class="actions">
       <button id="loadSampleBtn">Load sample library</button>
     </div>
@@ -270,7 +376,7 @@
         <input type="text" id="askInput" aria-label="Ask your memory" placeholder="e.g. what did I decide about the launch?">
         <button id="askBtn">Ask</button>
       </div>
-      <div class="hint">Answers from your memory. Exact hits are instant. When your wording doesn't match, a model reads the evidence and answers honestly.</div>
+      <div class="hint">Answers can use retrieved records or model synthesis. A configured external provider may receive your question and evidence; verify answers against their sources.</div>
     </div>
   </div>
 
@@ -282,12 +388,12 @@
     <div class="lane" id="lane"><div class="empty">Loading…</div></div>
 
     <h2>Chain Integrity</h2>
-    <p class="empty" style="margin-bottom:12px;">Every block carries a fingerprint of the block before it. Changing anything breaks the chain. Verification recomputes every fingerprint and walks the links.</p>
+    <p class="empty" style="margin-bottom:12px;">Verification checks recorded hashes and links where available. Unrecorded predecessor links can go undetected, so these checks do not establish a complete history. Matching hashes do not authenticate the source, establish truth, or prevent a coordinated rewrite of records and hashes.</p>
     <div id="chainView"><div class="empty">Loading…</div></div>
   </div>
 
   <h2>How It Works</h2>
-  <div class="flow-wrap">
+  <div class="flow-wrap" tabindex="0" role="region" aria-label="Memory Lane diagram; scroll to explore">
     <!-- Flow chart: inline SVG -->
     <svg viewBox="0 0 800 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Memory Lane linked-record flow">
       <defs>
@@ -301,7 +407,7 @@
       </defs>
 
       <!-- Row 1: sessions -->
-      <text x="40" y="34" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">EVERY SESSION</text>
+      <text x="40" y="34" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">WHEN RECORDS ARE SEALED</text>
       <rect x="40" y="46" width="150" height="54" rx="8" fill="#141519" stroke="#f0a030" stroke-width="1.5"/>
       <text x="115" y="70" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">SESSION</text>
       <text x="115" y="88" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">notes · decisions · state</text>
@@ -318,10 +424,10 @@
       <line x1="325" y1="100" x2="325" y2="128" stroke="#f0a030" stroke-width="1.5" marker-end="url(#arrow)"/>
 
       <!-- Row 2: compaction -->
-      <text x="40" y="146" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">EVERY 6 SESSIONS</text>
+      <text x="40" y="146" fill="#8a827c" font-size="11" font-family="monospace" letter-spacing="2">OPTIONAL COMPACTION</text>
       <rect x="40" y="158" width="400" height="60" rx="8" fill="#141519" stroke="#f0a030" stroke-width="1.5"/>
-      <text x="240" y="182" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">6 MICRO BLOCKS → 1 SHELF BLOCK</text>
-      <text x="240" y="200" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">6→1 compaction · the library grows linearly, never exponentially</text>
+      <text x="240" y="182" text-anchor="middle" fill="#f2e6df" font-size="12" font-family="monospace">MICRO BLOCKS → SHELF BLOCK</text>
+      <text x="240" y="200" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">an illustrative aggregation step</text>
 
       <!-- Arrow down -->
       <line x1="240" y1="218" x2="240" y2="246" stroke="#f0a030" stroke-width="1.5" marker-end="url(#arrow)"/>
@@ -354,16 +460,16 @@
       <line x1="660" y1="100" x2="660" y2="128" stroke="#52d273" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
 
       <rect x="560" y="130" width="200" height="88" rx="8" fill="#2d4a2d" stroke="#52d273" stroke-width="1.5"/>
-      <text x="660" y="156" text-anchor="middle" fill="#52d273" font-size="12" font-family="monospace" font-weight="bold">YOUR MEMORY IS INTACT</text>
-      <text x="660" y="176" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">any change breaks a link,</text>
-      <text x="660" y="190" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">and the break is visible</text>
+      <text x="660" y="156" text-anchor="middle" fill="#52d273" font-size="12" font-family="monospace" font-weight="bold">CHECK RECORDED LINKS</text>
+      <text x="660" y="176" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">compares available hashes</text>
+      <text x="660" y="190" text-anchor="middle" fill="#8a827c" font-size="10" font-family="monospace">and reports detected differences</text>
       <text x="660" y="206" text-anchor="middle" fill="#52d273" font-size="10" font-family="monospace">tamper-evident · auditable</text>
 
       <line x1="560" y1="174" x2="460" y2="174" stroke="#52d273" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
       <text x="510" y="162" text-anchor="middle" fill="#52d273" font-size="9" font-family="monospace">verify</text>
     </svg>
     <div class="flow-caption">
-      <b>Your memory is a chain of sealed records, not a chat log.</b> Every session leaves a micro block, a sealed record with a SHA-256 fingerprint. Every six sessions, those micro blocks fold into one shelf block, so the library grows one shelf per six sessions instead of one file per session. Each shelf block carries the fingerprint of the block before it, so the whole history is linked. Change anything and the break is visible. The files are yours, stored on your machine, organized into shelves and volumes with a manifest, with no cloud middleman in the way. A single resume phrase pulls the whole library back when you need it. That's Memory Lane. You own the memory, the chain keeps it honest.
+      <b>Memory Lane stores linked records with fingerprints.</b> This diagram illustrates sealing, optional aggregation, storage and verification; it does not mean every conversation is saved or compacted automatically. Verification compares available records and hashes. Missing predecessor links may go undetected, so a match does not establish complete history, truth, or authenticity; coordinated changes to records and hashes may also go undetected. Your configured storage and model provider determine where data is kept or sent.
     </div>
   </div>
 
@@ -431,7 +537,20 @@ async function loadStatus() {
       setVerdict('neutral', 'Your memory lane is empty. Records appear here as sessions are sealed.');
       showEmpty();
     } else {
-      setVerdict('good', 'Your memory is intact, ' + s.chain.okCount + '/' + s.chain.total + ' links verified');
+      const chain = s.chain || {};
+      const validCounts = Number.isSafeInteger(chain.okCount) && chain.okCount >= 0 &&
+        Number.isSafeInteger(chain.total) && chain.total >= 0 && chain.okCount <= chain.total;
+      const count = validCounts ? `${chain.okCount}/${chain.total}` : 'count unavailable';
+      const matchesLibrary = Number.isSafeInteger(s.stats.totalBlocks) && s.stats.totalBlocks > 0 &&
+        validCounts && chain.total === s.stats.totalBlocks;
+      const hasHardIssues = Number.isSafeInteger(chain.hardIssues) && chain.hardIssues > 0;
+      const consistentDetails = (chain.hardIssues === undefined || chain.hardIssues === 0) &&
+        (chain.unchecked === undefined || chain.unchecked === 0);
+      if (chain.status === 'issues' || hasHardIssues) setVerdict('bad', `Cached chain checks found issues: ${count} records passed`);
+      else if (chain.intact === true && chain.status === 'intact' && matchesLibrary && chain.okCount === chain.total && consistentDetails)
+        setVerdict('good', `Cached checks passed for ${count} records. Unrecorded predecessor links may go undetected; history completeness is not established.`);
+      else if (chain.status === 'unchecked') setVerdict('neutral', `Cached chain checks incomplete: ${count} records passed`);
+      else setVerdict('neutral', `Chain verification incomplete or unavailable: ${count} records passed`);
       showPopulated();
     }
   } catch (e) {
@@ -618,7 +737,10 @@ async function reloadAll() {
 
 window.scrollToBlock = function(libId) {
   const el = document.querySelector('[data-id="' + libId + '"]');
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  if (el) {
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'center' });
+  }
 };
 
 $('loadSampleBtn').addEventListener('click', async () => {

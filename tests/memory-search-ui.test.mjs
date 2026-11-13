@@ -76,3 +76,61 @@ test('the UI keeps the newest search and answer when older requests finish later
   for (const id of ['one', 'two', 'three']) assert.match(element('askResults').innerHTML, new RegExp(id));
   assert.match(element('askResults').innerHTML, /source attributions are not verified/);
 });
+
+test('status distinguishes passed, failed, and unavailable cached chain checks', async () => {
+  const html = fs.readFileSync(new URL('../public/memory-lane.html', import.meta.url), 'utf8');
+  const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const elements = new Map();
+  const element = id => {
+    if (!elements.has(id)) elements.set(id, { value: '', innerHTML: '', textContent: '', className: '',
+      classList: { add() {}, remove() {} }, addEventListener() {} });
+    return elements.get(id);
+  };
+  let chain = { intact: true, status: 'intact', total: 7, okCount: 7 };
+  const fetch = async url => ({ ok: true, json: async () => url === '/api/status'
+    ? { mode: 'sample', stats: { totalBlocks: 7, totalShelves: 1, lineageCount: 1 },
+        library: 'synthetic', chain }
+    : { blocks: [] } });
+  const context = vm.createContext({ document: { getElementById: element }, window: {}, fetch, URL, Blob });
+  vm.runInContext(script, context);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(element('verdict').className, 'verdict good');
+  assert.match(element('verdictText').textContent, /checks passed for 7\/7 records/);
+  assert.match(element('verdictText').textContent, /predecessor links may go undetected/);
+  assert.match(element('verdictText').textContent, /history completeness is not established/);
+  chain = { intact: false, status: 'issues', total: 7, okCount: 3 };
+  await vm.runInContext('loadStatus()', context);
+  assert.equal(element('verdict').className, 'verdict bad');
+  assert.match(element('verdictText').textContent, /found issues: 3\/7/);
+  chain = { intact: false, status: 'unchecked', total: 7, okCount: 3 };
+  await vm.runInContext('loadStatus()', context);
+  assert.equal(element('verdict').className, 'verdict neutral');
+  assert.match(element('verdictText').textContent, /checks incomplete: 3\/7/);
+  chain = { intact: null, status: 'unverified', total: 7, okCount: 3 };
+  await vm.runInContext('loadStatus()', context);
+  assert.equal(element('verdict').className, 'verdict neutral');
+  assert.match(element('verdictText').textContent, /incomplete or unavailable: 3\/7/);
+  const contradictions = [
+    { intact: true, status: 'unchecked', total: 7, okCount: 7 },
+    { intact: false, status: 'intact', total: 7, okCount: 7 },
+    { intact: true, status: 'intact', total: 7, okCount: 3 },
+    { intact: true, status: 'intact', total: 6, okCount: 6 },
+    { intact: true, status: 'intact', total: '7', okCount: 7 },
+    { intact: true, status: 'intact', total: 7, okCount: -1 },
+    { intact: true, status: 'intact', total: 7, okCount: 1.5 },
+    { intact: true, status: 'intact', total: 7 },
+    { intact: true, status: 'intact', total: 7, okCount: 7, unchecked: 1 },
+    { intact: true, status: 'intact', total: 7, okCount: 7, hardIssues: -1 },
+  ];
+  for (const inconsistent of contradictions) {
+    chain = inconsistent;
+    await vm.runInContext('loadStatus()', context);
+    assert.equal(element('verdict').className, 'verdict neutral', JSON.stringify(inconsistent));
+  }
+  chain = { intact: true, status: 'intact', total: 7, okCount: 7, hardIssues: 1 };
+  await vm.runInContext('loadStatus()', context);
+  assert.equal(element('verdict').className, 'verdict bad');
+  chain = { intact: true, status: 'issues', total: 7, okCount: 7 };
+  await vm.runInContext('loadStatus()', context);
+  assert.equal(element('verdict').className, 'verdict bad');
+});
