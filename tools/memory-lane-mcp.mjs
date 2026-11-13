@@ -36,6 +36,7 @@ import { jevRank, jevAvailable } from '../lib/jevrank.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LIBRARY = process.env.MEMORY_LANE_LIBRARY || path.resolve(__dirname, '../empty-library');
+const MAX_RESULTS = 25;
 
 const TOOLS = [
   {
@@ -45,7 +46,7 @@ const TOOLS = [
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search terms, e.g. "honda civic" or "launch timeline"' },
-        limit: { type: 'number', description: 'Max results (default 5)' }
+        limit: { type: 'number', description: 'Positive safe integer; default 5, maximum 25 (larger requests are capped)' }
       },
       required: ['query']
     }
@@ -67,7 +68,7 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        limit: { type: 'number', description: 'Number of recent blocks (default 5)' }
+        limit: { type: 'number', description: 'Positive safe integer; default 5, maximum 25 (larger requests are capped)' }
       }
     }
   },
@@ -93,6 +94,17 @@ function esc(s) {
   return String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
+function resultLimit(raw) {
+  if (raw == null) return { limit: 5, capped: false };
+  // Numeric strings previously worked through Number(); preserve them for clients
+  // even though the advertised schema requests a number.
+  if ((typeof raw !== 'number' && typeof raw !== 'string') ||
+      (typeof raw === 'string' && !raw.trim())) return null;
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) return null;
+  return { limit: Math.min(parsed, MAX_RESULTS), capped: parsed > MAX_RESULTS };
+}
+
 async function handleToolCall(name, args) {
   const lib = getLibrary();
   if (!lib) return { isError: true, content: [{ type: 'text', text: `Memory Lane library not found at ${LIBRARY}` }] };
@@ -100,14 +112,17 @@ async function handleToolCall(name, args) {
   switch (name) {
     case 'ml_search': {
       const q = String((args && args.query) || '');
-      const limit = Number((args && args.limit) || 5);
+      const selection = resultLimit(args && args.limit);
+      if (!selection) return { isError: true, content: [{ type: 'text', text: 'limit must be a positive integer within JavaScript safe range.' }] };
+      const { limit, capped } = selection;
+      const capNote = capped ? `\nRequested limit capped at maximum ${MAX_RESULTS}.` : '';
       if (!q) return { isError: true, content: [{ type: 'text', text: 'query is required' }] };
       // Fetch a wider candidate set so the Jev re-rank has room to work, then
       // trim to the caller's limit. rerank=jev by default when a key resolves;
       // opt out with rerank:'none'. Defensive: Jev problems keep plain order.
       const fetchLimit = Math.max(limit * 2, 10);
       let r = await searchAsync(lib, q, { limit: fetchLimit });
-      if (!r.count) return { content: [{ type: 'text', text: `No matches for "${q}".` }] };
+      if (!r.count) return { content: [{ type: 'text', text: `No matches for "${q}".${capNote}` }] };
       let jevNote = '';
       if ((args && args.rerank !== 'none' && jevAvailable() && r.count >= 2)) {
         try {
@@ -124,7 +139,7 @@ async function handleToolCall(name, args) {
           ? m.manifest_hash_status : 'unknown';
         return `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))} [manifest hash: ${status}]${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}`;
       });
-      return { content: [{ type: 'text', text: `${matches.length} match(es) for "${q}":\n${lines.join('\n')}${jevNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
+      return { content: [{ type: 'text', text: `${matches.length} match(es) for "${q}":\n${lines.join('\n')}${jevNote}${capNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
     }
     case 'ml_answer': {
       const q = String((args && args.question) || '');
@@ -138,15 +153,18 @@ async function handleToolCall(name, args) {
       return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}${note}${citationNote}` }] };
     }
     case 'ml_recent': {
-      const limit = Number((args && args.limit) || 5);
+      const selection = resultLimit(args && args.limit);
+      if (!selection) return { isError: true, content: [{ type: 'text', text: 'limit must be a positive integer within JavaScript safe range.' }] };
+      const { limit, capped } = selection;
       const recent = lib.blocks.slice(-limit).reverse();
-      if (!recent.length) return { content: [{ type: 'text', text: 'Library is empty.' }] };
+      const capNote = capped ? `\nRequested limit capped at maximum ${MAX_RESULTS}.` : '';
+      if (!recent.length) return { content: [{ type: 'text', text: `Library is empty.${capNote}` }] };
       const lines = recent.map((b) => {
         const { excerpt, manifest_hash_status } = excerptBlock(lib, b);
         const title = `• ${b.block_id} (lib ${b.lib_id}) — ${esc(b.canonical_name || b.block_id)} [manifest hash: ${manifest_hash_status}]`;
         return excerpt ? `${title}\n  ${esc(excerpt)}` : title;
       });
-      return { content: [{ type: 'text', text: `Most recent memory blocks:\n${lines.join('\n')}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
+      return { content: [{ type: 'text', text: `Most recent memory blocks:\n${lines.join('\n')}\nShowing ${recent.length} of ${lib.blocks.length} memory blocks.${capNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
     }
     case 'ml_resume': {
       const p = String((args && args.phrase) || '');
