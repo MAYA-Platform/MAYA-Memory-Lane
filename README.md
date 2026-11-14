@@ -154,6 +154,10 @@ Read or append failures, malformed UTF-8, a directory depth beyond 12, or more t
 
 The importer checks collected paths for collisions in its legacy 32-bit lineage before writing and stops if it finds one. This check covers only paths collected in the current scan; it cannot identify collisions with paths that are absent, skipped during traversal, present only in older imports, or imported separately from another source root. The hash uses the supplied source path and case, not a canonical file identity. Historical lineage values are retained for compatibility, so review older imports separately.
 
+### JavaScript search explanations
+
+For JavaScript callers, `search(library, query, { explain: true })` and `searchAsync` can add `retrieval_reasons` to each hit. `fts` denotes a full-text match, `substring` denotes substring fallback or opt-in infix, `graph_suggestion` denotes a graph-only result, and `graph_cross_boost_group` denotes an FTS result placed in the graph-supported group. The group label does not prove that its position changed. These labels describe retrieval mechanics, not source truth or authorization. The option is off by default and is not exposed by the HTTP or MCP routes.
+
 ## How the chain works
 
 `appendBlock()` writes a Markdown record, records its SHA-256 fingerprint, links
