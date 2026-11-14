@@ -1,5 +1,14 @@
 # Memory Lane vs Top-5 Agent-Memory Competitors — Scientific Side-by-Side
 
+> **Correction, 2026-11-13:** The Lane A scores below do not use identical
+> official LongMemEval scoring. Historical `recall_all` values are partial-gold
+> fractions, not official binary all-gold recall. The NDCG-labelled numbers use
+> inconsistent first-hit formulas, and retrieval units and corpus scope differ.
+> These are not a valid
+> cross-provider leaderboard. See [the audit](HISTORICAL_LANE_A_AUDIT_20261113.md)
+> for a reproducible reanalysis and limitations. The historical report below
+> is retained for provenance; its claims of identical scoring are superseded.
+
 **Generated:** 2026-08-07T04:38:08+00:00 UTC
 **Generator:** `harness/generate_sbs_report.py` — all figures read from logged run JSONs, not hand-typed.
 **Protocol (pre-registered):** `BENCHMARK_PROTOCOL.md` (written before any run, no hindsight bias)

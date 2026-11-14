@@ -28,6 +28,11 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+raise SystemExit(
+    "Historical report generation disabled: Lane A scoring and retrieval units "
+    "are not comparable. See benchmarks/HISTORICAL_LANE_A_AUDIT_20261113.md."
+)
+
 BENCH = Path(__file__).resolve().parent.parent
 RESULTS = BENCH / "results"
 
