@@ -46,7 +46,8 @@ const TOOLS = [
       type: 'object',
       properties: {
         query: { type: 'string', description: 'Search terms, e.g. "honda civic" or "launch timeline"' },
-        limit: { type: 'number', description: 'Positive safe integer; default 5, maximum 25 (larger requests are capped)' }
+        limit: { type: 'number', description: 'Positive safe integer; default 5, maximum 25 (larger requests are capped)' },
+        rerank: { type: 'string', enum: ['none', 'jev'], description: 'Default none. jev sends the query and excerpts to the configured decisions provider only when the operator also enables MEMORY_LANE_MCP_JEV_OPT_IN=1.' }
       },
       required: ['query']
     }
@@ -57,7 +58,8 @@ const TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        question: { type: 'string', description: 'The question to ask your memory' }
+        question: { type: 'string', description: 'The question to ask your memory' },
+        rerank: { type: 'string', enum: ['none', 'jev'], description: 'Default none. jev also requires operator opt-in and sends query/excerpts to the decisions provider; answer synthesis has separate provider behavior.' }
       },
       required: ['question']
     }
@@ -105,6 +107,12 @@ function resultLimit(raw) {
   return { limit: Math.min(parsed, MAX_RESULTS), capped: parsed > MAX_RESULTS };
 }
 
+function jevRequest(args) {
+  const value = args?.rerank;
+  if (value !== undefined && value !== 'none' && value !== 'jev') return null;
+  return value === 'jev' && process.env.MEMORY_LANE_MCP_JEV_OPT_IN === '1';
+}
+
 async function handleToolCall(name, args) {
   const lib = getLibrary();
   if (!lib) return { isError: true, content: [{ type: 'text', text: `Memory Lane library not found at ${LIBRARY}` }] };
@@ -112,19 +120,22 @@ async function handleToolCall(name, args) {
   switch (name) {
     case 'ml_search': {
       const q = String((args && args.query) || '');
+      const allowJev = jevRequest(args);
+      if (allowJev === null) return { isError: true, content: [{ type: 'text', text: 'rerank must be none or jev.' }] };
+      const rankNote = args?.rerank === 'jev' && !allowJev ? '\nJev ranking is not enabled by the operator; lexical ranking used.' : '';
       const selection = resultLimit(args && args.limit);
       if (!selection) return { isError: true, content: [{ type: 'text', text: 'limit must be a positive integer within JavaScript safe range.' }] };
       const { limit, capped } = selection;
       const capNote = capped ? `\nRequested limit capped at maximum ${MAX_RESULTS}.` : '';
       if (!q) return { isError: true, content: [{ type: 'text', text: 'query is required' }] };
       // Fetch a wider candidate set so the Jev re-rank has room to work, then
-      // trim to the caller's limit. rerank=jev by default when a key resolves;
-      // opt out with rerank:'none'. Defensive: Jev problems keep plain order.
+      // trim to the caller's limit. Jev requires an operator opt-in and an
+      // explicit request; the availability of a key does not authorize egress.
       const fetchLimit = Math.max(limit * 2, 10);
       let r = await searchAsync(lib, q, { limit: fetchLimit });
-      if (!r.count) return { content: [{ type: 'text', text: `No matches for "${q}".${capNote}` }] };
+      if (!r.count) return { content: [{ type: 'text', text: `No matches for "${q}".${capNote}${rankNote}` }] };
       let jevNote = '';
-      if ((args && args.rerank !== 'none' && jevAvailable() && r.count >= 2)) {
+      if (allowJev && jevAvailable() && r.count >= 2) {
         try {
           const ranked = await jevRank(lib, q, r.matches, { topN: 10 });
           if (ranked.jev && ranked.jev.applied) {
@@ -139,18 +150,21 @@ async function handleToolCall(name, args) {
           ? m.manifest_hash_status : 'unknown';
         return `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))} [manifest hash: ${status}]${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}`;
       });
-      return { content: [{ type: 'text', text: `${matches.length} result(s) returned for "${q}"; additional matches may exist:\n${lines.join('\n')}${jevNote}${capNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
+      return { content: [{ type: 'text', text: `${matches.length} result(s) returned for "${q}"; additional matches may exist:\n${lines.join('\n')}${jevNote}${capNote}${rankNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
     }
     case 'ml_answer': {
       const q = String((args && args.question) || '');
+      const allowJev = jevRequest(args);
+      if (allowJev === null) return { isError: true, content: [{ type: 'text', text: 'rerank must be none or jev.' }] };
+      const rankNote = args?.rerank === 'jev' && !allowJev ? '\nJev ranking is not enabled by the operator; lexical ranking used.' : '';
       if (!q) return { isError: true, content: [{ type: 'text', text: 'question is required' }] };
-      const r = await answerQuestion(lib, q);
+      const r = await answerQuestion(lib, q, { allowJev });
       const modeTag = r.mode === 'direct' ? (r.note ? '[source excerpt]' : '[exact match]') : r.mode === 'synthesized' ? '[synthesized from memory]' : r.reason === 'source_changed' ? '[memory changed]' : '[no memory]';
       const jevTag = r.jev && r.jev.scored ? ` [jev-ranked ${r.jev.scored}]` : '';
       const source = r.source ? `\nSource: ${r.source}` : (r.evidence && r.evidence.length ? `\nEvidence: ${r.evidence.map((e) => e.block_id).join(', ')}` : '');
       const note = r.note ? `\nNote: ${esc(r.note)}` : '';
       const citationNote = r.citation_note ? `\n${esc(r.citation_note)}` : '';
-      return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}${note}${citationNote}` }] };
+      return { content: [{ type: 'text', text: `${modeTag}${jevTag} ${esc(r.answer)}${source}${note}${citationNote}${rankNote}` }] };
     }
     case 'ml_recent': {
       const selection = resultLimit(args && args.limit);

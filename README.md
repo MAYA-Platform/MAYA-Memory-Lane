@@ -212,8 +212,8 @@ Memory Lane isn't just a UI, it's an **agent memory layer**. A zero-dependency M
 
 | Tool | What it does |
 |---|---|
-| `ml_search(query)` | Full-text search across all blocks, re-ranked for intent by Jev when a key is available (pass `rerank: "none"` to skip) |
-| `ml_answer(question)` | Ask a natural-language question, exact match or synthesized from evidence |
+| `ml_search(query)` | Full-text search across all blocks; optional Jev ranking requires operator opt-in and a per-call request |
+| `ml_answer(question)` | Ask a natural-language question, exact match or synthesized from evidence; optional Jev ranking uses the same opt-in |
 | `ml_recent(limit)` | Digest of the most recent blocks (call at session start) |
 | `ml_resume(phrase)` | Resolve a resume phrase to blocks |
 
@@ -229,8 +229,17 @@ Search results include `manifest_hash_status` (`match`, `mismatch`, `missing`, o
 
 MCP `ml_recent` and `ml_search` default to five results and accept a positive safe-integer limit. Valid limits above 25 are capped and say so; unsafe integers are rejected. For nonempty results, `ml_recent` reports how many library entries were shown, while `ml_search` reports the number returned and notes that additional matches may exist; it does not claim a total match count. Empty results use a no-results message. Nonpositive, fractional and nonnumeric limits return an error (previously zero defaulted to five and negative values could select unintended results). Positive numeric strings remain accepted for existing clients. This is a record-count cap, not a byte, token or read-memory limit: manifest IDs and titles are not length-bounded, and each selected block is read to build its excerpt. `ml_resume` is not covered by this limit.
 
-`/api/search` accepts an optional `rerank=jev` parameter. When set (and the MCP tools
-do this by default whenever a decisions-provider key resolves), the server takes the
+`/api/search` accepts an optional `rerank=jev` parameter. MCP `ml_search` and
+`ml_answer` use lexical ranking by default even if a provider key exists. For
+MCP Jev ranking, the operator must set `MEMORY_LANE_MCP_JEV_OPT_IN=1` in the
+server environment **and** the tool call must include `rerank: "jev"`.
+`rerank: "none"` or an omitted value uses lexical ranking; other values return
+an error. A request for Jev without operator opt-in returns lexical results with
+a note. This changes the previous MCP default for clients that relied on a key
+alone. The operator setting and call argument allow this provider use; neither
+is by itself proof of informed user consent for a particular memory or query.
+
+When Jev is requested and available, the server takes the
 top full-text candidates and sends **one** batched request to the TypeSafe Jev
 decisions model (`typesafe/jev-1.13` via the configured decisions gateway) asking it to score each
 candidate's relevance to the query's intent (0-2). Results are re-ordered by that
@@ -255,6 +264,9 @@ JevRank is strictly additive and defensive: if the key is missing, the model is
 unreachable, or the request times out (3s cap), search returns the plain full-text
 results unchanged. Configure the key via
 `MERGE_API_KEY` or the `api_key:` line in your Hermes provider config. Keep provider credentials private.
+The MCP Jev opt-in affects Jev ranking only. `ml_answer` can independently send
+the question and retrieved evidence to its configured synthesis provider;
+HTTP, CLI and direct library callers retain their own existing provider behavior.
 
 ### Connect the MCP server
 
@@ -353,9 +365,10 @@ the server returns HTTP 409 and the caller should retry against the new library.
   `MEMORY_LANE_BASE_URL`, and `MEMORY_LANE_MODEL` for a hosted endpoint.
   Without a key, the default is Ollama at `127.0.0.1:11434`; it must be installed
   and serving the selected model separately. Hardware needs depend on that model.
-- **Ranking:** see [`lib/jevrank.js`](lib/jevrank.js). MCP uses Jev when a
-  decisions-provider key resolves, including from an existing Hermes config.
-  HTTP search requests opt in with `rerank=jev`.
+- **Ranking:** see [`lib/jevrank.js`](lib/jevrank.js). MCP uses Jev only when
+  the operator enables `MEMORY_LANE_MCP_JEV_OPT_IN=1` and the individual call
+  requests `rerank: "jev"`; a key can still resolve from an existing Hermes
+  config. HTTP search requests opt in with `rerank=jev`.
 - **Embeddings:** [`lib/embeddings.js`](lib/embeddings.js) contains optional
   local/Vertex support. Its presence does not mean the basic HTTP search route
   automatically uses dense retrieval.
