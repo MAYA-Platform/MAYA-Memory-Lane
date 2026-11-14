@@ -4,6 +4,10 @@ The historical side-by-side report's claim of identical official scoring is
 incorrect. Memory Lane's runner uses a first-hit logarithmic score; several
 competitor runners use a reciprocal-rank formula. Neither is the official
 LongMemEval NDCG, and the two formulas cannot be compared directly.
+The historical values labeled `recall_all` are fractions of gold sessions
+found per question; official recall-all is binary and requires all gold
+sessions in the retrieved results. Those historical values are therefore also
+mislabeled and are not official all-gold recall.
 
 The [official evaluator](https://github.com/xiaowu0162/LongMemEval/blob/main/src/retrieval/eval_utils.py)
 computes normalized discounted cumulative gain over multiple relevant corpus

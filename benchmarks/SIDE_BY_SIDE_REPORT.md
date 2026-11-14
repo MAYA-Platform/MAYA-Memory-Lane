@@ -1,8 +1,10 @@
 # Memory Lane vs Top-5 Agent-Memory Competitors — Scientific Side-by-Side
 
 > **Correction, 2026-11-13:** The Lane A scores below do not use identical
-> official LongMemEval scoring. The NDCG-labelled numbers use inconsistent
-> first-hit formulas, and retrieval units also differ. They are not a valid
+> official LongMemEval scoring. Historical `recall_all` values are partial-gold
+> fractions, not official binary all-gold recall. The NDCG-labelled numbers use
+> inconsistent first-hit formulas, and retrieval units and corpus scope differ.
+> These are not a valid
 > cross-provider leaderboard. See [the audit](HISTORICAL_LANE_A_AUDIT_20261113.md)
 > for a reproducible reanalysis and limitations. The historical report below
 > is retained for provenance; its claims of identical scoring are superseded.
