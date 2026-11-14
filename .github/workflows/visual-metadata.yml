@@ -1,0 +1,18 @@
+name: Visual metadata synthetic checks
+on:
+  pull_request:
+    paths:
+      - 'experiments/visual-metadata/**'
+      - '.github/workflows/visual-metadata.yml'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test experiments/visual-metadata/fixture.test.mjs
