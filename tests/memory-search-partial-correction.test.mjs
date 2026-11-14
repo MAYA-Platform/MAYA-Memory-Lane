@@ -23,3 +23,16 @@ test('partial substring query finds a corrected source even when FTS has another
   fs.writeFileSync(library.blocks[1].filePath, 'banana corrected again');
   assert.equal((await searchAsync(library, 'ear')).count, 1);
 });
+
+test('direct substring gets the remaining slot before a graph-only neighbor', async t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ml-partial-priority-'));
+  t.after(() => fs.rmSync(root, {recursive:true, force:true}));
+  fs.writeFileSync(path.join(root, 'MANIFEST.json'), JSON.stringify({blocks:[]}));
+  appendBlock(root, {title:'A', body:'Alex leased a Honda Civic and loves hiking.', lineage:'auto'});
+  appendBlock(root, {title:'B', body:'Alex also owns a kayak for lake trips.', lineage:'auto'});
+  appendBlock(root, {title:'C', body:'dayhiking notebook', lineage:'auto'});
+  const lib = loadLibrary(root);
+  for (const result of [search(lib,'hiking',{limit:2}), await searchAsync(lib,'hiking',{limit:2})]) {
+    assert.deepEqual(result.matches.map(row => row.lib_id), [lib.blocks[0].lib_id, lib.blocks[2].lib_id]);
+  }
+});

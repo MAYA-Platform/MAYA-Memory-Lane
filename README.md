@@ -346,6 +346,11 @@ an explicit busy error (HTTP 503). Disconnected HTTP searches propagate cancella
 already-started file reads may still finish before their slot is released. The direct JavaScript `search()` API
 remains synchronous and is not subject to this async queue.
 
+Indexed text matches are ranked first (with the existing graph cross-boost),
+then literal substring matches fill remaining slots, then graph-only suggestions
+fill any remaining space. A full result limit can still omit later matches; the
+substring scan adds CPU work and may scan every captured block.
+
 Each search excerpt and its manifest-hash status describe the bytes captured
 for that result, even if a file changes before the response arrives. A search
 is not an atomic snapshot across files: files may be captured at different times,
