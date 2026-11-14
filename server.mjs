@@ -161,9 +161,14 @@ function deriveTitle(text, max = 72) {
   return clean.slice(0, max) || 'Memory block';
 }
 
+// Reuse one equivalent manifest object so its snapshot-validated search indexes
+// can be reused. Block bytes are still read and fingerprinted on every search.
+let reusableLibrary = null;
 function getLibrary() {
   const lib = loadLibrary(activeLibraryPath);
-  if (!lib.ok) return lib;
+  if (!lib.ok) { reusableLibrary = null; return lib; }
+  if (reusableLibrary && JSON.stringify(reusableLibrary) === JSON.stringify(lib)) return reusableLibrary;
+  reusableLibrary = lib;
   return lib;
 }
 
