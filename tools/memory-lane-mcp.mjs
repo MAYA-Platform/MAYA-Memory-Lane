@@ -47,7 +47,8 @@ const TOOLS = [
       properties: {
         query: { type: 'string', description: 'Search terms, e.g. "honda civic" or "launch timeline"' },
         limit: { type: 'number', description: 'Positive safe integer; default 5, maximum 25 (larger requests are capped)' },
-        rerank: { type: 'string', enum: ['none', 'jev'], description: 'Default none. jev sends the query and excerpts to the configured decisions provider only when the operator also enables MEMORY_LANE_MCP_JEV_OPT_IN=1.' }
+        rerank: { type: 'string', enum: ['none', 'jev'], description: 'Default none. jev sends the query and excerpts to the configured decisions provider only when the operator also enables MEMORY_LANE_MCP_JEV_OPT_IN=1.' },
+        explain: { type: 'boolean', description: 'Optional retrieval-origin labels; they are not proof of relevance or source truth.' }
       },
       required: ['query']
     }
@@ -120,6 +121,8 @@ async function handleToolCall(name, args) {
   switch (name) {
     case 'ml_search': {
       const q = String((args && args.query) || '');
+      if (args?.explain !== undefined && typeof args.explain !== 'boolean') return { isError: true, content: [{ type: 'text', text: 'explain must be a boolean.' }] };
+      const explain = args?.explain === true;
       const allowJev = jevRequest(args);
       if (allowJev === null) return { isError: true, content: [{ type: 'text', text: 'rerank must be none or jev.' }] };
       const rankNote = args?.rerank === 'jev' && !allowJev ? '\nJev ranking is not enabled by the operator; lexical ranking used.' : '';
@@ -132,7 +135,7 @@ async function handleToolCall(name, args) {
       // trim to the caller's limit. Jev requires an operator opt-in and an
       // explicit request; the availability of a key does not authorize egress.
       const fetchLimit = Math.max(limit * 2, 10);
-      let r = await searchAsync(lib, q, { limit: fetchLimit });
+      let r = await searchAsync(lib, q, { limit: fetchLimit, explain });
       if (!r.count) return { content: [{ type: 'text', text: `No matches for "${q}".${capNote}${rankNote}` }] };
       let jevNote = '';
       if (allowJev && jevAvailable() && r.count >= 2) {
@@ -148,9 +151,12 @@ async function handleToolCall(name, args) {
       const lines = matches.map((m) => {
         const status = ['match', 'mismatch', 'missing', 'invalid'].includes(m.manifest_hash_status)
           ? m.manifest_hash_status : 'unknown';
-        return `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))} [manifest hash: ${status}]${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}`;
+        const reasons = m.retrieval_reasons || (m.via === 'jev-lineage' ? ['jev_lineage'] : []);
+        const reasonNote = explain ? ` [retrieval: ${reasons.join(', ') || 'unavailable'}]` : '';
+        return `• ${m.block_id} — ${esc(m.excerpt.slice(0, 200))} [manifest hash: ${status}]${typeof m.jev_score === 'number' ? ` (jev ${m.jev_score.toFixed(2)})` : ''}${reasonNote}`;
       });
-      return { content: [{ type: 'text', text: `${matches.length} result(s) returned for "${q}"; additional matches may exist:\n${lines.join('\n')}${jevNote}${capNote}${rankNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.` }] };
+      const reasonNote = explain ? '\nRetrieval labels describe candidate origins before any optional reranking, not relevance or source truth.' : '';
+      return { content: [{ type: 'text', text: `${matches.length} result(s) returned for "${q}"; additional matches may exist:\n${lines.join('\n')}${jevNote}${capNote}${rankNote}\nHash status compares excerpt bytes to the manifest; a match does not verify source truth, chain integrity, or manifest authenticity.${reasonNote}` }] };
     }
     case 'ml_answer': {
       const q = String((args && args.question) || '');
