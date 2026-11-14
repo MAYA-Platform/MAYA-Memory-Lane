@@ -42,6 +42,15 @@ test('a full-width existing excerpt cannot suppress a shorter Unicode-equivalent
   assert.equal(records.length, 2);
 });
 
+test('identical observations at the excerpt limit are intentionally retained', t => {
+  const lib = library(t);
+  const content = 'I prefer ' + 'x'.repeat(231);
+  assert.equal(content.length, 240);
+  observeMessage(lib, { speaker: 'user', content });
+  observeMessage(lib, { speaker: 'user', content });
+  assert.equal(readObservations(lib).length, 2);
+});
+
 test('same short speaker content remains deduplicated across sessions', t => {
   const lib = library(t);
   observeMessage(lib, { speaker: 'user', session_id: 'one', content: 'I prefer concise updates' });
