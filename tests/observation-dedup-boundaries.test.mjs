@@ -29,6 +29,19 @@ test('shared maximum-length prefix does not suppress a later observation', t => 
   assert.ok(records.every(o => o.excerpt.length === 240));
 });
 
+test('a full-width existing excerpt cannot suppress a shorter Unicode-equivalent input', t => {
+  const lib = library(t);
+  const prefix = 'I prefer ' + 'x'.repeat(229);
+  const longer = prefix + 'e\u0301' + ' a removed suffix';
+  const shorter = prefix + '\u00e9';
+  observeMessage(lib, { speaker: 'user', content: longer });
+  observeMessage(lib, { speaker: 'user', content: shorter });
+  const records = readObservations(lib);
+  assert.equal(records[0].excerpt.length, 240);
+  assert.equal(shorter.length, 239);
+  assert.equal(records.length, 2);
+});
+
 test('same short speaker content remains deduplicated across sessions', t => {
   const lib = library(t);
   observeMessage(lib, { speaker: 'user', session_id: 'one', content: 'I prefer concise updates' });
