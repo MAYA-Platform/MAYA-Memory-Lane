@@ -358,10 +358,11 @@ const routes = {
   '/api/search': async (req, res) => {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const q = url.searchParams.get('q') || '';
+    const explain = url.searchParams.get('explain') === '1';
     const generation = activeLibraryGeneration;
     const lib = getLibrary();
     if (!lib.ok) return sendJson(res, 500, { ok: false, reason: lib.reason });
-    const result = await searchAsync(lib, q, { signal: req.memorySearchSignal });
+    const result = await searchAsync(lib, q, { signal: req.memorySearchSignal, explain });
     if (req.memorySearchSignal.aborted) return;
     if (generation !== activeLibraryGeneration) return sendJson(res, 409, { ok: false, error: 'Library changed during search; retry.' });
     // JevRank (opt-in): ?rerank=jev re-scores the top candidates with ONE
@@ -372,7 +373,9 @@ const routes = {
       const ranked = await jevRank(lib, q, result.matches, { topN: 10 });
       if (generation !== activeLibraryGeneration) return sendJson(res, 409, { ok: false, error: 'Library changed during search; retry.' });
       if (ranked.jev && ranked.jev.applied) ranked.jev.latency_ms = Date.now() - t0;
-      sendJson(res, 200, { ok: true, query: q, count: ranked.matches.length, matches: ranked.matches, jev: ranked.jev });
+      const matches = explain ? ranked.matches.map(match => match.via === 'jev-lineage' && !match.retrieval_reasons
+        ? { ...match, retrieval_reasons: ['jev_lineage'] } : match) : ranked.matches;
+      sendJson(res, 200, { ok: true, query: q, count: matches.length, matches, jev: ranked.jev });
       return;
     }
     sendJson(res, 200, { ok: true, ...result });

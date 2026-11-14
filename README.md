@@ -156,7 +156,7 @@ The importer checks collected paths for collisions in its legacy 32-bit lineage 
 
 ### JavaScript search explanations
 
-For JavaScript callers, `search(library, query, { explain: true })` and `searchAsync` can add `retrieval_reasons` to each hit. `fts` denotes a full-text match, `substring` denotes substring fallback or opt-in infix, `graph_suggestion` denotes a graph-only result, and `graph_cross_boost_group` denotes an FTS result placed in the graph-supported group. The group label does not prove that its position changed. These labels describe retrieval mechanics, not source truth or authorization. The option is off by default and is not exposed by the HTTP or MCP routes.
+For JavaScript callers, `search(library, query, { explain: true })` and `searchAsync` can add `retrieval_reasons` to each hit. HTTP `GET /api/search?q=...&explain=1` and MCP `ml_search` with `explain: true` expose the same opt-in information; defaults remain unchanged. `fts` denotes a full-text match, `substring` denotes substring fallback or opt-in infix, `graph_suggestion` denotes a graph-only result, and `graph_cross_boost_group` denotes an FTS result placed in the graph-supported group. The group label does not prove that its position changed. With separately requested Jev reranking, `jev_lineage` identifies a candidate added by that reranker; other labels describe its input candidate origins rather than why the reranker assigned its final order. These labels describe retrieval mechanics, not relevance, source truth or authorization. Explanations do not enable Jev or change its existing egress requirements.
 
 ## How the chain works
 
