@@ -44,6 +44,7 @@ const DEFAULT_LIBRARY = process.env.MEMORY_LANE_LIBRARY
 const SKIP_DIRS = new Set(['.obsidian', '.git', '.trash', 'node_modules', '.smart-env', '.space', '_files']);
 const EXTS = new Set(['.md', '.txt']);
 const MAX_FILES_DEFAULT = 5000;
+const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true });
 
 function sha256ish(text) {
   // Cheap local fingerprint for run-to-run dedup of import offers. Real
@@ -184,7 +185,8 @@ async function main() {
       if (fs.statSync(file).size > opts.maxKb * 1024) { skipped++; continue; }
       const bytes = fs.readFileSync(file);
       if (bytes.length > opts.maxKb * 1024) { skipped++; continue; }
-      text = bytes.toString('utf8');
+      // Refuse malformed bytes rather than sealing a silently altered note.
+      text = UTF8_DECODER.decode(bytes);
     } catch (err) {
       failed++;
       if (!opts.quiet) console.error(`  ! ${file}: ${err.message}`);
