@@ -346,6 +346,16 @@ an explicit busy error (HTTP 503). Disconnected HTTP searches propagate cancella
 already-started file reads may still finish before their slot is released. The direct JavaScript `search()` API
 remains synchronous and is not subject to this async queue.
 
+Direct JavaScript callers can explicitly pass `{ infix: true }` to `search()` or
+`searchAsync()` to fill spare slots with literal substring matches. Indexed
+matches retain the existing graph cross-boost; substring matches precede
+graph-only suggestions. The default search behavior is unchanged. This option
+is not exposed through the HTTP, CLI or MCP search interfaces. It may scan every
+captured block, add CPU work and surface additional source text; a caller must
+authorize its source scope and any downstream provider disclosure separately.
+A full result limit can still omit later matches. This does not determine which
+record is the latest correction or guarantee correction precedence.
+
 Each search excerpt and its manifest-hash status describe the bytes captured
 for that result, even if a file changes before the response arrives. A search
 is not an atomic snapshot across files: files may be captured at different times,
