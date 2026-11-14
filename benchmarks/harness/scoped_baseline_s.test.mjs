@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createHash} from 'node:crypto';import {verifyBytes} from './scoped_baseline_s.mjs';
+import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';
+test('S worker validates exact bytes and size before parsing',()=>{const bytes=Buffer.from('[{"fictional":true}]');const hash=createHash('sha256').update(bytes).digest('hex');assert.deepEqual(verifyBytes(bytes,bytes.length,hash),[{fictional:true}]);assert.throws(()=>verifyBytes(bytes,bytes.length+1,hash),/mismatch/);assert.throws(()=>verifyBytes(bytes,bytes.length,'0'.repeat(64)),/mismatch/);});
+test('portable CLIs reject missing dataset and output arguments',()=>{for(const name of ['./scoped_baseline_s.mjs','./scoped_baseline_s_pilot.mjs','./scoped_baseline_launcher.mjs']){const result=spawnSync(process.execPath,[fileURLToPath(new URL(name,import.meta.url))],{encoding:'utf8'});assert.equal(result.status,2);}});
