@@ -19,11 +19,11 @@ try {
   }
   fs.writeFileSync(path.join(root,'MANIFEST.json'),JSON.stringify({blocks}));
   const library = loadLibrary(root);
-  search(library,'hiking',{limit:25}); // Warm index and filesystem cache.
+  search(library,'hiking',{limit:25,infix:true}); // Warm index and filesystem cache.
   const times = [], cpuStart = process.cpuUsage();
   for (let i=0; i<5; i++) {
     const start = performance.now();
-    const result = search(library,'hiking',{limit:25});
+    const result = search(library,'hiking',{limit:25,infix:true});
     if (result.count !== 1) throw new Error(`unexpected fixture count: ${result.count}`);
     times.push(Number((performance.now()-start).toFixed(1)));
   }

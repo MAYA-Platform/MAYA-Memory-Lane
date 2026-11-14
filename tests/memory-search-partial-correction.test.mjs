@@ -14,14 +14,16 @@ test('partial substring query finds a corrected source even when FTS has another
   const library = loadLibrary(root);
   assert.equal(search(library, 'ear').count, 1);
   fs.writeFileSync(library.blocks[1].filePath, 'pearword corrected');
-  for (const result of [search(library, 'ear'), await searchAsync(library, 'ear')]) {
+  assert.equal(search(library, 'ear').count, 1);
+  assert.equal((await searchAsync(library, 'ear', {infix:'true'})).count, 1);
+  for (const result of [search(library, 'ear', {infix:true}), await searchAsync(library, 'ear', {infix:true})]) {
     assert.equal(result.count, 2);
     assert.ok(result.matches.some(row => row.lib_id === library.blocks[1].lib_id && row.excerpt.includes('pearword')));
     assert.equal(new Set(result.matches.map(row => row.lib_id)).size, 2);
   }
-  assert.equal(search(library, 'ear', {limit:1}).count, 1);
+  assert.equal(search(library, 'ear', {limit:1, infix:true}).count, 1);
   fs.writeFileSync(library.blocks[1].filePath, 'banana corrected again');
-  assert.equal((await searchAsync(library, 'ear')).count, 1);
+  assert.equal((await searchAsync(library, 'ear', {infix:true})).count, 1);
 });
 
 test('direct substring gets the remaining slot before a graph-only neighbor', async t => {
@@ -32,7 +34,8 @@ test('direct substring gets the remaining slot before a graph-only neighbor', as
   appendBlock(root, {title:'B', body:'Alex also owns a kayak for lake trips.', lineage:'auto'});
   appendBlock(root, {title:'C', body:'dayhiking notebook', lineage:'auto'});
   const lib = loadLibrary(root);
-  for (const result of [search(lib,'hiking',{limit:2}), await searchAsync(lib,'hiking',{limit:2})]) {
+  assert.deepEqual(search(lib,'hiking',{limit:2}).matches.map(row => row.lib_id), [lib.blocks[0].lib_id, lib.blocks[1].lib_id]);
+  for (const result of [search(lib,'hiking',{limit:2,infix:true}), await searchAsync(lib,'hiking',{limit:2,infix:true})]) {
     assert.deepEqual(result.matches.map(row => row.lib_id), [lib.blocks[0].lib_id, lib.blocks[2].lib_id]);
   }
 });
